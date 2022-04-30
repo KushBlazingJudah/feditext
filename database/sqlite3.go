@@ -71,6 +71,29 @@ func (db *SqliteDatabase) Board(ctx context.Context, id string) (Board, error) {
 	return board, row.Scan(&board.Title, &board.Description)
 }
 
+// Boards returns a list of all boards.
+func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
+	rows, err := db.conn.QueryContext(ctx, "SELECT id, title, description FROM boards")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	boards := []Board{}
+
+	for rows.Next() {
+		board := Board{}
+
+		if err := rows.Scan(&board.ID, &board.Title, &board.Description); err != nil {
+			return boards, err
+		}
+
+		boards = append(boards, board)
+	}
+
+	return boards, rows.Err()
+}
+
 // Thread fetches all posts on a thread.
 func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID) ([]Post, error) {
 	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)

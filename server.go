@@ -1,16 +1,19 @@
 package feditext
 
 import (
+	"html/template"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/html"
 )
 
-var db database.Database
+var DB database.Database
 
 func Startup() {
 	var err error
@@ -31,30 +34,44 @@ func Startup() {
 		os.Exit(1)
 	}
 
-	db, err = database.Engines[config.DatabaseEngine](config.DatabaseArg)
+	DB, err = database.Engines[config.DatabaseEngine](config.DatabaseArg)
 	if err != nil {
 		panic(err)
 	}
+
+	routes.DB = DB
 }
 
 func Close() {
-	if err := db.Close(); err != nil {
+	if err := DB.Close(); err != nil {
 		log.Printf("Error closing database: %v", err)
 	}
 }
 
 func Serve() {
+	tmpl := html.New("./views", ".html")
+
+	tmpl.AddFunc("unescape", func(s string) template.HTML {
+		return template.HTML(s)
+	})
+
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		AppName:               "feditext",
 		ServerHeader:          "feditext/" + config.Version,
 
+		Views:       tmpl,
+		ViewsLayout: "layouts/main",
 		// TODO: Timeouts
 	})
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString(config.Version)
-	})
+	app.Static("/", "./static")
+
+	app.Get("/", routes.GetIndex)
+
+	// Admin
+	app.Get("/admin", routes.GetAdmin)
+	app.Post("/admin/board", routes.PostBoard)
 
 	app.Listen(config.ListenAddress)
 }

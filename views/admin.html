@@ -1,0 +1,17 @@
+<h1>Admin view</h1>
+
+<h2>Boards</h2>
+<table>
+	<tr><th>ID</th><th>Title</th><th>Description</th></tr>
+	{{range .boards}}
+	<tr><td>{{.ID}}</td><td>{{.Title}}</td><td>{{.Description}}</td></tr>
+	{{end}}
+</table>
+
+<h3>New board</h3>
+<form action="/admin/board" method="post">
+	<input type="text" name="id" id="id" value="">
+	<input type="text" name="title" id="title" value="">
+	<input type="text" name="description" id="description" value="">
+	<input type="submit">
+</form>

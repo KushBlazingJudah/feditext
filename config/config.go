@@ -8,6 +8,9 @@ var (
 	// FQDN is the domain of the server, such as example.com or foo.example.com.
 	FQDN string = "localhost"
 
+	// Title is the title of this server. It is used in titles.
+	Title string = "Feditext"
+
 	// Version is the version of the server that was built.
 	// This can be used to determine what version a server is running without
 	// needing to call upon the administrator.

@@ -40,6 +40,10 @@ func Load(path string) error {
 			DatabaseEngine = value
 		case "dbarg":
 			DatabaseArg = value
+		case "listen":
+			ListenAddress = value
+		case "title":
+			Title = value
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}

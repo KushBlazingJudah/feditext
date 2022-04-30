@@ -1,0 +1,9 @@
+<h1>Hello, world!</h1>
+<p>Feditext version <code>{{.version}}</code></p>
+
+<h2>Board list</h2>
+<ul>
+	{{range .boards}}
+	<li><a href="/{{.ID}}">/{{.ID}}/ - {{.Title}}</a></li>
+	{{end}}
+</ul>
