@@ -122,6 +122,14 @@ func PostBoardThread(c *fiber.Ctx) error {
 	}
 
 	// TODO: Check if it's a valid thread
+	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
+	if err != nil {
+		return err
+	}
+
+	if post.Thread != 0 {
+		return c.SendStatus(400) // TODO: bad thread
+	}
 
 	var newPost struct {
 		Name, Content string
@@ -137,7 +145,8 @@ func PostBoardThread(c *fiber.Ctx) error {
 		newPost.Name = "Anonymous"
 	}
 
-	post := database.Post{
+	// Reusing the post variable
+	post = database.Post{
 		Thread:  database.PostID(tid),
 		Name:    newPost.Name,
 		Content: newPost.Content,
@@ -148,5 +157,6 @@ func PostBoardThread(c *fiber.Ctx) error {
 		return err
 	}
 
+	// Redirect back to the thread
 	return c.Redirect("")
 }

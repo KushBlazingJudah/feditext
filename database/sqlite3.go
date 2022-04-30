@@ -142,7 +142,13 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		posts = append(posts, post)
 	}
 
-	return posts, rows.Err()
+	// Say no rows if we get nothing back
+	err = rows.Err()
+	if err == nil && len(posts) == 0 {
+		err = sql.ErrNoRows
+	}
+
+	return posts, err
 }
 
 // Post fetches a single post from a thread.
