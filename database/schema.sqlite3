@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS posts(
+	post INTEGER PRIMARY KEY ASC,
+	thread INTEGER,
+
+	name TEXT,
+	tripcode TEXT,
+	date INTEGER,
+	options TEXT,
+	content TEXT,
+
+	source TEXT
+);
+
+CREATE TABLE IF NOT EXISTS auditlog(
+	id INTEGER PRIMARY KEY ASC,
+
+	type INTEGER,
+	date INTEGER,
+
+	author TEXT,
+	on INTEGER,
+	reason INTEGER
+);

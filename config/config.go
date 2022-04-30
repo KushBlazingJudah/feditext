@@ -1,6 +1,8 @@
 package config
 
-import "runtime/debug"
+import (
+	"runtime/debug"
+)
 
 var (
 	// FQDN is the domain of the server, such as example.com or foo.example.com.

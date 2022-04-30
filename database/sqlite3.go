@@ -5,14 +5,36 @@ package database
 
 import (
 	"context"
+
+	"database/sql"
+
+	_ "embed"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
+//go:embed schema.sqlite3
+var sqliteSchema string
+
 type SqliteDatabase struct {
+	conn *sql.DB
 }
 
 func init() {
 	Engines["sqlite3"] = func(arg string) (Database, error) {
-		return &SqliteDatabase{}, nil
+		db, err := sql.Open("sqlite3", arg)
+		if err != nil {
+			return nil, err
+		}
+
+		// Run initial schema
+		_, err = db.Exec(sqliteSchema)
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+
+		return &SqliteDatabase{conn: db}, nil
 	}
 }
 
@@ -45,5 +67,5 @@ func (db *SqliteDatabase) DeletePost(ctx context.Context, thread PostID, post Po
 
 // Close closes the database. This should only be called upon exit.
 func (db *SqliteDatabase) Close() error {
-	panic("not implemented") // TODO: Implement
+	return db.conn.Close()
 }
