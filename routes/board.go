@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
@@ -159,4 +160,89 @@ func PostBoardThread(c *fiber.Ctx) error {
 
 	// Redirect back to the thread
 	return c.Redirect("")
+}
+
+func GetThreadDelete(c *fiber.Ctx) error {
+	// Need privileges
+	ok := hasPriv(c, database.ModTypeJanitor)
+	if !ok {
+		return c.Redirect("/admin/login")
+	}
+
+	_, board, err := board(c)
+	if err != nil {
+		return err
+	}
+
+	tid, err := strconv.Atoi(c.Params("thread"))
+	if err != nil {
+		return err
+	}
+
+	// TODO: Check if it's a valid thread
+	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
+	if err != nil {
+		return err
+	}
+
+	if post.Thread != 0 {
+		return c.SendStatus(400) // TODO: bad thread
+	}
+
+	if err := DB.DeleteThread(c.Context(), board.ID, post.ID, database.ModerationAction{
+		Author: c.Locals("username").(string),
+		Action: database.ModActionDelete,
+		Board:  board.ID,
+		Post:   post.ID,
+		Reason: "TODO",
+		Time:   time.Now(),
+	}); err != nil {
+		return err
+	}
+
+	// Redirect back to the board
+	return c.Redirect("/" + board.ID)
+}
+
+func GetPostDelete(c *fiber.Ctx) error {
+	// Need privileges
+	ok := hasPriv(c, database.ModTypeJanitor)
+	if !ok {
+		return c.Redirect("/admin/login")
+	}
+
+	_, board, err := board(c)
+	if err != nil {
+		return err
+	}
+
+	pid, err := strconv.Atoi(c.Params("post"))
+	if err != nil {
+		return err
+	}
+
+	// Check if it's a valid post
+	post, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
+	if err != nil {
+		return err
+	}
+
+	if post.Thread == 0 {
+		// It's a thread
+		return c.SendStatus(400)
+	}
+
+	if err := DB.DeletePost(c.Context(), board.ID, post.ID, database.ModerationAction{
+		Author: c.Locals("username").(string),
+		Action: database.ModActionDelete,
+		Board:  board.ID,
+		Post:   post.ID,
+		Reason: "TODO",
+		Time:   time.Now(),
+	}); err != nil {
+		return err
+	}
+
+	// Redirect back to the thread
+	return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.Thread))
 }

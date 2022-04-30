@@ -74,6 +74,7 @@ func Serve() {
 
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
+		PassLocalsToViews:     true,
 		AppName:               "feditext",
 		ServerHeader:          "feditext/" + config.Version,
 
@@ -122,6 +123,9 @@ func Serve() {
 	// Boards
 	app.Get("/:board", routes.GetBoardIndex)
 	app.Post("/:board", routes.PostBoardIndex)
+
+	app.Get("/:board/delete/:post", routes.GetPostDelete)
+	app.Get("/:board/:thread/delete", routes.GetThreadDelete)
 
 	app.Get("/:board/:thread", routes.GetBoardThread)
 	app.Post("/:board/:thread", routes.PostBoardThread)
