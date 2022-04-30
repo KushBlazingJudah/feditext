@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"os"
 	"runtime/debug"
 )
 
@@ -29,9 +31,36 @@ var (
 	// ListenAddress is where the HTTP server will be listening.
 	// By default, it is :8080, or, 0.0.0.0:8080.
 	ListenAddress string = ":8080"
+
+	// JWTSecret is used to sign authorization tokens.
+	// This is 64 random bytes generated upon startup.
+	JWTSecret []byte = make([]byte, 64)
+
+	// RandAdmin sets the "admin" user in the database to a random password that is printed in the console.
+	RandAdmin bool = true
 )
 
 func init() {
+	// Most of everything here is fatal anyway so just panic
+
+	if _, err := os.Stat("./jwtsecret"); err == nil {
+		JWTSecret, err = os.ReadFile("./jwtsecret")
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		rand.Read(JWTSecret)
+
+		fp, err := os.OpenFile("./jwtsecret", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
+		if err != nil {
+			panic(err)
+		}
+		defer fp.Close()
+		if _, err := fp.Write(JWTSecret); err != nil {
+			panic(err)
+		}
+	}
+
 	// Use Go 1.18 features to obtain information about this build
 	// Inspiration from this PR: https://github.com/tailscale/tailscale/pull/4185/files
 

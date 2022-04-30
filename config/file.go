@@ -44,6 +44,8 @@ func Load(path string) error {
 			ListenAddress = value
 		case "title":
 			Title = value
+		case "randadmin":
+			RandAdmin = value == "true"
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}

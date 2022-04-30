@@ -1,5 +1,6 @@
+*.config
 .env
+/*.sqlite3
 /feditext
 /feditext.exe
-/*.sqlite3
-*.config
+/jwtsecret

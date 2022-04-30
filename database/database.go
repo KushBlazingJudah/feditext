@@ -29,7 +29,9 @@ const (
 	ModActionBan ModerationActionType = iota
 	ModActionWarn
 	ModActionDelete
+)
 
+const (
 	ModTypeJanitor ModType = iota
 	ModTypeMod
 	ModTypeAdmin

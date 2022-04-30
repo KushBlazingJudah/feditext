@@ -1,6 +1,9 @@
 package feditext
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"html/template"
 	"log"
 	"os"
@@ -11,6 +14,7 @@ import (
 	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 var DB database.Database
@@ -40,6 +44,19 @@ func Startup() {
 	}
 
 	routes.DB = DB
+
+	// Set a random admin password
+	if config.RandAdmin {
+		buf := make([]byte, 16)
+		rand.Read(buf)
+
+		pass := hex.EncodeToString(buf)
+		if err := DB.SaveModerator(context.Background(), "admin", pass, database.ModTypeAdmin); err != nil {
+			log.Printf("while setting new admin password: %v", err)
+		} else {
+			log.Printf("admin password: %s", pass)
+		}
+	}
 }
 
 func Close() {
@@ -67,10 +84,39 @@ func Serve() {
 
 	app.Static("/", "./static")
 
+	// Authentication middleware
+	app.Use(func(c *fiber.Ctx) error {
+		rawToken := c.Cookies("token")
+		if rawToken == "" {
+			// No token
+			return c.Next()
+		}
+
+		t, err := jwt.Parse(rawToken, jwtKeyfunc)
+		if err == nil && t.Valid {
+			// Token is valid, so throw it in
+			claims := t.Claims.(jwt.MapClaims)
+			username := claims["username"].(string)
+			priv := claims["priv"].(float64)
+
+			c.Locals("username", username)
+			c.Locals("privs", database.ModType(priv))
+		} else {
+			log.Printf("failed to authenticate token from %s: %v", c.IP(), err)
+			c.ClearCookie("token")
+		}
+
+		// Fail silently otherwise
+
+		return c.Next()
+	})
+
 	app.Get("/", routes.GetIndex)
 
 	// Admin
 	app.Get("/admin", routes.GetAdmin)
+	app.Get("/admin/login", routes.GetAdminLogin)
+	app.Post("/admin/login", routes.PostAdminLogin)
 	app.Post("/admin/board", routes.PostBoard)
 
 	// Boards
