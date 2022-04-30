@@ -77,5 +77,8 @@ func Serve() {
 	app.Get("/:board", routes.GetBoardIndex)
 	app.Post("/:board", routes.PostBoardIndex)
 
+	app.Get("/:board/:thread", routes.GetBoardThread)
+	app.Post("/:board/:thread", routes.PostBoardThread)
+
 	app.Listen(config.ListenAddress)
 }

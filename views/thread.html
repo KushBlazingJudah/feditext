@@ -1,0 +1,28 @@
+{{$board := .board}}
+{{$thread := (index .posts 0).ID}}
+<h1>/{{.board.ID}}/ - {{.board.Title}}</h1>
+<p>{{.board.Description}}</p>
+
+<h2>Create a new post</h2>
+<form action="/{{.board.ID}}/{{$thread}}" method="post">
+	<table id="postForm">
+		<tr>
+			<td><label for="name">Name:</label></td>
+			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="100"><input type="submit" value="Post"></td>
+		</tr>
+		<tr>
+			<td><label for="content">Content:</label></td>
+			<td><textarea rows="10" cols="50" id="content" name="content" maxlength="2000"></textarea></td>
+		</tr>
+	</table>
+</form>
+
+<h2>Posts</h2>
+{{range .posts}}
+<div id="p{{.ID}}" class="post">
+	<h3><a href="#p{{.ID}}">#{{.ID}}</a> <span class="name">{{.Name}}</span> <span class="date">{{.Date}}</span></h3>
+	<blockquote>
+		{{.Content}}
+	</blockquote>
+</div>
+{{end}}
