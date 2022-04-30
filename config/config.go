@@ -6,13 +6,13 @@ import (
 
 var (
 	// FQDN is the domain of the server, such as example.com or foo.example.com.
-	FQDN string
+	FQDN string = "localhost"
 
 	// Version is the version of the server that was built.
 	// This can be used to determine what version a server is running without
 	// needing to call upon the administrator.
 	// Do not set manually.
-	Version string
+	Version string = "unknown"
 
 	// DatabaseEngine is the engine that is used as a database.
 	// Right now, this is only SQLite3.
@@ -22,6 +22,10 @@ var (
 	// This can be as simple as a file path (SQLite3) or if we had Postgres,
 	// whatever this is: https://www.postgresql.org/docs/11/libpq-connect.html#LIBPQ-CONNSTRING
 	DatabaseArg string
+
+	// ListenAddress is where the HTTP server will be listening.
+	// By default, it is :8080, or, 0.0.0.0:8080.
+	ListenAddress string = ":8080"
 )
 
 func init() {

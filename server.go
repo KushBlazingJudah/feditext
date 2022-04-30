@@ -7,6 +7,7 @@ import (
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/gofiber/fiber/v2"
 )
 
 var db database.Database
@@ -43,5 +44,17 @@ func Close() {
 }
 
 func Serve() {
-	panic("not implemented")
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+		AppName:               "feditext",
+		ServerHeader:          "feditext/" + config.Version,
+
+		// TODO: Timeouts
+	})
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString(config.Version)
+	})
+
+	app.Listen(config.ListenAddress)
 }
