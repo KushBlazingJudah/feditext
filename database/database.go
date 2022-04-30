@@ -83,6 +83,9 @@ type Database interface {
 	// Boards returns a list of all boards.
 	Boards(ctx context.Context) ([]Board, error)
 
+	// Threads fetches all threads on a board.
+	Threads(ctx context.Context, board string) ([]Post, error)
+
 	// Thread fetches all posts on a thread.
 	Thread(ctx context.Context, board string, thread PostID) ([]Post, error)
 

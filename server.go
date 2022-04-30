@@ -73,5 +73,9 @@ func Serve() {
 	app.Get("/admin", routes.GetAdmin)
 	app.Post("/admin/board", routes.PostBoard)
 
+	// Boards
+	app.Get("/:board", routes.GetBoardIndex)
+	app.Post("/:board", routes.PostBoardIndex)
+
 	app.Listen(config.ListenAddress)
 }

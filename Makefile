@@ -8,7 +8,7 @@ build:
 	go build $(GOFLAGS) -ldflags="-w -s" ./cmd/feditext
 
 dev:
-	go build -race $(GOFLAGS) ./cmd/feditext
+	go build $(GOFLAGS) ./cmd/feditext
 
 run: dev
 	./feditext

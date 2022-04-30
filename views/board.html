@@ -1,0 +1,33 @@
+{{$board := .board}}
+<h1>/{{.board.ID}}/ - {{.board.Title}}</h1>
+<p>{{.board.Description}}</p>
+
+<h2>Create a new thread</h2>
+<form action="/{{.board.ID}}" method="post">
+	<table id="postForm">
+		<tr>
+			<td><label for="name">Name:</label></td>
+			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="100"><input type="submit" value="Post"></td>
+		</tr>
+		<tr>
+			<td><label for="content">Content:</label></td>
+			<td><textarea rows="10" cols="50" id="content" name="content" maxlength="2000"></textarea></td>
+		</tr>
+	</table>
+</form>
+
+<h2>Current threads</h2>
+<table>
+	<tr>
+		<th>ID</th>
+		<th>Name</th>
+		<th>Content</th>
+	</tr>
+	{{range .threads}}
+	<tr>
+		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
+		<td>{{.Name}}</td>
+		<td>{{.Content}}</td>
+	</tr>
+	{{end}}
+</table>

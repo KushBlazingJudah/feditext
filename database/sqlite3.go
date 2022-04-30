@@ -94,6 +94,32 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 	return boards, rows.Err()
 }
 
+// Threads fetches all threads on a board.
+func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, error) {
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS 0 ORDER BY id ASC`, board))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []Post{}
+
+	for rows.Next() {
+		post := Post{}
+		var ttime int64
+
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source); err != nil {
+			return posts, err
+		}
+
+		post.Date = time.Unix(ttime, 0)
+		post.Thread = post.ID
+		posts = append(posts, post)
+	}
+
+	return posts, rows.Err()
+}
+
 // Thread fetches all posts on a thread.
 func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID) ([]Post, error) {
 	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
