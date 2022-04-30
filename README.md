@@ -60,3 +60,35 @@ Any changes I may need to make to FChannel (hopefully few if not none!) I will
 upstream.
 The developer says that he's interested in adding textboards to FChannel, so
 maybe this will give just the push we all need.
+
+## Dependencies
+
+- Go 1.18+
+
+If you build with SQLite3:
+
+- a C compiler
+- SQLite3 itself and its headers
+
+## Running
+
+Feditext is not in a very usable state, however a Makefile is included.
+
+- `build` builds a **release** build; this strips out some data that is
+  necessary for debugging.
+- `dev` builds a **developer** build; debugging information is left intact and
+  the race detector is turned on.
+- `run` runs a **developer** build.
+
+Less important targets:
+
+- `check` runs tests.
+- `tidy` tidies up everything.
+
+The following variables will be useful to you:
+
+- The standard `GO*` variables if you're cross compiling (you probably aren't)
+- `TAGS` builds with certain features included or excluded; `sqlite3` is the
+  default value.
+  - Always have a database in here, if you don't your build will be entirely
+    useless.
