@@ -66,7 +66,7 @@ func (db *SqliteDatabase) audit(ctx context.Context, modAction ModerationAction)
 
 // Board gets data about a board.
 func (db *SqliteDatabase) Board(ctx context.Context, id string) (Board, error) {
-	row := db.conn.QueryRowContext(ctx, `SELECT title, description WHERE id = ?`, id)
+	row := db.conn.QueryRowContext(ctx, `SELECT title, description FROM boards WHERE id = ?`, id)
 	board := Board{ID: id}
 	return board, row.Scan(&board.Title, &board.Description)
 }
@@ -107,6 +107,13 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 	post.Date = time.Unix(ttime, 0)
 
 	return post, err
+}
+
+// Privilege returns the type of moderator username is.
+func (db *SqliteDatabase) Privilege(ctx context.Context, username string) (ModType, error) {
+	row := db.conn.QueryRowContext(ctx, `SELECT type FROM moderators WHERE username = ?`, username)
+	var mt uint8
+	return ModType(mt), row.Scan(&mt)
 }
 
 // SaveBoard updates data about a board, or creates a new one.
@@ -176,6 +183,24 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	return err
 }
 
+// SaveModerator updates data about a moderator, or creates a new one.
+// TODO: We don't actually update a moderator. Just make a new one.
+func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password string, priv ModType) error {
+	hash, salt := hash([]byte(password))
+
+	// This is used to prevent passing an absurdly large amount of arguments.
+	// Of course, we still do that, this just looks nicer :)
+	args := []interface{}{
+		sql.Named("username", username),
+		sql.Named("hash", hash),
+		sql.Named("salt", salt),
+		sql.Named("type", priv),
+	}
+
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO moderators(username, hash, salt, type) VALUES(:username, :hash, :salt, :type)`, args...)
+	return err
+}
+
 // DeleteThread deletes a thread from the database and records a moderation action.
 // It will also delete all posts.
 func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error {
@@ -195,6 +220,24 @@ func (db *SqliteDatabase) DeletePost(ctx context.Context, board string, post Pos
 	}
 
 	return db.audit(ctx, modAction)
+}
+
+func (db *SqliteDatabase) password(ctx context.Context, username string) ([]byte, []byte, error) {
+	row := db.conn.QueryRowContext(ctx, `SELECT hash, salt FROM moderators WHERE username = ?`, username)
+
+	var hash []byte
+	var salt []byte
+	return hash, salt, row.Scan(&hash, &salt)
+}
+
+// PasswordCheck checks a moderator's password.
+func (db *SqliteDatabase) PasswordCheck(ctx context.Context, username string, password string) (bool, error) {
+	hash, salt, err := db.password(ctx, username)
+	if err != nil {
+		return false, err
+	}
+
+	return check([]byte(password), salt, hash), nil
 }
 
 // Close closes the database. This should only be called upon exit.

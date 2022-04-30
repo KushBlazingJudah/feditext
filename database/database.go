@@ -1,7 +1,10 @@
 package database
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/sha512"
 	"time"
 )
 
@@ -11,6 +14,9 @@ type PostID uint64
 
 // ModerationActionType is an enum for moderation actions.
 type ModerationActionType uint8
+
+// ModType is an enum for moderator types
+type ModType uint8
 
 // InitFunc is a function signature to make it easier to use any arbitrary
 // database.
@@ -23,6 +29,14 @@ const (
 	ModActionBan ModerationActionType = iota
 	ModActionWarn
 	ModActionDelete
+
+	ModTypeJanitor ModType = iota
+	ModTypeMod
+	ModTypeAdmin
+)
+
+const (
+	saltLength = 16
 )
 
 var Engines = map[string]InitFunc{}
@@ -72,6 +86,9 @@ type Database interface {
 	// Post fetches a single post from a thread.
 	Post(ctx context.Context, board string, post PostID) (Post, error)
 
+	// Privilege returns the type of moderator username is.
+	Privilege(ctx context.Context, username string) (ModType, error)
+
 	// SaveBoard updates data about a board, or creates a new one.
 	SaveBoard(ctx context.Context, board Board) error
 
@@ -80,6 +97,9 @@ type Database interface {
 	// If Post.Thread is 0, it is considered a thread.
 	SavePost(ctx context.Context, board string, post *Post) error
 
+	// SaveModerator saves a moderator to the database, or updates an existing entry.
+	SaveModerator(ctx context.Context, username string, password string, priv ModType) error
+
 	// DeleteThread deletes a thread from the database and records a moderation action.
 	// It will also delete all posts.
 	DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error
@@ -87,6 +107,32 @@ type Database interface {
 	// DeletePost deletes a post from the database and records a moderation action.
 	DeletePost(ctx context.Context, board string, post PostID, modAction ModerationAction) error
 
+	// PasswordCheck checks a moderator's password.
+	PasswordCheck(ctx context.Context, username string, password string) (bool, error)
+
 	// Close closes the database. This should only be called upon exit.
 	Close() error
+}
+
+// hash creates a hash of a password with a salt.
+func hash(password []byte) ([]byte, []byte) {
+	salt := make([]byte, saltLength)
+	rand.Read(salt)
+
+	buf := make([]byte, len(password)+len(salt))
+	copy(buf, password)
+	copy(buf[len(password):], salt)
+
+	hash := sha512.Sum512(buf)
+	return hash[:], salt
+}
+
+// check checks a password with a salt.
+func check(password []byte, salt []byte, target []byte) bool {
+	buf := make([]byte, len(password)+len(salt))
+	copy(buf, password)
+	copy(buf[len(password):], salt)
+
+	hash := sha512.Sum512(buf)
+	return bytes.Equal(hash[:], target)
 }
