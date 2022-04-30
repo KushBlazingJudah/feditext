@@ -1,2 +1,5 @@
+.env
 /feditext
 /feditext.exe
+/*.sqlite3
+*.config

@@ -1,0 +1,7 @@
+# This is an example configuration file.
+# The format here is pretty simple, I need not explain it.
+# Tabs are not counted as spaces, do not use tabs.
+
+fqdn foo.example.com
+dbengine sqlite3
+dbarg ./db.sqlite3

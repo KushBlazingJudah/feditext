@@ -12,6 +12,8 @@ import (
 var db database.Database
 
 func Startup() {
+	var err error
+
 	log.Printf("Starting version %s", config.Version)
 
 	if config.DatabaseEngine == "" {
@@ -26,6 +28,17 @@ func Startup() {
 		log.Printf("Available engines: %s", strings.Join(dbs, ","))
 
 		os.Exit(1)
+	}
+
+	db, err = database.Engines[config.DatabaseEngine](config.DatabaseArg)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func Close() {
+	if err := db.Close(); err != nil {
+		log.Printf("Error closing database: %v", err)
 	}
 }
 

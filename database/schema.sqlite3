@@ -1,3 +1,5 @@
+-- vim: set ft=sql:
+
 CREATE TABLE IF NOT EXISTS posts(
 	post INTEGER PRIMARY KEY ASC,
 	thread INTEGER,
@@ -18,6 +20,6 @@ CREATE TABLE IF NOT EXISTS auditlog(
 	date INTEGER,
 
 	author TEXT,
-	on INTEGER,
+	post INTEGER,
 	reason INTEGER
 );
