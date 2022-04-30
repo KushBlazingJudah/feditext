@@ -1,7 +1,7 @@
 -- vim: set ft=sql:
 
 CREATE TABLE IF NOT EXISTS posts(
-	post INTEGER PRIMARY KEY ASC,
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	thread INTEGER,
 
 	name TEXT,

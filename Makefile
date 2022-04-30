@@ -18,6 +18,6 @@ tidy:
 	go mod tidy
 
 check:
-	go test ./...
+	go test $(GOFLAGS) -cover ./...
 
 .PHONY: run tidy

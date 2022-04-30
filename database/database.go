@@ -62,18 +62,19 @@ type Database interface {
 	Thread(ctx context.Context, thread PostID) ([]Post, error)
 
 	// Post fetches a single post from a thread.
-	Post(ctx context.Context, thread PostID, post PostID) (Post, error)
+	Post(ctx context.Context, post PostID) (Post, error)
 
 	// SavePost saves a post to the database.
-	// It must have at least Post.Thread filled out.
-	SavePost(ctx context.Context, post Post) error
+	// If Post.ID is 0, one will be generated.
+	// If Post.Thread is 0, it is considered a thread.
+	SavePost(ctx context.Context, post *Post) error
 
 	// DeleteThread deletes a thread from the database and records a moderation action.
 	// It will also delete all posts.
 	DeleteThread(ctx context.Context, thread PostID, modAction ModerationAction) error
 
 	// DeletePost deletes a post from the database and records a moderation action.
-	DeletePost(ctx context.Context, thread PostID, post PostID, modAction ModerationAction) error
+	DeletePost(ctx context.Context, post PostID, modAction ModerationAction) error
 
 	// Close closes the database. This should only be called upon exit.
 	Close() error
