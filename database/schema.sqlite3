@@ -1,16 +1,10 @@
 -- vim: set ft=sql:
+CREATE TABLE IF NOT EXISTS boards(
+	id TEXT,
+	title TEXT,
+	description TEXT,
 
-CREATE TABLE IF NOT EXISTS posts(
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	thread INTEGER,
-
-	name TEXT,
-	tripcode TEXT,
-	date INTEGER,
-	options TEXT,
-	content TEXT,
-
-	source TEXT
+	UNIQUE(id)
 );
 
 CREATE TABLE IF NOT EXISTS auditlog(
@@ -20,6 +14,10 @@ CREATE TABLE IF NOT EXISTS auditlog(
 	date INTEGER,
 
 	author TEXT,
+	board TEXT,
 	post INTEGER,
-	reason INTEGER
+
+	reason INTEGER,
+
+	FOREIGN KEY(board) REFERENCES boards(id)
 );

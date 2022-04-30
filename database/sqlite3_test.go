@@ -17,6 +17,10 @@ func initTest() Database {
 		panic(err)
 	}
 
+	if err := db.SaveBoard(context.Background(), Board{ID: "b"}); err != nil {
+		panic(err)
+	}
+
 	return db
 }
 
@@ -31,7 +35,7 @@ func makeGarbage(db Database) []PostID {
 			Source:   "ghi",
 		}
 
-		if err := db.SavePost(context.Background(), &t); err != nil {
+		if err := db.SavePost(context.Background(), "b", &t); err != nil {
 			panic(err)
 		}
 
@@ -46,7 +50,7 @@ func makeGarbage(db Database) []PostID {
 				Source:   "ghi",
 			}
 
-			if err := db.SavePost(context.Background(), &p); err != nil {
+			if err := db.SavePost(context.Background(), "b", &p); err != nil {
 				panic(err)
 			}
 		}
@@ -70,14 +74,15 @@ func TestSqliteDatabase_Thread(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := db.Thread(context.Background(), tt.thread)
+			got, err := db.Thread(context.Background(), "b", tt.thread)
 			if err != nil {
 				t.Errorf("SqliteDatabase.Thread() error = %v", err)
 				return
 			}
 
 			if got[26].Content != "hello world" || got[0].Content != "def" {
-				t.Errorf("SqliteDatabase.Thread() bad content")
+				t.Errorf("SqliteDatabase.Thread() bad content; %s; %s", got[26].Content, got[0].Content)
+				t.Errorf("%d; %d", got[0].Thread, got[0].ID)
 				return
 			}
 		})
@@ -99,7 +104,7 @@ func TestSqliteDatabase_Post(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := db.Post(context.Background(), tt.id)
+			got, err := db.Post(context.Background(), "b", tt.id)
 			if err != nil {
 				t.Errorf("SqliteDatabase.Post() error = %v", err)
 				return
@@ -119,7 +124,7 @@ func TestSqliteDatabase_SavePost(t *testing.T) {
 
 	ts := makeGarbage(db)
 
-	newPost, err := db.Post(context.Background(), ts[1]+16)
+	newPost, err := db.Post(context.Background(), "b", ts[1]+16)
 	if err != nil {
 		panic(err)
 	}
@@ -136,11 +141,11 @@ func TestSqliteDatabase_SavePost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			if err := db.SavePost(context.Background(), tt.post); err != nil {
+			if err := db.SavePost(context.Background(), "b", tt.post); err != nil {
 				t.Errorf("SqliteDatabase.SavePost() error = %v", err)
 			}
 
-			retPost, err := db.Post(context.Background(), newPost.ID)
+			retPost, err := db.Post(context.Background(), "b", newPost.ID)
 			if err != nil {
 				panic(err)
 			}
@@ -174,17 +179,17 @@ func TestSqliteDatabase_DeleteThread(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			if err := db.DeleteThread(context.Background(), tt.thread, tt.modAction); err != nil {
+			if err := db.DeleteThread(context.Background(), "b", tt.thread, tt.modAction); err != nil {
 				t.Errorf("SqliteDatabase.DeleteThread() error = %v", err)
 			}
 
-			_, err := db.Post(context.Background(), tt.thread)
+			_, err := db.Post(context.Background(), "b", tt.thread)
 			if err == nil {
 				t.Errorf("SqliteDatabase.DeleteThread() didn't delete op")
 				return
 			}
 
-			_, err = db.Post(context.Background(), tt.thread+16)
+			_, err = db.Post(context.Background(), "b", tt.thread+16)
 			if err == nil {
 				t.Errorf("SqliteDatabase.DeleteThread() didn't delete post")
 				return
@@ -194,8 +199,6 @@ func TestSqliteDatabase_DeleteThread(t *testing.T) {
 }
 
 func TestSqliteDatabase_DeletePost(t *testing.T) {
-	type args struct {
-	}
 	db := initTest()
 	defer db.Close()
 
@@ -210,11 +213,11 @@ func TestSqliteDatabase_DeletePost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			if err := db.DeletePost(context.Background(), tt.post, tt.modAction); err != nil {
+			if err := db.DeletePost(context.Background(), "b", tt.post, tt.modAction); err != nil {
 				t.Errorf("SqliteDatabase.DeletePost() error = %v", err)
 			}
 
-			_, err := db.Post(context.Background(), tt.post)
+			_, err := db.Post(context.Background(), "b", tt.post)
 			if err == nil {
 				t.Errorf("SqliteDatabase.DeletePost() didn't delete post")
 				return

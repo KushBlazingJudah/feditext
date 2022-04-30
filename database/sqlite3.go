@@ -5,6 +5,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"database/sql"
@@ -16,6 +17,19 @@ import (
 
 //go:embed schema.sqlite3
 var sqliteSchema string
+
+const sqliteNewBoard = `CREATE TABLE IF NOT EXISTS posts_%s(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	thread INTEGER,
+
+	name TEXT,
+	tripcode TEXT,
+	date INTEGER,
+	options TEXT,
+	content TEXT,
+
+	source TEXT
+);`
 
 type SqliteDatabase struct {
 	conn *sql.DB
@@ -45,14 +59,21 @@ func (db *SqliteDatabase) audit(ctx context.Context, modAction ModerationAction)
 	}
 
 	_, err := db.conn.ExecContext(ctx,
-		"INSERT INTO auditlog(type, date, author, post, reason) VALUES (?, ?, ?, ?, ?)",
-		modAction.Action, modAction.Time, modAction.Author, modAction.On, modAction.Reason)
+		"INSERT INTO auditlog(type, date, author, board, post, reason) VALUES (?, ?, ?, ?, ?, ?)",
+		modAction.Action, modAction.Time, modAction.Author, modAction.Board, modAction.Post, modAction.Reason)
 	return err
 }
 
+// Board gets data about a board.
+func (db *SqliteDatabase) Board(ctx context.Context, id string) (Board, error) {
+	row := db.conn.QueryRowContext(ctx, `SELECT title, description WHERE id = ?`, id)
+	board := Board{ID: id}
+	return board, row.Scan(&board.Title, &board.Description)
+}
+
 // Thread fetches all posts on a thread.
-func (db *SqliteDatabase) Thread(ctx context.Context, thread PostID) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, `SELECT id, name, tripcode, date, content, source FROM posts WHERE id = ? OR thread = ?`, thread, thread)
+func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID) ([]Post, error) {
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +97,8 @@ func (db *SqliteDatabase) Thread(ctx context.Context, thread PostID) ([]Post, er
 }
 
 // Post fetches a single post from a thread.
-func (db *SqliteDatabase) Post(ctx context.Context, id PostID) (Post, error) {
-	row := db.conn.QueryRowContext(ctx, `SELECT thread, name, tripcode, date, content, source FROM posts WHERE id = ?`, id)
+func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Post, error) {
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, date, content, source FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
 	var ttime int64
@@ -88,10 +109,31 @@ func (db *SqliteDatabase) Post(ctx context.Context, id PostID) (Post, error) {
 	return post, err
 }
 
+// SaveBoard updates data about a board, or creates a new one.
+// TODO: We don't actually update a board. Just make a new one.
+func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
+	// This is used to prevent passing an absurdly large amount of arguments.
+	// Of course, we still do that, this just looks nicer :)
+	args := []interface{}{
+		sql.Named("id", board.ID),
+		sql.Named("title", board.Title),
+		sql.Named("description", board.Description),
+	}
+
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO boards(id, title, description) VALUES(:id, :title, :description)`, args...)
+	if err != nil {
+		return err
+	}
+
+	// Create posts table
+	_, err = db.conn.ExecContext(ctx, fmt.Sprintf(sqliteNewBoard, board.ID))
+	return err
+}
+
 // SavePost saves a post to the database.
 // If Post.ID is 0, one will be generated. If not, it will update an existing post.
 // If Post.Thread is 0, it is considered a thread.
-func (db *SqliteDatabase) SavePost(ctx context.Context, post *Post) error {
+func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post) error {
 	if post.Date.IsZero() {
 		post.Date = time.Now()
 	}
@@ -99,20 +141,21 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, post *Post) error {
 	// This is used to prevent passing an absurdly large amount of arguments.
 	// Of course, we still do that, this just looks nicer :)
 	args := []interface{}{
-		sql.Named("thread", post.Thread),
-		sql.Named("name", post.Name),
-		sql.Named("tripcode", post.Tripcode),
-		sql.Named("date", post.Date.Unix()),
 		sql.Named("content", post.Content),
+		sql.Named("date", post.Date.Unix()),
+		sql.Named("name", post.Name),
 		sql.Named("source", post.Source),
+		sql.Named("thread", post.Thread),
+		sql.Named("tripcode", post.Tripcode),
 	}
 
 	if post.ID == 0 {
 		// We are creating a new post.
 
-		r, err := db.conn.ExecContext(ctx, `INSERT INTO posts(thread, name,
-			tripcode, date, content, source) VALUES (:thread, :name,
-			:tripcode, :date, :content, :source)`, args...)
+		r, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
+			posts_%s(thread, name, tripcode, date, content, source) VALUES (
+			:thread, :name, :tripcode, :date, :content, :source)`,
+			board), args...)
 		if err != nil {
 			return err
 		}
@@ -127,16 +170,16 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, post *Post) error {
 	// We don't update all values of these posts, mostly only the ones that
 	// the user controls.
 	args = append(args, sql.Named("id", post.ID))
-	_, err := db.conn.ExecContext(ctx, `UPDATE posts SET name = :name,
-		tripcode = :tripcode, content = :content WHERE id = :id`,
-		args...)
+	_, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET name =
+		:name, tripcode = :tripcode, content = :content WHERE id = :id`,
+		board), args...)
 	return err
 }
 
 // DeleteThread deletes a thread from the database and records a moderation action.
 // It will also delete all posts.
-func (db *SqliteDatabase) DeleteThread(ctx context.Context, thread PostID, modAction ModerationAction) error {
-	_, err := db.conn.ExecContext(ctx, "DELETE FROM posts WHERE thread = ? OR id = ?", thread, thread)
+func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error {
+	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE thread = 0 OR thread = ?", board), thread)
 	if err != nil {
 		return err
 	}
@@ -145,8 +188,8 @@ func (db *SqliteDatabase) DeleteThread(ctx context.Context, thread PostID, modAc
 }
 
 // DeletePost deletes a post from the database and records a moderation action.
-func (db *SqliteDatabase) DeletePost(ctx context.Context, post PostID, modAction ModerationAction) error {
-	_, err := db.conn.ExecContext(ctx, "DELETE FROM posts WHERE id = ?", post)
+func (db *SqliteDatabase) DeletePost(ctx context.Context, board string, post PostID, modAction ModerationAction) error {
+	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ?", board), post)
 	if err != nil {
 		return err
 	}

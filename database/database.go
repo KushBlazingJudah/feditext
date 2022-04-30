@@ -49,32 +49,43 @@ type Post struct {
 type ModerationAction struct {
 	Author string
 	Action ModerationActionType
-	On     PostID
+	Board  string
+	Post   PostID
 	Reason string
 
 	Time time.Time
 }
 
+type Board struct {
+	ID, Title, Description string
+}
+
 // Database implements everything you might need in a textboard database.
 // This should be generic enough to port to whatever engine you may like.
 type Database interface {
+	// Board gets data about a board.
+	Board(ctx context.Context, board string) (Board, error)
+
 	// Thread fetches all posts on a thread.
-	Thread(ctx context.Context, thread PostID) ([]Post, error)
+	Thread(ctx context.Context, board string, thread PostID) ([]Post, error)
 
 	// Post fetches a single post from a thread.
-	Post(ctx context.Context, post PostID) (Post, error)
+	Post(ctx context.Context, board string, post PostID) (Post, error)
+
+	// SaveBoard updates data about a board, or creates a new one.
+	SaveBoard(ctx context.Context, board Board) error
 
 	// SavePost saves a post to the database.
 	// If Post.ID is 0, one will be generated.
 	// If Post.Thread is 0, it is considered a thread.
-	SavePost(ctx context.Context, post *Post) error
+	SavePost(ctx context.Context, board string, post *Post) error
 
 	// DeleteThread deletes a thread from the database and records a moderation action.
 	// It will also delete all posts.
-	DeleteThread(ctx context.Context, thread PostID, modAction ModerationAction) error
+	DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error
 
 	// DeletePost deletes a post from the database and records a moderation action.
-	DeletePost(ctx context.Context, post PostID, modAction ModerationAction) error
+	DeletePost(ctx context.Context, board string, post PostID, modAction ModerationAction) error
 
 	// Close closes the database. This should only be called upon exit.
 	Close() error
