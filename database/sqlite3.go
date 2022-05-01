@@ -276,7 +276,6 @@ func (db *SqliteDatabase) Moderators(ctx context.Context) ([]Moderator, error) {
 }
 
 // SaveBoard updates data about a board, or creates a new one.
-// TODO: We don't actually update a board. Just make a new one.
 func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 	// This is used to prevent passing an absurdly large amount of arguments.
 	// Of course, we still do that, this just looks nicer :)
@@ -286,7 +285,7 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 		sql.Named("description", board.Description),
 	}
 
-	_, err := db.conn.ExecContext(ctx, `INSERT INTO boards(id, title, description) VALUES(:id, :title, :description)`, args...)
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO boards(id, title, description) VALUES(:id, :title, :description) ON CONFLICT(id) DO UPDATE SET title = excluded.title, description = excluded.description`, args...)
 	if err != nil {
 		return err
 	}
@@ -348,7 +347,6 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 }
 
 // SaveModerator updates data about a moderator, or creates a new one.
-// TODO: We don't actually update a moderator. Just make a new one.
 func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password string, priv ModType) error {
 	hash, salt := hash([]byte(password))
 
@@ -361,7 +359,7 @@ func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password 
 		sql.Named("type", priv),
 	}
 
-	_, err := db.conn.ExecContext(ctx, `INSERT INTO moderators(username, hash, salt, type) VALUES(:username, :hash, :salt, :type)`, args...)
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO moderators(username, hash, salt, type) VALUES(:username, :hash, :salt, :type) ON CONFLICT(username) DO UPDATE SET hash = excluded.hash, salt = excluded.salt, type = excluded.type`, args...)
 	return err
 }
 
