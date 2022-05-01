@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/gofiber/fiber/v2"
 )
@@ -51,7 +50,7 @@ func checkCaptcha(c *fiber.Ctx) bool {
 
 // GetBoardIndex ("/:board") returns a summary of all of the threads on the board.
 func GetBoardIndex(c *fiber.Ctx) error {
-	boards, board, err := board(c)
+	_, board, err := board(c)
 	if err != nil {
 		return err
 	}
@@ -61,9 +60,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Render("board", fiber.Map{
-		"title":   config.Title,
-		"boards":  boards,
+	return render(c, board.Title, "board", fiber.Map{
 		"board":   board,
 		"threads": threads,
 	})
@@ -104,7 +101,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 }
 
 func GetBoardThread(c *fiber.Ctx) error {
-	boards, board, err := board(c)
+	_, board, err := board(c)
 	if err != nil {
 		return err
 	}
@@ -119,11 +116,9 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Render("thread", fiber.Map{
-		"title":  fmt.Sprintf("/%s/%d | %s", board.ID, posts[0].ID, config.Title),
-		"boards": boards,
-		"board":  board,
-		"posts":  posts,
+	return render(c, fmt.Sprintf("/%s/%d", board.ID, pid), "thread", fiber.Map{
+		"board": board,
+		"posts": posts,
 	})
 }
 
@@ -285,8 +280,7 @@ func GetBoardReport(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Render("report", fiber.Map{
-		"title": fmt.Sprintf("Report Post | %s", config.Title),
+	return render(c, fmt.Sprintf("Report Post /%s/%d", board.ID, pid), "report", fiber.Map{
 		"board": board,
 		"post":  post,
 	})

@@ -3,8 +3,6 @@ package feditext
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
-	"html/template"
 	"log"
 	"math/rand"
 	"os"
@@ -16,7 +14,6 @@ import (
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/template/html"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -72,35 +69,13 @@ func Close() {
 }
 
 func Serve() {
-	tmpl := html.New("./views", ".html")
-
-	tmpl.AddFunc("unescape", func(s string) template.HTML {
-		return template.HTML(s)
-	})
-
-	tmpl.AddFunc("format", func(s string) template.HTML {
-		s = template.HTMLEscapeString(s)
-		s = strings.ReplaceAll(s, "\n", "<br/>")
-		return template.HTML(s)
-	})
-
-	tmpl.AddFunc("captcha", func() template.HTML {
-		name, err := captcha.Fetch(context.TODO())
-		if err != nil {
-			log.Printf("while retreving captcha: %v", err)
-			return template.HTML("<b>unable to retrieve captcha; please refresh</b>")
-		}
-
-		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="solution" id="solution" placeholder="Captcha solution"><input type="hidden" name="captcha" id="captcha" value="%s">`, name, name))
-	})
-
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		PassLocalsToViews:     true,
 		AppName:               "feditext",
 		ServerHeader:          "feditext/" + config.Version,
 
-		Views:       tmpl,
+		Views:       routes.Tmpl,
 		ViewsLayout: "layouts/main",
 		// TODO: Timeouts
 	})

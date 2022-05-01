@@ -27,11 +27,6 @@ func GetAdmin(c *fiber.Ctx) error {
 		return c.SendStatus(401)
 	}
 
-	boards, err := DB.Boards(c.Context())
-	if err != nil {
-		return err
-	}
-
 	reports, err := DB.Reports(c.Context(), false)
 	if err != nil {
 		return err
@@ -47,9 +42,7 @@ func GetAdmin(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Render("admin", fiber.Map{
-		"title":   "Admin View | " + config.Title,
-		"boards":  boards,
+	return render(c, "Admin Area", "admin", fiber.Map{
 		"reports": reports,
 		"news":    news,
 		"mods":    mods,
@@ -85,9 +78,7 @@ func GetAdminLogin(c *fiber.Ctx) error {
 		return c.Redirect("/admin")
 	}
 
-	return c.Render("admin_login", fiber.Map{
-		"title": "Login | " + config.Title,
-	})
+	return render(c, "Login", "admin_login", fiber.Map{})
 }
 
 func PostAdminLogin(c *fiber.Ctx) error {

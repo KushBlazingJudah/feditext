@@ -381,7 +381,7 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 					return err
 				}
 			} else {
-				args = append(args, sql.Named("bumpdate", 0)) // Marker for sage
+				args = append(args, sql.Named("bumpdate", nil)) // Marker for sage
 			}
 		}
 
