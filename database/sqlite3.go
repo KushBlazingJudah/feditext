@@ -171,6 +171,36 @@ func (db *SqliteDatabase) Privilege(ctx context.Context, username string) (ModTy
 	return ModType(mt), row.Scan(&mt)
 }
 
+// Reports returns a list of reports.
+func (db *SqliteDatabase) Reports(ctx context.Context, inclResolved bool) ([]Report, error) {
+	query := `SELECT id, source, date, board, post, reason, resolved FROM reports`
+	if !inclResolved {
+		query += ` WHERE resolved IS 0`
+	}
+
+	rows, err := db.conn.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	reports := []Report{}
+
+	for rows.Next() {
+		report := Report{}
+		var ttime int64
+
+		if err := rows.Scan(&report.ID, &report.Source, &ttime, &report.Board, &report.Post, &report.Reason, &report.Resolved); err != nil {
+			return reports, err
+		}
+
+		report.Date = time.Unix(ttime, 0)
+		reports = append(reports, report)
+	}
+
+	return reports, rows.Err()
+}
+
 // SaveBoard updates data about a board, or creates a new one.
 // TODO: We don't actually update a board. Just make a new one.
 func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
@@ -253,6 +283,26 @@ func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password 
 	}
 
 	_, err := db.conn.ExecContext(ctx, `INSERT INTO moderators(username, hash, salt, type) VALUES(:username, :hash, :salt, :type)`, args...)
+	return err
+}
+
+// FileReport files a new report for moderators to look at.
+func (db *SqliteDatabase) FileReport(ctx context.Context, report Report) error {
+	args := []interface{}{
+		sql.Named("source", report.Source),
+		sql.Named("board", report.Board),
+		sql.Named("post", report.Post),
+		sql.Named("reason", report.Reason),
+		sql.Named("date", time.Now().Unix()),
+	}
+
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO reports(source, board, post, reason, date, resolved) VALUES(:source, :board, :post, :reason, :date, 0)`, args...)
+	return err
+}
+
+// Resolve resolves a report.
+func (db *SqliteDatabase) Resolve(ctx context.Context, id int) error {
+	_, err := db.conn.ExecContext(ctx, `UPDATE reports SET resolved = 1 WHERE id = ?`, id)
 	return err
 }
 

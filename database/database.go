@@ -76,6 +76,18 @@ type Board struct {
 	ID, Title, Description string
 }
 
+type Report struct {
+	ID int
+
+	Source string
+	Board  string
+	Post   PostID
+	Reason string
+	Date   time.Time
+
+	Resolved bool
+}
+
 // Database implements everything you might need in a textboard database.
 // This should be generic enough to port to whatever engine you may like.
 type Database interface {
@@ -97,6 +109,9 @@ type Database interface {
 	// Privilege returns the type of moderator username is.
 	Privilege(ctx context.Context, username string) (ModType, error)
 
+	// Reports returns a list of reports.
+	Reports(ctx context.Context, withResolved bool) ([]Report, error)
+
 	// SaveBoard updates data about a board, or creates a new one.
 	SaveBoard(ctx context.Context, board Board) error
 
@@ -107,6 +122,12 @@ type Database interface {
 
 	// SaveModerator saves a moderator to the database, or updates an existing entry.
 	SaveModerator(ctx context.Context, username string, password string, priv ModType) error
+
+	// FileReport files a new report for moderators to look at.
+	FileReport(ctx context.Context, report Report) error
+
+	// Resolve resolves a report.
+	Resolve(ctx context.Context, reportID int) error
 
 	// DeleteThread deletes a thread from the database and records a moderation action.
 	// It will also delete all posts.

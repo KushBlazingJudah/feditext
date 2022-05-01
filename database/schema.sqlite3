@@ -31,3 +31,17 @@ CREATE TABLE IF NOT EXISTS auditlog(
 
 	FOREIGN KEY(board) REFERENCES boards(id)
 );
+
+CREATE TABLE IF NOT EXISTS reports(
+	id INTEGER PRIMARY KEY ASC,
+
+	date INTEGER,
+
+	source TEXT,
+	board TEXT,
+	post INTEGER,
+
+	reason TEXT,
+
+	resolved INTEGER
+);
