@@ -72,6 +72,12 @@ func Serve() {
 		return template.HTML(s)
 	})
 
+	tmpl.AddFunc("format", func(s string) template.HTML {
+		s = template.HTMLEscapeString(s)
+		s = strings.ReplaceAll(s, "\n", "<br/>")
+		return template.HTML(s)
+	})
+
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		PassLocalsToViews:     true,

@@ -1,6 +1,14 @@
 {{$board := .board}}
-<h1>/{{.board.ID}}/ - {{.board.Title}}</h1>
-<p>{{.board.Description}}</p>
+<ul id="boardlist">
+	{{range .boards}}
+	<li><a href="/{{.ID}}">/{{.ID}}/</a></li>
+	{{end}}
+</ul>
+
+<div id="boardheader">
+	<h1>/{{.board.ID}}/ - {{.board.Title}}</h1>
+	<p>{{.board.Description}}</p>
+</div>
 
 <h2>Create a new thread</h2>
 <form action="/{{.board.ID}}" method="post">
@@ -17,7 +25,7 @@
 </form>
 
 <h2>Current threads</h2>
-<table>
+<table id="threads">
 	<tr>
 		<th>ID</th>
 		<th>Name</th>
@@ -26,8 +34,8 @@
 	{{range .threads}}
 	<tr>
 		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
-		<td>{{.Name}}</td>
-		<td>{{.Content}}</td>
+		<td><span class="name">{{.Name}}</span></td>
+		<td><p>{{.Content}}</p></td>
 	</tr>
 	{{end}}
 </table>
