@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/gofiber/fiber/v2"
 )
@@ -91,13 +92,17 @@ func PostBoardIndex(c *fiber.Ctx) error {
 		return errResp(c, "Invalid post contents.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
+	var trip string
+	name, trip = crypto.DoTrip(name)
+
 	// TODO: Sanitize!
 
 	post := database.Post{
-		Name:    name,
-		Content: content,
-		Subject: subject,
-		Source:  c.IP(),
+		Name:     name,
+		Tripcode: trip,
+		Content:  content,
+		Subject:  subject,
+		Source:   c.IP(),
 	}
 
 	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
@@ -172,6 +177,9 @@ func PostBoardThread(c *fiber.Ctx) error {
 		return errResp(c, "Invalid post contents.", 400, fmt.Sprintf("/%s/%d", board.ID, post.ID))
 	}
 
+	var trip string
+	name, trip = crypto.DoTrip(name)
+
 	// TODO: Sanitize!
 
 	bumpdate := time.Now()
@@ -183,6 +191,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 	post = database.Post{
 		Thread:   database.PostID(tid),
 		Name:     name,
+		Tripcode: trip,
 		Content:  content,
 		Bumpdate: bumpdate,
 		Subject:  subject,

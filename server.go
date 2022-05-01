@@ -11,6 +11,7 @@ import (
 
 	"github.com/KushBlazingJudah/feditext/captcha"
 	"github.com/KushBlazingJudah/feditext/config"
+	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
@@ -90,7 +91,7 @@ func Serve() {
 			return c.Next()
 		}
 
-		t, err := jwt.Parse(rawToken, jwtKeyfunc)
+		t, err := jwt.Parse(rawToken, crypto.JwtKeyfunc)
 		if err == nil && t.Valid {
 			// Token is valid, so throw it in
 			claims := t.Claims.(jwt.MapClaims)

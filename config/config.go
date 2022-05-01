@@ -33,8 +33,12 @@ var (
 	ListenAddress string = ":8080"
 
 	// JWTSecret is used to sign authorization tokens.
-	// This is 64 random bytes generated upon startup.
+	// This is 64 random bytes generated upon startup, and pulled from ./jwtsecret.
 	JWTSecret []byte = make([]byte, 64)
+
+	// TripSecret is used to create tripcodes.
+	// This is 16 random bytes generated upon startup and pulled from ./tripsecret.
+	TripSecret []byte = make([]byte, 16)
 
 	// RandAdmin sets the "admin" user in the database to a random password that is printed in the console.
 	RandAdmin bool = true
@@ -57,6 +61,25 @@ func init() {
 		}
 		defer fp.Close()
 		if _, err := fp.Write(JWTSecret); err != nil {
+			panic(err)
+		}
+	}
+
+	// Same thing but for TripSecret
+	if _, err := os.Stat("./tripsecret"); err == nil {
+		TripSecret, err = os.ReadFile("./tripsecret")
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		rand.Read(TripSecret)
+
+		fp, err := os.OpenFile("./tripsecret", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0400)
+		if err != nil {
+			panic(err)
+		}
+		defer fp.Close()
+		if _, err := fp.Write(TripSecret); err != nil {
 			panic(err)
 		}
 	}

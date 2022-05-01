@@ -22,7 +22,7 @@ var DB database.Database
 
 var Tmpl *html.Engine
 
-var citeRegex = regexp.MustCompile("&gt;&gt;(\\d+)")
+var citeRegex = regexp.MustCompile(`&gt;&gt;(\d+)`)
 var quoteRegex = regexp.MustCompile("(?m)^&gt;(.+?)$")
 
 func init() {

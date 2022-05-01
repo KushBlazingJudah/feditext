@@ -14,6 +14,11 @@ as I would for other projects.
 **This does not actually have federation support yet, and probably won't until I
 get the underlying engine worked out and stable.**
 
+In its current state, it probably works quite well as a textboard even though
+it's not complete.
+The idea behind doing it this way is so I have a core engine that more or less
+works fine, a nice foundation for implementing ActivityPub on top of.
+
 ## Rationale
 
 I have previously done a great deal of work on [FChannel's
@@ -40,13 +45,17 @@ I'm not saying my choices will be much better.
 
 Feditext's goals are simple and to the point:
 
-- <=3000 SLOC in the main codebase according to cloc
-  - This limit was chosen to keep the codebase drastically simple where needed.
-  - Textboards will never be as complex as an imageboard.
-  - If this limit proves too hard to keep under, it may be increased.
-  FChannel was approaching 6,000 lines when I started work on it and I found it
-  hard to comprehend at times.
-- Tons of comments, good documentation
+- <=4000 SLOC in the main codebase according to cloc
+  - The core textboard engine is approaching 2000 lines, by then it will
+    probably be complete, and may even shrink once I do some optimization.
+    I have bumped the line limit to 4000 lines from 3000 as a result.
+  - FChannel was approaching 6,000 lines when I started work on it and I found it
+    hard to comprehend at times. I don't want it to be like this.
+- ~~Tons of comments~~ (lol), good documentation
+  - Comments were kinda thrown out the window but it's pretty easy to figure out
+    what's going on if you're even remotely proficient in SQL or Golang
+  - I will document how the ActivityPub implementation works when the time
+    comes.
 - Sane moderation
   - FChannel says it won't keep IPs, we will.
     Not keeping them is good for privacy but not good when you have bad actors,
@@ -54,6 +63,10 @@ Feditext's goals are simple and to the point:
     Or at least intentionally.
   - Public moderation log.
 - Tor as a first-class citizen
+  - If I get this off the ground, my instance will be ran over Tor mainly for
+    privacy reasons. I hope that others prop up instances.
+  - Optionally, all requests will be made through a proxy.
+    Hosting over Tor and don't want to expose the server's IP? Sure!
 - Able to federate with FChannel, of course without images.
 
 Any changes I may need to make to FChannel (hopefully few if not none!) I will

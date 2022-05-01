@@ -48,7 +48,7 @@
 	{{range .threads}}
 	<tr>
 		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
-		<td><span class="name">{{.Name}}</span></td>
+		<td><span class="name">{{.Name}}</span>{{if gt (len .Tripcode) 0}}<span class="tripcode">{{.Tripcode}}</span>{{end}}</td>
 		<td><span class="date">{{.Date}}</span></td>
 		<td><span class="date">{{.Bumpdate}}</span></td>
 		<td><span class="date">{{.Subject}}</span></td>
