@@ -64,12 +64,12 @@ type Post struct {
 // This is used for transparency.
 type ModerationAction struct {
 	Author string
-	Action ModerationActionType
+	Type   ModerationActionType
 	Board  string
 	Post   PostID
 	Reason string
 
-	Time time.Time
+	Date time.Time
 }
 
 type Board struct {
@@ -111,6 +111,9 @@ type Database interface {
 
 	// Reports returns a list of reports.
 	Reports(ctx context.Context, withResolved bool) ([]Report, error)
+
+	// Audits returns a list of moderator actions.
+	Audits(ctx context.Context) ([]ModerationAction, error)
 
 	// SaveBoard updates data about a board, or creates a new one.
 	SaveBoard(ctx context.Context, board Board) error

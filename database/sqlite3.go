@@ -54,13 +54,13 @@ func init() {
 }
 
 func (db *SqliteDatabase) audit(ctx context.Context, modAction ModerationAction) error {
-	if modAction.Time.IsZero() {
-		modAction.Time = time.Now()
+	if modAction.Date.IsZero() {
+		modAction.Date = time.Now()
 	}
 
 	_, err := db.conn.ExecContext(ctx,
 		"INSERT INTO auditlog(type, date, author, board, post, reason) VALUES (?, ?, ?, ?, ?, ?)",
-		modAction.Action, modAction.Time, modAction.Author, modAction.Board, modAction.Post, modAction.Reason)
+		modAction.Type, modAction.Date.Unix(), modAction.Author, modAction.Board, modAction.Post, modAction.Reason)
 	return err
 }
 
@@ -199,6 +199,31 @@ func (db *SqliteDatabase) Reports(ctx context.Context, inclResolved bool) ([]Rep
 	}
 
 	return reports, rows.Err()
+}
+
+// Audits returns a list of moderator actions.
+func (db *SqliteDatabase) Audits(ctx context.Context) ([]ModerationAction, error) {
+	rows, err := db.conn.QueryContext(ctx, `SELECT type, date, author, board, post, reason FROM auditlog ORDER BY id DESC LIMIT 100`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	acts := []ModerationAction{}
+
+	for rows.Next() {
+		act := ModerationAction{}
+		var ttime int
+
+		if err := rows.Scan(&act.Type, &ttime, &act.Author, &act.Board, &act.Post, &act.Reason); err != nil {
+			return acts, err
+		}
+
+		act.Date = time.Unix(int64(ttime), 0)
+		acts = append(acts, act)
+	}
+
+	return acts, rows.Err()
 }
 
 // SaveBoard updates data about a board, or creates a new one.
