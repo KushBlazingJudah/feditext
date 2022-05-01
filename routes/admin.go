@@ -7,6 +7,7 @@ import (
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -87,8 +88,14 @@ func PostAdminLogin(c *fiber.Ctx) error {
 		return c.Redirect("/admin")
 	}
 
-	user := c.FormValue("username")
-	pass := c.FormValue("password")
+	user := c.FormValue("username")[:32]
+
+	// Usernames are alphanumeric
+	if !util.IsAlnum(user) {
+		return errResp(c, "Invalid credentials.", 403, "/admin/login")
+	}
+
+	pass := c.FormValue("password")[:64]
 
 	if ok, err := DB.PasswordCheck(c.Context(), user, pass); err != nil {
 		return err
@@ -195,12 +202,14 @@ func PostModerator(c *fiber.Ctx) error {
 		return c.SendStatus(401)
 	}
 
-	username := c.FormValue("username")
-	password := c.FormValue("password")
+	username := c.FormValue("username")[:32]
+	password := c.FormValue("password")[:64]
 	priv := c.FormValue("priv")
 
 	if username == "" {
 		return errResp(c, "Need a username", 400, "/admin")
+	} else if !util.IsAlnum(username) {
+		return errResp(c, "Username is not alphanumeric", 400, "/admin")
 	} else if password == "" {
 		return errResp(c, "Need a password", 400, "/admin")
 	} else if priv == "" {
@@ -211,8 +220,6 @@ func PostModerator(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO: Sanitize
 
 	if err := DB.SaveModerator(c.Context(), username, password, database.ModType(ipriv)); err != nil {
 		return err

@@ -16,15 +16,15 @@
 	<table id="postForm">
 		<tr>
 			<td><label for="name">Name:</label></td>
-			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="100"><input type="submit" value="Post"></td>
+			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"><input type="submit" value="Post"></td>
 		</tr>
 		<tr>
 			<td><label for="content">Subject:</label></td>
-			<td><input type="text" id="subject" name="subject" placeholder="..." maxlength="100"></td>
+			<td><input type="text" id="subject" name="subject" placeholder="..." maxlength="{{.subMax}}"></td>
 		</tr>
 		<tr>
 			<td><label for="content">Content:</label></td>
-			<td><textarea rows="10" cols="50" id="content" name="content" maxlength="2000"></textarea></td>
+			<td><textarea rows="10" cols="50" id="content" name="content" maxlength="{{.postMax}}"></textarea></td>
 		</tr>
 		{{if not .privs}}
 		<tr>

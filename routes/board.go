@@ -7,8 +7,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KushBlazingJudah/feditext/captcha"
+	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -38,6 +41,9 @@ func checkCaptcha(c *fiber.Ctx) bool {
 	if ok := hasPriv(c, database.ModTypeJanitor); !ok {
 		capID := c.FormValue("captcha")
 		sol := c.FormValue("solution")
+		if len(capID) != captcha.CaptchaIDLen || len(sol) != captcha.CaptchaLen {
+			return false
+		}
 
 		if ok, err := DB.Solve(c.Context(), capID, sol); err == nil {
 			return ok
@@ -85,8 +91,13 @@ func PostBoardIndex(c *fiber.Ctx) error {
 	}
 
 	name := c.FormValue("name", "Anonymous")
-	content := c.FormValue("content")
+	name = name[:util.IMin(len(name), config.NameCutoff)]
+
 	subject := c.FormValue("subject")
+	subject = subject[:util.IMin(len(subject), config.SubjectCutoff)]
+
+	content := c.FormValue("content")
+	content = content[:util.IMin(len(content), config.PostCutoff)]
 
 	if content == "" {
 		return errResp(c, "Invalid post contents.", 400, fmt.Sprintf("/%s", board.ID))
@@ -94,8 +105,6 @@ func PostBoardIndex(c *fiber.Ctx) error {
 
 	var trip string
 	name, trip = crypto.DoTrip(name)
-
-	// TODO: Sanitize!
 
 	post := database.Post{
 		Name:     name,
@@ -170,8 +179,13 @@ func PostBoardThread(c *fiber.Ctx) error {
 	}
 
 	name := c.FormValue("name", "Anonymous")
-	content := c.FormValue("content")
+	name = name[:util.IMin(len(name), config.NameCutoff)]
+
 	subject := c.FormValue("subject")
+	subject = subject[:util.IMin(len(subject), config.SubjectCutoff)]
+
+	content := c.FormValue("content")
+	content = content[:util.IMin(len(content), config.PostCutoff)]
 
 	if content == "" {
 		return errResp(c, "Invalid post contents.", 400, fmt.Sprintf("/%s/%d", board.ID, post.ID))
@@ -179,8 +193,6 @@ func PostBoardThread(c *fiber.Ctx) error {
 
 	var trip string
 	name, trip = crypto.DoTrip(name)
-
-	// TODO: Sanitize!
 
 	bumpdate := time.Now()
 	if c.FormValue("sage") == "on" {
@@ -223,7 +235,6 @@ func GetThreadDelete(c *fiber.Ctx) error {
 		return errResp(c, "Bad thread number.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
-	// TODO: Check if it's a valid thread
 	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
 	if err != nil {
 		return errResp(c, "The thread you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
@@ -346,6 +357,7 @@ func PostBoardReport(c *fiber.Ctx) error {
 	}
 
 	reason := c.FormValue("reason")
+	reason = reason[:util.IMin(len(reason), config.ReportCutoff)]
 
 	if err := DB.FileReport(c.Context(), database.Report{
 		Source: c.IP(),

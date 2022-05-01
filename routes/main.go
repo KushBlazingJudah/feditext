@@ -62,7 +62,7 @@ func init() {
 			return template.HTML("<b>unable to retrieve captcha; please refresh</b>")
 		}
 
-		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="solution" id="solution" placeholder="Captcha solution"><input type="hidden" name="captcha" id="captcha" value="%s">`, name, name))
+		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="solution" id="solution" maxlength="%d" placeholder="Captcha solution"><input type="hidden" name="captcha" id="captcha" value="%s">`, name, captcha.CaptchaLen, name))
 	})
 }
 
@@ -80,13 +80,16 @@ func render(c *fiber.Ctx, title, tmpl string, f fiber.Map) error {
 	}
 
 	m := fiber.Map{
-		"boards":   boards,
-		"fqdn":     config.FQDN,
-		"name":     config.Title,
-		"title":    title,
-		"version":  config.Version,
-		"username": c.Locals("username"),
-		"privs":    c.Locals("privs"),
+		"boards":  boards,
+		"fqdn":    config.FQDN,
+		"name":    config.Title,
+		"title":   title,
+		"version": config.Version,
+
+		"postMax": config.PostCutoff,
+		"nameMax": config.NameCutoff,
+		"subMax":  config.SubjectCutoff,
+		"repMax":  config.ReportCutoff,
 	}
 
 	// merge map

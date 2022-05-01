@@ -6,6 +6,20 @@ import (
 	"runtime/debug"
 )
 
+const (
+	// NameCutoff is the max length for names.
+	NameCutoff = 64
+
+	// SubjectCutoff is the max length for subjects.
+	SubjectCutoff = 64
+
+	// PostCutoff is the max length for posts.
+	PostCutoff = 4000
+
+	// ReportCutoff is the max length for reports.
+	ReportCutoff = 240
+)
+
 var (
 	// FQDN is the domain of the server, such as example.com or foo.example.com.
 	FQDN string = "localhost"

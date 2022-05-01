@@ -21,6 +21,9 @@ import (
 )
 
 const (
+	CaptchaLen   = 5
+	CaptchaIDLen = 16
+
 	shapes    = 20
 	maxRadius = 5
 )
@@ -190,12 +193,12 @@ func captchaText() string {
 		hex[src], hex[dest] = hex[dest], hex[src]
 	}
 
-	return string(hex[:5])
+	return string(hex[:CaptchaLen])
 }
 
 func captchaID() string {
 	hex := []byte("0123456789ABCDEF")
-	out := [16]byte{}
+	out := make([]byte, CaptchaIDLen)
 
 	for i := 0; i < len(out); i++ {
 		out[i] = hex[randIntn(len(hex))]
