@@ -29,6 +29,11 @@
 		</tr>
 		<tr>
 			<td><input type="checkbox" name="sage" id="sage">Sage</td>
+			{{if .privs}}
+			<td>Logged in, no captcha.</td>
+			{{else}}
+			<td>{{ captcha }}</td>
+			{{end}}
 		</tr>
 	</table>
 </form>

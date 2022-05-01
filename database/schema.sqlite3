@@ -58,3 +58,11 @@ CREATE TABLE IF NOT EXISTS news(
 	subject TEXT,
 	content TEXT
 );
+
+CREATE TABLE IF NOT EXISTS captchas(
+	id TEXT,
+	img BLOB,
+	solution TEXT,
+
+	UNIQUE(id)
+);

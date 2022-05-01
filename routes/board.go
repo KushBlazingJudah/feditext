@@ -33,6 +33,22 @@ func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
 	return boards, board, nil
 }
 
+func checkCaptcha(c *fiber.Ctx) bool {
+	if ok := hasPriv(c, database.ModTypeJanitor); !ok {
+		capID := c.FormValue("captcha")
+		sol := c.FormValue("solution")
+
+		if ok, err := DB.Solve(c.Context(), capID, sol); err == nil {
+			return ok
+		}
+
+		return false
+	}
+
+	// Fall through for those who are authenticated
+	return true
+}
+
 // GetBoardIndex ("/:board") returns a summary of all of the threads on the board.
 func GetBoardIndex(c *fiber.Ctx) error {
 	boards, board, err := board(c)
@@ -57,6 +73,11 @@ func PostBoardIndex(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
 		return err
+	}
+
+	// Check captcha first
+	if ok := checkCaptcha(c); !ok {
+		return c.SendStatus(401)
 	}
 
 	name := c.FormValue("name", "Anonymous")
@@ -110,6 +131,11 @@ func PostBoardThread(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
 		return err
+	}
+
+	// Check captcha first
+	if ok := checkCaptcha(c); !ok {
+		return c.SendStatus(401)
 	}
 
 	tid, err := strconv.Atoi(c.Params("thread"))
@@ -270,6 +296,11 @@ func PostBoardReport(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
 		return err
+	}
+
+	// Check captcha first
+	if ok := checkCaptcha(c); !ok {
+		return c.SendStatus(401)
 	}
 
 	pid, err := strconv.Atoi(c.Params("post"))

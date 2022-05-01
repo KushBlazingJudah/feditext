@@ -22,6 +22,12 @@
 			<td><label for="content">Content:</label></td>
 			<td><textarea rows="10" cols="50" id="content" name="content" maxlength="2000"></textarea></td>
 		</tr>
+		{{if not .privs}}
+		<tr>
+			<td>Captcha:</td>
+			<td>{{ captcha }}</td>
+		</tr>
+		{{end}}
 	</table>
 </form>
 

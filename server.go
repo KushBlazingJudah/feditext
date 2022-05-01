@@ -2,13 +2,16 @@ package feditext
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"html/template"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/KushBlazingJudah/feditext/captcha"
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/routes"
@@ -20,6 +23,8 @@ import (
 var DB database.Database
 
 func Startup() {
+	rand.Seed(time.Now().UnixMicro())
+
 	var err error
 
 	log.Printf("Starting version %s", config.Version)
@@ -44,6 +49,7 @@ func Startup() {
 	}
 
 	routes.DB = DB
+	captcha.DB = DB
 
 	// Set a random admin password
 	if config.RandAdmin {
@@ -76,6 +82,16 @@ func Serve() {
 		s = template.HTMLEscapeString(s)
 		s = strings.ReplaceAll(s, "\n", "<br/>")
 		return template.HTML(s)
+	})
+
+	tmpl.AddFunc("captcha", func() template.HTML {
+		name, err := captcha.Fetch(context.TODO())
+		if err != nil {
+			log.Printf("while retreving captcha: %v", err)
+			return template.HTML("<b>unable to retrieve captcha; please refresh</b>")
+		}
+
+		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="solution" id="solution" placeholder="Captcha solution"><input type="hidden" name="captcha" id="captcha" value="%s">`, name, name))
 	})
 
 	app := fiber.New(fiber.Config{
@@ -120,6 +136,7 @@ func Serve() {
 
 	app.Get("/", routes.GetIndex)
 	app.Get("/audit", routes.GetAudit)
+	app.Get("/captcha/:id", routes.GetCaptcha)
 
 	// Admin
 	app.Get("/admin", routes.GetAdmin)

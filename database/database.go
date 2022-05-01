@@ -142,6 +142,12 @@ type Database interface {
 	// Moderators returns a list of currently registered moderators.
 	Moderators(ctx context.Context) ([]Moderator, error)
 
+	// Captchas returns captcha IDs.
+	Captchas(ctx context.Context) ([]string, error)
+
+	// Captcha returns a captcha.
+	Captcha(ctx context.Context, id string) ([]byte, string, error)
+
 	// SaveBoard updates data about a board, or creates a new one.
 	SaveBoard(ctx context.Context, board Board) error
 
@@ -156,11 +162,17 @@ type Database interface {
 	// SaveNews saves news.
 	SaveNews(ctx context.Context, news *News) error
 
+	// SaveCaptcha commits a captcha to the database.
+	SaveCaptcha(ctx context.Context, id string, solution string, img []byte) error
+
 	// FileReport files a new report for moderators to look at.
 	FileReport(ctx context.Context, report Report) error
 
 	// Resolve resolves a report.
 	Resolve(ctx context.Context, reportID int) error
+
+	// Solve checks a captcha.
+	Solve(ctx context.Context, id, solution string) (bool, error)
 
 	// DeleteThread deletes a thread from the database and records a moderation action.
 	// It will also delete all posts.

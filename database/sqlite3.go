@@ -290,6 +290,37 @@ func (db *SqliteDatabase) Moderators(ctx context.Context) ([]Moderator, error) {
 	return mods, rows.Err()
 }
 
+// Captchas returns captcha IDs.
+func (db *SqliteDatabase) Captchas(ctx context.Context) ([]string, error) {
+	rows, err := db.conn.QueryContext(ctx, "SELECT id FROM captchas")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	caps := []string{}
+
+	for rows.Next() {
+		cap := ""
+
+		if err := rows.Scan(&cap); err != nil {
+			return caps, err
+		}
+
+		caps = append(caps, cap)
+	}
+
+	return caps, rows.Err()
+}
+
+// Captcha returns a captcha.
+func (db *SqliteDatabase) Captcha(ctx context.Context, id string) ([]byte, string, error) {
+	row := db.conn.QueryRowContext(ctx, `SELECT img, solution FROM captchas WHERE id = ?`, id)
+	img := []byte{}
+	sol := ""
+	return img, sol, row.Scan(&img, &sol)
+}
+
 // SaveBoard updates data about a board, or creates a new one.
 func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 	// This is used to prevent passing an absurdly large amount of arguments.
@@ -439,6 +470,12 @@ func (db *SqliteDatabase) SaveNews(ctx context.Context, news *News) error {
 	return err
 }
 
+// SaveCaptcha commits a captcha to the database.
+func (db *SqliteDatabase) SaveCaptcha(ctx context.Context, id string, solution string, img []byte) error {
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO captchas(id, img, solution) VALUES(?, ?, ?)`, id, img, solution)
+	return err
+}
+
 // FileReport files a new report for moderators to look at.
 func (db *SqliteDatabase) FileReport(ctx context.Context, report Report) error {
 	args := []interface{}{
@@ -457,6 +494,21 @@ func (db *SqliteDatabase) FileReport(ctx context.Context, report Report) error {
 func (db *SqliteDatabase) Resolve(ctx context.Context, id int) error {
 	_, err := db.conn.ExecContext(ctx, `UPDATE reports SET resolved = 1 WHERE id = ?`, id)
 	return err
+}
+
+// Solve checks a captcha.
+func (db *SqliteDatabase) Solve(ctx context.Context, id, solution string) (bool, error) {
+	solution = strings.ToUpper(solution)
+
+	row := db.conn.QueryRowContext(ctx, `SELECT solution FROM captchas WHERE id = ?`, id)
+	sol := ""
+
+	if err := row.Scan(&sol); err != nil {
+		return false, err
+	}
+
+	_, err := db.conn.ExecContext(ctx, `DELETE FROM captchas WHERE id = ?`, id)
+	return solution == sol, err
 }
 
 // DeleteThread deletes a thread from the database and records a moderation action.
