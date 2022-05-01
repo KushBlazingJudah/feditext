@@ -29,12 +29,14 @@
 	<tr>
 		<th>ID</th>
 		<th>Name</th>
+		<th>Date</th>
 		<th>Content</th>
 	</tr>
 	{{range .threads}}
 	<tr>
 		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
 		<td><span class="name">{{.Name}}</span></td>
+		<td><span class="date">{{.Date}}</span></td>
 		<td><p>{{.Content}}</p></td>
 	</tr>
 	{{end}}
