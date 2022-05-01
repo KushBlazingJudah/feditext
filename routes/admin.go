@@ -42,11 +42,17 @@ func GetAdmin(c *fiber.Ctx) error {
 		return err
 	}
 
+	mods, err := DB.Moderators(c.Context())
+	if err != nil {
+		return err
+	}
+
 	return c.Render("admin", fiber.Map{
 		"title":   "Admin View | " + config.Title,
 		"boards":  boards,
 		"reports": reports,
 		"news":    news,
+		"mods":    mods,
 	})
 }
 
@@ -188,6 +194,61 @@ func GetAdminNewsDelete(c *fiber.Ctx) error {
 	}
 
 	if err := DB.DeleteNews(c.Context(), nid); err != nil {
+		return err
+	}
+
+	return c.Redirect("/admin")
+}
+
+func PostModerator(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return c.SendStatus(401)
+	}
+
+	username := c.FormValue("username")
+	password := c.FormValue("password")
+	priv := c.FormValue("priv")
+
+	if username == "" {
+		// TODO: Error page
+		return c.SendStatus(400)
+	} else if password == "" {
+		// TODO: Error page
+		return c.SendStatus(400)
+	} else if priv == "" {
+		priv = "0" // assume janitor
+	}
+
+	ipriv, err := strconv.Atoi(priv)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Sanitize
+
+	if err := DB.SaveModerator(c.Context(), username, password, database.ModType(ipriv)); err != nil {
+		return err
+	}
+
+	return c.Redirect("/admin")
+}
+
+func GetModeratorDel(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return c.SendStatus(401)
+	}
+
+	username := c.Params("name")
+	if username == "" {
+		// TODO: Error page
+		return c.SendStatus(400)
+	}
+
+	// TODO: Sanitize
+
+	if err := DB.DeleteModerator(c.Context(), username); err != nil {
 		return err
 	}
 

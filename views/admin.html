@@ -15,11 +15,11 @@
 	{{end}}
 </table>
 
-<h3>New board</h3>
+<h3>Create/edit board</h3>
 <form action="/admin/board" method="post">
-	<input type="text" name="id" id="id" value="">
-	<input type="text" name="title" id="title" value="">
-	<input type="text" name="description" id="description" value="">
+	<input type="text" name="id" id="id" value="" placeholder="ID">
+	<input type="text" name="title" id="title" value="" placeholder="Title">
+	<input type="text" name="description" id="description" value="" placeholder="Description">
 	<input type="submit">
 </form>
 
@@ -45,7 +45,22 @@
 	{{end}}
 </table>
 
-<h3>Reports</h3>
+<h2>Moderators</h2>
+<form action="/admin/moderator" method="post">
+	<input type="text" name="username" id="username" value="" placeholder="Username">
+	<input type="password" name="password" id="password" value="" placeholder="Password">
+	<input type="number" name="priv" id="priv" value="0">
+	<input type="submit">
+</form>
+
+<table id="news" class="table">
+	<tr><th>Username</th><th>Privilege</th><th>Action</th></tr>
+	{{range .mods}}
+	<tr><td><span class="name">{{.Username}}</span></td><td>{{.Privilege}}</td><td><a href="/admin/moderator/delete/{{.Username}}">Delete</a></td></tr>
+	{{end}}
+</table>
+
+<h2>Reports</h3>
 <table id="reports" class="table">
 	<tr><th>Source</th><th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>
 	{{range .reports}}
