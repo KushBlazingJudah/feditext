@@ -1,7 +1,5 @@
 package routes
 
-// TODO: EVERY ROUTE IN HERE NEEDS AUTHENTICATION AND BADLY
-
 import (
 	"strconv"
 	"time"
@@ -240,6 +238,48 @@ func GetModeratorDel(c *fiber.Ctx) error {
 	// TODO: Sanitize
 
 	if err := DB.DeleteModerator(c.Context(), username); err != nil {
+		return err
+	}
+
+	return c.Redirect("/admin")
+}
+
+func GetAdminBan(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeMod)
+	if !ok {
+		return c.Redirect("/admin")
+	}
+
+	return render(c, "Ban User", "ban", fiber.Map{"ip": c.Params("ip")})
+}
+
+func PostAdminBan(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeMod)
+	if !ok {
+		return c.Redirect("/admin")
+	}
+
+	source := c.Params("ip")
+	if source == "" {
+		return c.SendStatus(400)
+	}
+
+	reason := c.FormValue("reason")
+	if reason == "" {
+		reason = "Arbitrary."
+	}
+
+	exp := c.FormValue("expires")
+	exptime, err := time.Parse("2006-01-02T15:04", exp)
+	if err != nil {
+		return err
+	}
+
+	if err := DB.Ban(c.Context(), database.Ban{
+		Target:  source,
+		Reason:  reason,
+		Expires: exptime,
+	}, c.Locals("username").(string)); err != nil {
 		return err
 	}
 

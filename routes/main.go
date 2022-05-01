@@ -2,6 +2,8 @@ package routes
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -73,4 +75,22 @@ func render(c *fiber.Ctx, title, tmpl string, f fiber.Map) error {
 	}
 
 	return c.Render(tmpl, m)
+}
+
+func redirBanned(c *fiber.Ctx) (bool, error) {
+	// Skip if logged in
+	if c.Locals("privs") != nil {
+		return true, nil
+	}
+
+	ok, _, _, err := DB.Banned(c.Context(), c.IP())
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false, err
+	}
+
+	if !ok {
+		return false, c.Redirect("/banned")
+	}
+
+	return true, nil
 }

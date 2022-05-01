@@ -66,3 +66,12 @@ CREATE TABLE IF NOT EXISTS captchas(
 
 	UNIQUE(id)
 );
+
+CREATE TABLE IF NOT EXISTS bans(
+	source TEXT,
+	reason TEXT,
+	placed INTEGER,
+	expires INTEGER,
+
+	UNIQUE(source)
+);

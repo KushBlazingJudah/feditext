@@ -1,6 +1,9 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -23,5 +26,18 @@ func GetAudit(c *fiber.Ctx) error {
 
 	return render(c, "Audit Log", "audit", fiber.Map{
 		"audits": audits,
+	})
+}
+
+func GetBanned(c *fiber.Ctx) error {
+	ok, exp, reason, err := DB.Banned(c.Context(), c.IP())
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
+	return render(c, "", "banned", fiber.Map{
+		"banned":  !ok,
+		"expires": exp,
+		"reason":  reason,
 	})
 }

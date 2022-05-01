@@ -1,0 +1,15 @@
+{{if .banned}}
+<h1>You are banned!</h1>
+<p>Your ban expires on <b>{{ .expires }}</b>.</p>
+
+<h2>Reason for your ban:</h2>
+<p>{{ .reason }}</p>
+{{else}}
+<h1>You are not banned.</h1>
+{{end}}
+
+{{if .return}}
+<a href="{{.return}}">Go back</a>
+{{else}}
+<a href="/">Return to the index</a>
+{{end}}

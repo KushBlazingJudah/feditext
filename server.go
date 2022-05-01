@@ -111,10 +111,13 @@ func Serve() {
 
 	app.Get("/", routes.GetIndex)
 	app.Get("/audit", routes.GetAudit)
+	app.Get("/banned", routes.GetBanned)
 	app.Get("/captcha/:id", routes.GetCaptcha)
 
 	// Admin
 	app.Get("/admin", routes.GetAdmin)
+	app.Get("/admin/ban/:ip", routes.GetAdminBan)
+	app.Post("/admin/ban/:ip", routes.PostAdminBan)
 	app.Get("/admin/login", routes.GetAdminLogin)
 	app.Get("/admin/resolve/:report", routes.GetAdminResolve)
 	app.Post("/admin/news", routes.PostAdminNews)

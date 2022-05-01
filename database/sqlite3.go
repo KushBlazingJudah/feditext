@@ -323,6 +323,57 @@ func (db *SqliteDatabase) Captcha(ctx context.Context, id string) ([]byte, strin
 	return img, sol, row.Scan(&img, &sol)
 }
 
+// Banned checks to see if a user is banned.
+func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time.Time, string, error) {
+	row := db.conn.QueryRowContext(ctx, "SELECT expires, reason FROM bans WHERE source = ?", source)
+
+	var ttime *int64
+	reason := ""
+
+	if err := row.Scan(&ttime, &reason); err != nil {
+		return false, time.Time{}, reason, err
+	}
+
+	if ttime != nil {
+		exp := time.Unix(*ttime, 0)
+
+		if time.Now().After(exp) {
+			// Delete
+			_, err := db.conn.ExecContext(ctx, "DELETE FROM bans WHERE source = ?", source)
+			return true, exp, "", err
+		}
+
+		return false, exp, reason, nil
+	}
+
+	return false, time.Time{}, reason, nil
+}
+
+// Ban bans a user.
+func (db *SqliteDatabase) Ban(ctx context.Context, ban Ban, by string) error {
+	// This is used to prevent passing an absurdly large amount of arguments.
+	// Of course, we still do that, this just looks nicer :)
+	args := []interface{}{
+		sql.Named("source", ban.Target),
+		sql.Named("placed", time.Now().Unix()),
+		sql.Named("expires", ban.Expires.Unix()),
+		sql.Named("reason", ban.Reason),
+	}
+
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO bans(source, placed, expires, reason) VALUES(:source, :placed, :expires, :reason) ON CONFLICT(source) DO UPDATE SET expires = excluded.expires, reason = excluded.reason`, args...)
+	if err != nil {
+		return err
+	}
+
+	// Create audit entry
+	return db.audit(ctx, ModerationAction{
+		Author: by,
+		Type:   ModActionBan,
+		Reason: fmt.Sprintf("banned %s until %s: %s", ban.Target, ban.Expires.String(), ban.Reason),
+		Date:   time.Now(),
+	})
+}
+
 // SaveBoard updates data about a board, or creates a new one.
 func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 	// This is used to prevent passing an absurdly large amount of arguments.

@@ -72,7 +72,12 @@ func PostBoardIndex(c *fiber.Ctx) error {
 		return err
 	}
 
-	// Check captcha first
+	// Check ban status
+	if ok, err := redirBanned(c); err != nil || !ok {
+		return err
+	}
+
+	// Check captcha
 	if ok := checkCaptcha(c); !ok {
 		return c.SendStatus(401)
 	}
@@ -130,7 +135,12 @@ func PostBoardThread(c *fiber.Ctx) error {
 		return err
 	}
 
-	// Check captcha first
+	// Check ban status
+	if ok, err := redirBanned(c); err != nil || !ok {
+		return err
+	}
+
+	// Check captcha
 	if ok := checkCaptcha(c); !ok {
 		return c.SendStatus(401)
 	}
@@ -274,6 +284,11 @@ func GetBoardReport(c *fiber.Ctx) error {
 		return err
 	}
 
+	// Check ban status
+	if ok, err := redirBanned(c); err != nil || !ok {
+		return err
+	}
+
 	pid, err := strconv.Atoi(c.Params("post"))
 	if err != nil {
 		return err
@@ -296,7 +311,12 @@ func PostBoardReport(c *fiber.Ctx) error {
 		return err
 	}
 
-	// Check captcha first
+	// Check ban status
+	if ok, err := redirBanned(c); err != nil || !ok {
+		return err
+	}
+
+	// Check captcha
 	if ok := checkCaptcha(c); !ok {
 		return c.SendStatus(401)
 	}

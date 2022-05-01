@@ -110,6 +110,13 @@ type Moderator struct {
 	Privilege ModType
 }
 
+type Ban struct {
+	Target  string
+	Reason  string
+	Date    time.Time
+	Expires time.Time
+}
+
 // Database implements everything you might need in a textboard database.
 // This should be generic enough to port to whatever engine you may like.
 type Database interface {
@@ -148,6 +155,12 @@ type Database interface {
 
 	// Captcha returns a captcha.
 	Captcha(ctx context.Context, id string) ([]byte, string, error)
+
+	// Banned checks to see if a user is banned.
+	Banned(ctx context.Context, source string) (bool, time.Time, string, error)
+
+	// Ban bans a user.
+	Ban(ctx context.Context, ban Ban, by string) error
 
 	// SaveBoard updates data about a board, or creates a new one.
 	SaveBoard(ctx context.Context, board Board) error
