@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS auditlog(
 
 	reason INTEGER,
 
-	FOREIGN KEY(board) REFERENCES boards(id)
+	FOREIGN KEY(board) REFERENCES boards(id),
+	FOREIGN KEY(author) REFERENCES moderators(username)
 );
 
 CREATE TABLE IF NOT EXISTS reports(
@@ -43,5 +44,17 @@ CREATE TABLE IF NOT EXISTS reports(
 
 	reason TEXT,
 
-	resolved INTEGER
+	resolved INTEGER,
+
+	FOREIGN KEY(board) REFERENCES boards(id)
+);
+
+CREATE TABLE IF NOT EXISTS news(
+	id INTEGER PRIMARY KEY ASC,
+
+	date INTEGER,
+
+	author TEXT,
+	subject TEXT,
+	content TEXT
 );

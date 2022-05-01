@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha512"
+	"errors"
 	"time"
 )
 
@@ -39,6 +40,10 @@ const (
 
 const (
 	saltLength = 16
+)
+
+var (
+	ErrPostContents = errors.New("invalid post contents")
 )
 
 var Engines = map[string]InitFunc{}
@@ -88,6 +93,16 @@ type Report struct {
 	Resolved bool
 }
 
+type News struct {
+	ID int
+
+	Author  string
+	Subject string
+	Content string
+
+	Date time.Time
+}
+
 // Database implements everything you might need in a textboard database.
 // This should be generic enough to port to whatever engine you may like.
 type Database interface {
@@ -115,6 +130,9 @@ type Database interface {
 	// Audits returns a list of moderator actions.
 	Audits(ctx context.Context) ([]ModerationAction, error)
 
+	// News returns news. That's good news.
+	News(ctx context.Context) ([]News, error)
+
 	// SaveBoard updates data about a board, or creates a new one.
 	SaveBoard(ctx context.Context, board Board) error
 
@@ -125,6 +143,9 @@ type Database interface {
 
 	// SaveModerator saves a moderator to the database, or updates an existing entry.
 	SaveModerator(ctx context.Context, username string, password string, priv ModType) error
+
+	// SaveNews saves news.
+	SaveNews(ctx context.Context, news *News) error
 
 	// FileReport files a new report for moderators to look at.
 	FileReport(ctx context.Context, report Report) error
@@ -138,6 +159,9 @@ type Database interface {
 
 	// DeletePost deletes a post from the database and records a moderation action.
 	DeletePost(ctx context.Context, board string, post PostID, modAction ModerationAction) error
+
+	// DeleteNews deletes news.
+	DeleteNews(ctx context.Context, id int) error
 
 	// PasswordCheck checks a moderator's password.
 	PasswordCheck(ctx context.Context, username string, password string) (bool, error)

@@ -6,6 +6,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"database/sql"
@@ -213,17 +214,42 @@ func (db *SqliteDatabase) Audits(ctx context.Context) ([]ModerationAction, error
 
 	for rows.Next() {
 		act := ModerationAction{}
-		var ttime int
+		var ttime int64
 
 		if err := rows.Scan(&act.Type, &ttime, &act.Author, &act.Board, &act.Post, &act.Reason); err != nil {
 			return acts, err
 		}
 
-		act.Date = time.Unix(int64(ttime), 0)
+		act.Date = time.Unix(ttime, 0)
 		acts = append(acts, act)
 	}
 
 	return acts, rows.Err()
+}
+
+// News returns news. That's good news.
+func (db *SqliteDatabase) News(ctx context.Context) ([]News, error) {
+	rows, err := db.conn.QueryContext(ctx, `SELECT id, author, subject, content, date FROM news ORDER BY id DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	allNews := []News{}
+
+	for rows.Next() {
+		news := News{}
+		var ttime int64
+
+		if err := rows.Scan(&news.ID, &news.Author, &news.Subject, &news.Content, &ttime); err != nil {
+			return allNews, err
+		}
+
+		news.Date = time.Unix(ttime, 0)
+		allNews = append(allNews, news)
+	}
+
+	return allNews, rows.Err()
 }
 
 // SaveBoard updates data about a board, or creates a new one.
@@ -253,6 +279,11 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post) error {
 	if post.Date.IsZero() {
 		post.Date = time.Now()
+	}
+
+	// Forbid empty posting
+	if strings.TrimSpace(post.Content) == "" {
+		return ErrPostContents
 	}
 
 	// This is used to prevent passing an absurdly large amount of arguments.
@@ -311,6 +342,50 @@ func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password 
 	return err
 }
 
+// SaveNews saves news.
+// If News.ID is 0, a new article is created.
+func (db *SqliteDatabase) SaveNews(ctx context.Context, news *News) error {
+	if news.Date.IsZero() {
+		news.Date = time.Now()
+	}
+
+	// Forbid empty posting
+	if strings.TrimSpace(news.Content) == "" {
+		return ErrPostContents
+	}
+
+	// This is used to prevent passing an absurdly large amount of arguments.
+	// Of course, we still do that, this just looks nicer :)
+	args := []interface{}{
+		sql.Named("author", news.Author),
+		sql.Named("subject", news.Subject),
+		sql.Named("content", news.Content),
+		sql.Named("date", news.Date.Unix()),
+	}
+
+	if news.ID == 0 {
+		// We are creating a new article.
+
+		r, err := db.conn.ExecContext(ctx, `INSERT INTO news(author, subject,
+			content, date) VALUES (:author, :subject, :content, :date)`,
+			args...)
+		if err != nil {
+			return err
+		}
+
+		id, err := r.LastInsertId()
+		news.ID = int(id)
+
+		return err
+	}
+
+	// We are updating news if we make it here.
+	args = append(args, sql.Named("id", news.ID))
+	_, err := db.conn.ExecContext(ctx, `UPDATE news SET subject = :subject,
+		content = :content WHERE id = :id`, args...)
+	return err
+}
+
 // FileReport files a new report for moderators to look at.
 func (db *SqliteDatabase) FileReport(ctx context.Context, report Report) error {
 	args := []interface{}{
@@ -350,6 +425,12 @@ func (db *SqliteDatabase) DeletePost(ctx context.Context, board string, post Pos
 	}
 
 	return db.audit(ctx, modAction)
+}
+
+// DeleteNews deletes news.
+func (db *SqliteDatabase) DeleteNews(ctx context.Context, id int) error {
+	_, err := db.conn.ExecContext(ctx, "DELETE FROM news WHERE id = ?", id)
+	return err
 }
 
 func (db *SqliteDatabase) password(ctx context.Context, username string) ([]byte, []byte, error) {
