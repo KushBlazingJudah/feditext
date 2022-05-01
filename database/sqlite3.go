@@ -342,14 +342,15 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 			post.Bumpdate = post.Date
 		} else {
 			// Bump the thread.
-			// TODO: sage
-			args = append(args, sql.Named("bumpdate", nil)) // So the query doesn't break
 
 			if !post.Bumpdate.IsZero() { // Bump if above zero
+				args = append(args, sql.Named("bumpdate", 1)) // Marker for bump
 				if _, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET
 				bumpdate = ? WHERE id = ?`, board), post.Date.Unix(), post.Thread); err != nil {
 					return err
 				}
+			} else {
+				args = append(args, sql.Named("bumpdate", 0)) // Marker for sage
 			}
 		}
 
