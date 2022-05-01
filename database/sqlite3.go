@@ -252,6 +252,29 @@ func (db *SqliteDatabase) News(ctx context.Context) ([]News, error) {
 	return allNews, rows.Err()
 }
 
+// Moderators returns a list of currently registered moderators.
+func (db *SqliteDatabase) Moderators(ctx context.Context) ([]Moderator, error) {
+	rows, err := db.conn.QueryContext(ctx, `SELECT username, type FROM moderators`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	mods := []Moderator{}
+
+	for rows.Next() {
+		mod := Moderator{}
+
+		if err := rows.Scan(&mod.Username, &mod.Privilege); err != nil {
+			return mods, err
+		}
+
+		mods = append(mods, mod)
+	}
+
+	return mods, rows.Err()
+}
+
 // SaveBoard updates data about a board, or creates a new one.
 // TODO: We don't actually update a board. Just make a new one.
 func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
@@ -430,6 +453,12 @@ func (db *SqliteDatabase) DeletePost(ctx context.Context, board string, post Pos
 // DeleteNews deletes news.
 func (db *SqliteDatabase) DeleteNews(ctx context.Context, id int) error {
 	_, err := db.conn.ExecContext(ctx, "DELETE FROM news WHERE id = ?", id)
+	return err
+}
+
+// DeleteModerator deletes a moderator.
+func (db *SqliteDatabase) DeleteModerator(ctx context.Context, username string) error {
+	_, err := db.conn.ExecContext(ctx, "DELETE FROM moderators WHERE username = ?", username)
 	return err
 }
 

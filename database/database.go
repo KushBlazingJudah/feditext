@@ -103,6 +103,11 @@ type News struct {
 	Date time.Time
 }
 
+type Moderator struct {
+	Username  string
+	Privilege ModType
+}
+
 // Database implements everything you might need in a textboard database.
 // This should be generic enough to port to whatever engine you may like.
 type Database interface {
@@ -133,6 +138,9 @@ type Database interface {
 	// News returns news. That's good news.
 	News(ctx context.Context) ([]News, error)
 
+	// Moderators returns a list of currently registered moderators.
+	Moderators(ctx context.Context) ([]Moderator, error)
+
 	// SaveBoard updates data about a board, or creates a new one.
 	SaveBoard(ctx context.Context, board Board) error
 
@@ -162,6 +170,9 @@ type Database interface {
 
 	// DeleteNews deletes news.
 	DeleteNews(ctx context.Context, id int) error
+
+	// DeleteModerator deletes a moderator.
+	DeleteModerator(ctx context.Context, username string) error
 
 	// PasswordCheck checks a moderator's password.
 	PasswordCheck(ctx context.Context, username string, password string) (bool, error)
