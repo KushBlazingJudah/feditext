@@ -59,8 +59,9 @@ type Post struct {
 	Name     string
 	Tripcode string
 
-	Date    time.Time
-	Content string
+	Date     time.Time
+	Bumpdate time.Time // Set to above zero to bump if making a new post
+	Content  string
 
 	Source string
 }

@@ -100,7 +100,7 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 // TODO: specify sort. We assume that we're just going to sort by latest bumped threads.
 // This is true in 99% of cases but not always.
 func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source, bumpdate FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
 	if err != nil {
 		return nil, err
 	}
@@ -111,12 +111,14 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 	for rows.Next() {
 		post := Post{}
 		var ttime int64
+		var btime int64 // Should never be nil
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source, &btime); err != nil {
 			return posts, err
 		}
 
 		post.Date = time.Unix(ttime, 0)
+		post.Bumpdate = time.Unix(btime, 0)
 		post.Thread = post.ID
 		posts = append(posts, post)
 	}
@@ -126,7 +128,7 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 
 // Thread fetches all posts on a thread.
 func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source, bumpdate FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
 	if err != nil {
 		return nil, err
 	}
@@ -137,12 +139,17 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 	for rows.Next() {
 		post := Post{Thread: thread}
 		var ttime int64
+		var btime *int64 // Will most likely be nil
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source, &btime); err != nil {
 			return posts, err
 		}
 
 		post.Date = time.Unix(ttime, 0)
+		if btime != nil {
+			post.Bumpdate = time.Unix(*btime, 0)
+		}
+
 		posts = append(posts, post)
 	}
 
@@ -157,13 +164,18 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 
 // Post fetches a single post from a thread.
 func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Post, error) {
-	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, date, content, source FROM posts_%s WHERE id = ?`, board), id)
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, date, content, source, bumpdate FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
 	var ttime int64
+	var btime *int64
 
-	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source)
+	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source, &btime)
 	post.Date = time.Unix(ttime, 0)
+
+	if btime != nil {
+		post.Bumpdate = time.Unix(*btime, 0)
+	}
 
 	return post, err
 }
@@ -327,14 +339,17 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 		if post.Thread == 0 {
 			// Set bumpdate.
 			args = append(args, sql.Named("bumpdate", post.Date.Unix()))
+			post.Bumpdate = post.Date
 		} else {
 			// Bump the thread.
 			// TODO: sage
 			args = append(args, sql.Named("bumpdate", nil)) // So the query doesn't break
 
-			if _, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET
-			bumpdate = ? WHERE id = ?`, board), post.Date.Unix(), post.Thread); err != nil {
-				return err
+			if !post.Bumpdate.IsZero() { // Bump if above zero
+				if _, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET
+				bumpdate = ? WHERE id = ?`, board), post.Date.Unix(), post.Thread); err != nil {
+					return err
+				}
 			}
 		}
 

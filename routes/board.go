@@ -59,23 +59,18 @@ func PostBoardIndex(c *fiber.Ctx) error {
 		return err
 	}
 
-	var newPost struct {
-		Name, Content string
-	}
+	name := c.FormValue("name", "Anonymous")
+	content := c.FormValue("content")
 
-	if err := c.BodyParser(&newPost); err != nil {
-		return err
+	if content == "" {
+		return c.SendStatus(400) // no blank posts
 	}
 
 	// TODO: Sanitize!
 
-	if newPost.Name == "" {
-		newPost.Name = "Anonymous"
-	}
-
 	post := database.Post{
-		Name:    newPost.Name,
-		Content: newPost.Content,
+		Name:    name,
+		Content: content,
 		Source:  c.IP(),
 	}
 
@@ -132,26 +127,27 @@ func PostBoardThread(c *fiber.Ctx) error {
 		return c.SendStatus(400) // TODO: bad thread
 	}
 
-	var newPost struct {
-		Name, Content string
-	}
+	name := c.FormValue("name", "Anonymous")
+	content := c.FormValue("content")
 
-	if err := c.BodyParser(&newPost); err != nil {
-		return err
+	if content == "" {
+		return c.SendStatus(400) // no blank posts
 	}
 
 	// TODO: Sanitize!
 
-	if newPost.Name == "" {
-		newPost.Name = "Anonymous"
+	bumpdate := time.Now()
+	if c.FormValue("sage") == "on" {
+		bumpdate = time.Time{}
 	}
 
 	// Reusing the post variable
 	post = database.Post{
-		Thread:  database.PostID(tid),
-		Name:    newPost.Name,
-		Content: newPost.Content,
-		Source:  c.IP(),
+		Thread:   database.PostID(tid),
+		Name:     name,
+		Content:  content,
+		Bumpdate: bumpdate,
+		Source:   c.IP(),
 	}
 
 	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {

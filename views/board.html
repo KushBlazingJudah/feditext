@@ -31,6 +31,7 @@
 		<th>ID</th>
 		<th>Name</th>
 		<th>Date</th>
+		<th>Last bumped</th>
 		<th>Content</th>
 	</tr>
 	{{range .threads}}
@@ -38,6 +39,7 @@
 		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
 		<td><span class="name">{{.Name}}</span></td>
 		<td><span class="date">{{.Date}}</span></td>
+		<td><span class="date">{{.Bumpdate}}</span></td>
 		<td><p>{{.Content}}</p></td>
 	</tr>
 	{{end}}
