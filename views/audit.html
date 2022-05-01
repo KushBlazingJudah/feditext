@@ -1,0 +1,23 @@
+<h1>Audit Log <a href="/">[Back]</a></h1>
+
+<p>This is a list of the last 100 moderation actions taken, for transparency's
+sake.</p>
+
+<table id="audit" class="table">
+	<tr>
+		<th>Author</th>
+		<th>Date</th>
+		<th>Type</th>
+		<th>Post</th>
+		<th>Reason</th>
+	</tr>
+	{{range .audits}}
+	<tr>
+		<td>{{.Author}}</td>
+		<td><span class="date">{{.Date}}</span></td>
+		<td>{{.Type}}</td>
+		<td>/{{.Board}}/{{.Post}}</td>
+		<td><p>{{.Reason}}</p></td>
+	</tr>
+	{{end}}
+</table>

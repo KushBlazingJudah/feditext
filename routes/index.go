@@ -17,3 +17,15 @@ func GetIndex(c *fiber.Ctx) error {
 		"boards":  boards,
 	})
 }
+
+func GetAudit(c *fiber.Ctx) error {
+	audits, err := DB.Audits(c.Context())
+	if err != nil {
+		return err
+	}
+
+	return c.Render("audit", fiber.Map{
+		"title":  config.Title,
+		"audits": audits,
+	})
+}

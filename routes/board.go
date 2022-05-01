@@ -191,11 +191,11 @@ func GetThreadDelete(c *fiber.Ctx) error {
 
 	if err := DB.DeleteThread(c.Context(), board.ID, post.ID, database.ModerationAction{
 		Author: c.Locals("username").(string),
-		Action: database.ModActionDelete,
+		Type:   database.ModActionDelete,
 		Board:  board.ID,
 		Post:   post.ID,
 		Reason: "TODO",
-		Time:   time.Now(),
+		Date:   time.Now(),
 	}); err != nil {
 		return err
 	}
@@ -234,11 +234,11 @@ func GetPostDelete(c *fiber.Ctx) error {
 
 	if err := DB.DeletePost(c.Context(), board.ID, post.ID, database.ModerationAction{
 		Author: c.Locals("username").(string),
-		Action: database.ModActionDelete,
+		Type:   database.ModActionDelete,
 		Board:  board.ID,
 		Post:   post.ID,
 		Reason: "TODO",
-		Time:   time.Now(),
+		Date:   time.Now(),
 	}); err != nil {
 		return err
 	}

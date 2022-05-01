@@ -119,6 +119,7 @@ func Serve() {
 	})
 
 	app.Get("/", routes.GetIndex)
+	app.Get("/audit", routes.GetAudit)
 
 	// Admin
 	app.Get("/admin", routes.GetAdmin)
