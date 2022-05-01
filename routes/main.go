@@ -35,6 +35,16 @@ func init() {
 		return template.HTML(s)
 	})
 
+	Tmpl.AddFunc("summarize", func(s string) template.HTML {
+		s = strings.ReplaceAll(s, "\n", " ")
+		s = template.HTMLEscapeString(s)
+		if len(s) > 240 {
+			return template.HTML(s[:240] + "...")
+		}
+
+		return template.HTML(s)
+	})
+
 	Tmpl.AddFunc("captcha", func() template.HTML {
 		name, err := captcha.Fetch(context.TODO())
 		if err != nil {

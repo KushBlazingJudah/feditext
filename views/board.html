@@ -52,7 +52,7 @@
 		<td><span class="date">{{.Date}}</span></td>
 		<td><span class="date">{{.Bumpdate}}</span></td>
 		<td><span class="date">{{.Subject}}</span></td>
-		<td><p>{{.Content}}</p></td>
+		<td><p>{{summarize .Content}}</p></td>
 	</tr>
 	{{end}}
 </table>
