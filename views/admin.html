@@ -7,7 +7,7 @@
 <h1>Admin view <a href="/">[back]</a></h1>
 
 <h2>Boards</h2>
-<table id="threads">
+<table id="threads" class="table">
 	<tr><th>ID</th><th>Title</th><th>Description</th></tr>
 	{{range .boards}}
 	<tr><td><a href="/{{.ID}}">{{.ID}}</a></td><td>{{.Title}}</td><td>{{.Description}}</td></tr>
@@ -21,3 +21,17 @@
 	<input type="text" name="description" id="description" value="">
 	<input type="submit">
 </form>
+
+<h3>Reports</h3>
+<table id="reports" class="table">
+	<tr><th>Source</th><th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>
+	{{range .reports}}
+	<tr>
+		<td><code>{{.Source}}</code></td>
+		<td><span class="date">{{.Date}}</span></td>
+		<td><a href="/{{.Board}}/{{.Post}}">/{{.Board}}/{{.Post}}</a></td>
+		<td><p>{{.Reason}}</p></td>
+		<td><a href="/admin/resolve/{{.ID}}">Mark done</a></td>
+	</tr>
+	{{end}}
+</table>

@@ -246,3 +246,59 @@ func GetPostDelete(c *fiber.Ctx) error {
 	// Redirect back to the thread
 	return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.Thread))
 }
+
+func GetBoardReport(c *fiber.Ctx) error {
+	_, board, err := board(c)
+	if err != nil {
+		return err
+	}
+
+	pid, err := strconv.Atoi(c.Params("post"))
+	if err != nil {
+		return err
+	}
+
+	post, err := DB.Post(c.Context(), board.ID, database.PostID(pid)) // unsafe?
+	if err != nil {
+		return err
+	}
+
+	return c.Render("report", fiber.Map{
+		"title": fmt.Sprintf("Report Post | %s", config.Title),
+		"board": board,
+		"post":  post,
+	})
+}
+
+func PostBoardReport(c *fiber.Ctx) error {
+	_, board, err := board(c)
+	if err != nil {
+		return err
+	}
+
+	pid, err := strconv.Atoi(c.Params("post"))
+	if err != nil {
+		return err
+	}
+
+	// Ensure it exists
+	_, err = DB.Post(c.Context(), board.ID, database.PostID(pid))
+	if err != nil {
+		return err
+	}
+
+	reason := c.FormValue("reason")
+
+	if err := DB.FileReport(c.Context(), database.Report{
+		Source: c.IP(),
+		Board:  board.ID,
+		Post:   database.PostID(pid),
+		Reason: reason,
+		Date:   time.Now(),
+	}); err != nil {
+		return err
+	}
+
+	// Redirect back to the index
+	return c.Redirect("/" + board.ID)
+}

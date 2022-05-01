@@ -123,6 +123,7 @@ func Serve() {
 	// Admin
 	app.Get("/admin", routes.GetAdmin)
 	app.Get("/admin/login", routes.GetAdminLogin)
+	app.Get("/admin/resolve/:report", routes.GetAdminResolve)
 	app.Post("/admin/login", routes.PostAdminLogin)
 	app.Post("/admin/board", routes.PostBoard)
 
@@ -131,6 +132,9 @@ func Serve() {
 	app.Post("/:board", routes.PostBoardIndex)
 
 	app.Get("/:board/delete/:post", routes.GetPostDelete)
+	app.Get("/:board/report/:post", routes.GetBoardReport)
+	app.Post("/:board/report/:post", routes.PostBoardReport)
+
 	app.Get("/:board/:thread/delete", routes.GetThreadDelete)
 
 	app.Get("/:board/:thread", routes.GetBoardThread)

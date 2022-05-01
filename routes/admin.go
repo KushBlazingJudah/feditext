@@ -3,6 +3,7 @@ package routes
 // TODO: EVERY ROUTE IN HERE NEEDS AUTHENTICATION AND BADLY
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/config"
@@ -31,9 +32,15 @@ func GetAdmin(c *fiber.Ctx) error {
 		return err
 	}
 
+	reports, err := DB.Reports(c.Context(), false)
+	if err != nil {
+		return err
+	}
+
 	return c.Render("admin", fiber.Map{
-		"title":  "Admin View | " + config.Title,
-		"boards": boards,
+		"title":   "Admin View | " + config.Title,
+		"boards":  boards,
+		"reports": reports,
 	})
 }
 
@@ -115,5 +122,26 @@ func PostAdminLogin(c *fiber.Ctx) error {
 	}
 
 	// Redirect to admin page; this will kick them back to login or will work fine
+	return c.Redirect("/admin")
+}
+
+func GetAdminResolve(c *fiber.Ctx) error {
+	// Need privileges
+	ok := hasPriv(c, database.ModTypeMod)
+	if !ok {
+		return c.Redirect("/admin/login")
+	}
+
+	rid, err := strconv.Atoi(c.Params("report"))
+	if err != nil {
+		return err
+	}
+
+	// This fails silently if its a bad report
+	if err := DB.Resolve(c.Context(), rid); err != nil {
+		return err
+	}
+
+	// Redirect back to the admin panel
 	return c.Redirect("/admin")
 }

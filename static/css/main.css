@@ -111,12 +111,12 @@ hr {
 	border: 1px solid #928374;
 }
 
-table#threads {
+.table {
 	width: 100%;
 	text-align: center;
 }
 
-table#threads, #threads td, #threads tr, #threads th {
+.table, .table td, .table tr, .table th {
 	border: 1px solid #928374;
 	border-collapse: collapse;
 }
