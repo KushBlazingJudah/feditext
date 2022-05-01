@@ -1,9 +1,17 @@
-<h1>Hello, world!</h1>
-<p>Feditext version <code>{{.version}}</code></p>
+<h1>Welcome to {{.name}}!</h1>
+
+<p>{{.name}} is a textboard using the Feditext engine.
+It is currently heavily work-in-progress, however it works well enough to display this page.
+You can check out the server code
+<a href="https://github.com/KushBlazingJudah/feditext">here</a>.
+
+<p>This server is running Feditext version <code>{{.version}}</code>.</p>
 
 {{if .privs}}
 <h2><a href="/admin">Admin area</a></h2>
 {{end}}
+
+<h2><a href="/audit">Audit log</a></h2>
 
 <h2>Board list</h2>
 <ul>

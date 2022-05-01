@@ -18,6 +18,7 @@ func GetIndex(c *fiber.Ctx) error {
 
 	return c.Render("index", fiber.Map{
 		"title":   config.Title,
+		"name":    config.Title,
 		"version": config.Version,
 		"boards":  boards,
 		"news":    news,
