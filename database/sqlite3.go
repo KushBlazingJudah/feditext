@@ -25,9 +25,11 @@ const sqliteNewBoard = `CREATE TABLE IF NOT EXISTS posts_%s(
 
 	name TEXT,
 	tripcode TEXT,
+	subject TEXT,
+
 	date INTEGER,
 	bumpdate INTEGER,
-	options TEXT,
+
 	content TEXT,
 
 	source TEXT
@@ -100,7 +102,7 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 // TODO: specify sort. We assume that we're just going to sort by latest bumped threads.
 // This is true in 99% of cases but not always.
 func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source, bumpdate FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +115,7 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 		var ttime int64
 		var btime int64 // Should never be nil
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source, &btime); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Content, &post.Source, &btime); err != nil {
 			return posts, err
 		}
 
@@ -128,7 +130,7 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 
 // Thread fetches all posts on a thread.
 func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source, bumpdate FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +143,7 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		var ttime int64
 		var btime *int64 // Will most likely be nil
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source, &btime); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Content, &post.Source, &btime); err != nil {
 			return posts, err
 		}
 
@@ -164,13 +166,13 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 
 // Post fetches a single post from a thread.
 func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Post, error) {
-	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, date, content, source, bumpdate FROM posts_%s WHERE id = ?`, board), id)
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, content, source, bumpdate FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
 	var ttime int64
 	var btime *int64
 
-	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &ttime, &post.Content, &post.Source, &btime)
+	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Content, &post.Source, &btime)
 	post.Date = time.Unix(ttime, 0)
 
 	if btime != nil {
@@ -361,6 +363,7 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 		sql.Named("date", post.Date.Unix()),
 		sql.Named("name", post.Name),
 		sql.Named("source", post.Source),
+		sql.Named("subject", post.Subject),
 		sql.Named("thread", post.Thread),
 		sql.Named("tripcode", post.Tripcode),
 	}
@@ -386,8 +389,8 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 		}
 
 		r, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
-			posts_%s(thread, name, tripcode, date, content, source, bumpdate) VALUES (
-			:thread, :name, :tripcode, :date, :content, :source, :bumpdate)`,
+			posts_%s(thread, name, tripcode, subject, date, content, source, bumpdate) VALUES (
+			:thread, :name, :tripcode, :subject, :date, :content, :source, :bumpdate)`,
 			board), args...)
 		if err != nil {
 			return err
@@ -404,7 +407,7 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	// the user controls.
 	args = append(args, sql.Named("id", post.ID))
 	_, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET name =
-		:name, tripcode = :tripcode, content = :content WHERE id = :id`,
+		:name, tripcode = :tripcode, subject = :subject, content = :content WHERE id = :id`,
 		board), args...)
 	return err
 }

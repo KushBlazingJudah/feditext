@@ -79,6 +79,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 
 	name := c.FormValue("name", "Anonymous")
 	content := c.FormValue("content")
+	subject := c.FormValue("subject")
 
 	if content == "" {
 		return c.SendStatus(400) // no blank posts
@@ -89,6 +90,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 	post := database.Post{
 		Name:    name,
 		Content: content,
+		Subject: subject,
 		Source:  c.IP(),
 	}
 
@@ -150,6 +152,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 
 	name := c.FormValue("name", "Anonymous")
 	content := c.FormValue("content")
+	subject := c.FormValue("subject")
 
 	if content == "" {
 		return c.SendStatus(400) // no blank posts
@@ -168,6 +171,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 		Name:     name,
 		Content:  content,
 		Bumpdate: bumpdate,
+		Subject:  subject,
 		Source:   c.IP(),
 	}
 

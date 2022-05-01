@@ -19,6 +19,10 @@
 			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="100"><input type="submit" value="Post"></td>
 		</tr>
 		<tr>
+			<td><label for="content">Subject:</label></td>
+			<td><input type="text" id="subject" name="subject" placeholder="..." maxlength="100"></td>
+		</tr>
+		<tr>
 			<td><label for="content">Content:</label></td>
 			<td><textarea rows="10" cols="50" id="content" name="content" maxlength="2000"></textarea></td>
 		</tr>
@@ -38,6 +42,7 @@
 		<th>Name</th>
 		<th>Date</th>
 		<th>Last bumped</th>
+		<th>Subject</th>
 		<th>Content</th>
 	</tr>
 	{{range .threads}}
@@ -46,6 +51,7 @@
 		<td><span class="name">{{.Name}}</span></td>
 		<td><span class="date">{{.Date}}</span></td>
 		<td><span class="date">{{.Bumpdate}}</span></td>
+		<td><span class="date">{{.Subject}}</span></td>
 		<td><p>{{.Content}}</p></td>
 	</tr>
 	{{end}}
