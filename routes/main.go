@@ -94,3 +94,19 @@ func redirBanned(c *fiber.Ctx) (bool, error) {
 
 	return true, nil
 }
+
+func errResp(c *fiber.Ctx, msg string, status int, ret ...string) error {
+	retu := ""
+	if len(ret) == 1 {
+		retu = ret[0]
+	}
+
+	if err := c.SendStatus(status); err != nil {
+		return err
+	}
+
+	return render(c, "Error", "error", fiber.Map{
+		"error":  msg,
+		"return": retu,
+	})
+}

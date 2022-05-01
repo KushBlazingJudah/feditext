@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -22,7 +23,7 @@ func hasPriv(c *fiber.Ctx, p database.ModType) bool {
 func GetAdmin(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return c.SendStatus(401)
+		return errResp(c, "Unauthorized", 403)
 	}
 
 	reports, err := DB.Reports(c.Context(), false)
@@ -50,7 +51,7 @@ func GetAdmin(c *fiber.Ctx) error {
 func PostBoard(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return c.SendStatus(401)
+		return errResp(c, "Unauthorized", 403)
 	}
 
 	board := database.Board{}
@@ -59,7 +60,7 @@ func PostBoard(c *fiber.Ctx) error {
 	}
 
 	if board.ID == "" {
-		return c.SendString("no id")
+		return errResp(c, "No ID was specified in your request.", 400, "/admin")
 	}
 
 	if err := DB.SaveBoard(c.Context(), board); err != nil {
@@ -92,7 +93,7 @@ func PostAdminLogin(c *fiber.Ctx) error {
 	if ok, err := DB.PasswordCheck(c.Context(), user, pass); err != nil {
 		return err
 	} else if !ok {
-		return c.SendString("invalid credentials")
+		return errResp(c, "Invalid credentials.", 403, "/admin/login")
 	} else if ok {
 		priv, err := DB.Privilege(c.Context(), user)
 		if err != nil {
@@ -119,7 +120,6 @@ func PostAdminLogin(c *fiber.Ctx) error {
 			SameSite: "Strict",
 			HTTPOnly: true,
 		})
-
 	}
 
 	// Redirect to admin page; this will kick them back to login or will work fine
@@ -135,7 +135,7 @@ func GetAdminResolve(c *fiber.Ctx) error {
 
 	rid, err := strconv.Atoi(c.Params("report"))
 	if err != nil {
-		return err
+		return errResp(c, "Invalid post number.", 400, "/admin")
 	}
 
 	// This fails silently if its a bad report
@@ -150,14 +150,14 @@ func GetAdminResolve(c *fiber.Ctx) error {
 func PostAdminNews(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return c.SendStatus(401)
+		return errResp(c, "Unauthorized", 403, "/admin")
 	}
 
 	subject := c.FormValue("subject", "Untitled")
 	content := c.FormValue("content")
 
 	if content == "" {
-		return database.ErrPostContents
+		return errResp(c, "Invalid post contents.", 400, "/admin")
 	}
 
 	if err := DB.SaveNews(c.Context(), &database.News{
@@ -174,7 +174,7 @@ func PostAdminNews(c *fiber.Ctx) error {
 func GetAdminNewsDelete(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return c.SendStatus(401)
+		return errResp(c, "Unauthorized", 403, "/admin")
 	}
 
 	nid, err := strconv.Atoi(c.Params("news"))
@@ -200,11 +200,9 @@ func PostModerator(c *fiber.Ctx) error {
 	priv := c.FormValue("priv")
 
 	if username == "" {
-		// TODO: Error page
-		return c.SendStatus(400)
+		return errResp(c, "Need a username", 400, "/admin")
 	} else if password == "" {
-		// TODO: Error page
-		return c.SendStatus(400)
+		return errResp(c, "Need a password", 400, "/admin")
 	} else if priv == "" {
 		priv = "0" // assume janitor
 	}
@@ -247,7 +245,7 @@ func GetModeratorDel(c *fiber.Ctx) error {
 func GetAdminBan(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return c.Redirect("/admin")
+		return errResp(c, "Unauthorized", 403, "/admin")
 	}
 
 	return render(c, "Ban User", "ban", fiber.Map{"ip": c.Params("ip")})
@@ -256,12 +254,12 @@ func GetAdminBan(c *fiber.Ctx) error {
 func PostAdminBan(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return c.Redirect("/admin")
+		return errResp(c, "Unauthorized", 403, "/admin")
 	}
 
 	source := c.Params("ip")
 	if source == "" {
-		return c.SendStatus(400)
+		return errResp(c, "Specify an IP to ban", 400, "/admin")
 	}
 
 	reason := c.FormValue("reason")
@@ -272,7 +270,7 @@ func PostAdminBan(c *fiber.Ctx) error {
 	exp := c.FormValue("expires")
 	exptime, err := time.Parse("2006-01-02T15:04", exp)
 	if err != nil {
-		return err
+		return errResp(c, fmt.Sprintf("Invalid time: %s", err), 400, "/admin")
 	}
 
 	if err := DB.Ban(c.Context(), database.Ban{

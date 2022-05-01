@@ -2,4 +2,8 @@
 
 <p>{{.error}}</p>
 
+{{if .return}}
+<a href="{{.return}}">Go back</a>
+{{else}}
 <a href="/">Return to the index</a>
+{{end}}
