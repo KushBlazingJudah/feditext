@@ -23,7 +23,7 @@ You can check out the server code
 <h2>News</h2>
 {{range .news}}
 <div id="news{{.ID}}" class="post">
-	<h3>{{.Subject}} <span class="date">{{.Date}}</span><br>Written by {{.Author}}</h3>
+	<h3>{{.Subject}} {{time .Date}}<br>Written by {{.Author}}</h3>
 
 	<blockquote>
 		{{.Content | format}}

@@ -9,6 +9,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/KushBlazingJudah/feditext/captcha"
 	"github.com/KushBlazingJudah/feditext/config"
@@ -49,7 +50,7 @@ func init() {
 		s = strings.ReplaceAll(s, "\n", " ")
 		s = template.HTMLEscapeString(s)
 		if len(s) > 240 {
-			return template.HTML(s[:240] + "...")
+			return template.HTML(s[:160] + "...")
 		}
 
 		return template.HTML(s)
@@ -63,6 +64,15 @@ func init() {
 		}
 
 		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="solution" id="solution" maxlength="%d" placeholder="Captcha solution"><input type="hidden" name="captcha" id="captcha" value="%s">`, name, captcha.CaptchaLen, name))
+	})
+
+	Tmpl.AddFunc("time", func(t time.Time) template.HTML {
+		if t.IsZero() {
+			return template.HTML("")
+		}
+
+		s := t.Format("01/02/06(Mon)15:04:05")
+		return template.HTML(fmt.Sprintf(`<span data-utc="%d" class="date">%s</span>`, t.Unix(), s))
 	})
 }
 

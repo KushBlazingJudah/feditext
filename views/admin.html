@@ -41,7 +41,7 @@
 <table id="news" class="table">
 	<tr><th>Date</th><th>Author</th><th>Subject</th><th>Action</th></tr>
 	{{range .news}}
-	<tr><td><span class="date">{{.Date}}</span></td><td>{{.Author}}</td><td>{{.Subject}}</td><td><a href="/admin/news/delete/{{.ID}}">Delete</a></td></tr>
+	<tr><td>{{time .Date}}</td><td>{{.Author}}</td><td>{{.Subject}}</td><td><a href="/admin/news/delete/{{.ID}}">Delete</a></td></tr>
 	{{end}}
 </table>
 
@@ -66,7 +66,7 @@
 	{{range .reports}}
 	<tr>
 		<td><code>{{.Source}}</code></td>
-		<td><span class="date">{{.Date}}</span></td>
+		<td>{{time .Date}}</td>
 		<td><a href="/{{.Board}}/{{.Post}}">/{{.Board}}/{{.Post}}</a></td>
 		<td><p>{{.Reason}}</p></td>
 		<td><a href="/admin/resolve/{{.ID}}">Mark done</a></td>

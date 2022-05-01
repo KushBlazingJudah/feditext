@@ -14,7 +14,7 @@ sake.</p>
 	{{range .audits}}
 	<tr>
 		<td>{{.Author}}</td>
-		<td><span class="date">{{.Date}}</span></td>
+		<td>{{time .Date}}</td>
 		<td>{{.Type}}</td>
 		<td>/{{.Board}}/{{.Post}}</td>
 		<td><p>{{.Reason}}</p></td>

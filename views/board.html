@@ -41,7 +41,6 @@
 		<th>ID</th>
 		<th>Name</th>
 		<th>Date</th>
-		<th>Last bumped</th>
 		<th>Subject</th>
 		<th>Content</th>
 	</tr>
@@ -49,10 +48,9 @@
 	<tr>
 		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
 		<td><span class="name">{{.Name}}</span>{{if gt (len .Tripcode) 0}}<span class="tripcode">{{.Tripcode}}</span>{{end}}</td>
-		<td><span class="date">{{.Date}}</span></td>
-		<td><span class="date">{{.Bumpdate}}</span></td>
-		<td><span class="date">{{.Subject}}</span></td>
-		<td><p>{{summarize .Content}}</p></td>
+		<td>{{time .Date}}<br>{{if ne .Date .Bumpdate}}<small>{{time .Bumpdate}}</small>{{end}}</td>
+		<td><span class="subject">{{.Subject}}</span></td>
+		<td>{{summarize .Content}}</td>
 	</tr>
 	{{end}}
 </table>
