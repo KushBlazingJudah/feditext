@@ -22,6 +22,28 @@
 	<input type="submit">
 </form>
 
+<h2>Post news</h2>
+<form action="/admin/news" method="post">
+	<table id="postForm">
+		<tr>
+			<td><label for="name">Subject:</label></td>
+			<td><input type="text" id="subject" name="subject" placeholder="Untitled" maxlength="100"><input type="submit" value="Post"></td>
+		</tr>
+		<tr>
+			<td><label for="content">Content:</label></td>
+			<td><textarea rows="10" cols="50" id="content" name="content"></textarea></td>
+		</tr>
+	</table>
+</form>
+
+<h3>News articles</h3>
+<table id="news" class="table">
+	<tr><th>Date</th><th>Author</th><th>Subject</th><th>Action</th></tr>
+	{{range .news}}
+	<tr><td><span class="date">{{.Date}}</span></td><td>{{.Author}}</td><td>{{.Subject}}</td><td><a href="/admin/news/delete/{{.ID}}">Delete</a></td></tr>
+	{{end}}
+</table>
+
 <h3>Reports</h3>
 <table id="reports" class="table">
 	<tr><th>Source</th><th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>

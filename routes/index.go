@@ -11,10 +11,16 @@ func GetIndex(c *fiber.Ctx) error {
 		return err
 	}
 
+	news, err := DB.News(c.Context())
+	if err != nil {
+		return err
+	}
+
 	return c.Render("index", fiber.Map{
 		"title":   config.Title,
 		"version": config.Version,
 		"boards":  boards,
+		"news":    news,
 	})
 }
 

@@ -37,10 +37,16 @@ func GetAdmin(c *fiber.Ctx) error {
 		return err
 	}
 
+	news, err := DB.News(c.Context())
+	if err != nil {
+		return err
+	}
+
 	return c.Render("admin", fiber.Map{
 		"title":   "Admin View | " + config.Title,
 		"boards":  boards,
 		"reports": reports,
+		"news":    news,
 	})
 }
 
@@ -143,5 +149,47 @@ func GetAdminResolve(c *fiber.Ctx) error {
 	}
 
 	// Redirect back to the admin panel
+	return c.Redirect("/admin")
+}
+
+func PostAdminNews(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return c.SendStatus(401)
+	}
+
+	subject := c.FormValue("subject", "Untitled")
+	content := c.FormValue("content")
+
+	if content == "" {
+		return database.ErrPostContents
+	}
+
+	if err := DB.SaveNews(c.Context(), &database.News{
+		Author:  c.Locals("username").(string),
+		Subject: subject,
+		Content: content,
+	}); err != nil {
+		return err
+	}
+
+	return c.Redirect("/admin")
+}
+
+func GetAdminNewsDelete(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return c.SendStatus(401)
+	}
+
+	nid, err := strconv.Atoi(c.Params("news"))
+	if err != nil {
+		return err
+	}
+
+	if err := DB.DeleteNews(c.Context(), nid); err != nil {
+		return err
+	}
+
 	return c.Redirect("/admin")
 }

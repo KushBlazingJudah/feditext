@@ -125,6 +125,8 @@ func Serve() {
 	app.Get("/admin", routes.GetAdmin)
 	app.Get("/admin/login", routes.GetAdminLogin)
 	app.Get("/admin/resolve/:report", routes.GetAdminResolve)
+	app.Post("/admin/news", routes.PostAdminNews)
+	app.Get("/admin/news/delete/:news", routes.GetAdminNewsDelete)
 	app.Post("/admin/login", routes.PostAdminLogin)
 	app.Post("/admin/board", routes.PostBoard)
 

@@ -11,3 +11,14 @@
 	<li><a href="/{{.ID}}">/{{.ID}}/ - {{.Title}}</a></li>
 	{{end}}
 </ul>
+
+<h2>News</h2>
+{{range .news}}
+<div id="news{{.ID}}" class="post">
+	<h3>{{.Subject}} <span class="date">{{.Date}}</span><br>Written by {{.Author}}</h3>
+
+	<blockquote>
+		{{.Content | format}}
+	</blockquote>
+</div>
+{{end}}
