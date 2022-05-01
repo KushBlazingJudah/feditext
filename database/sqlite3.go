@@ -259,7 +259,7 @@ func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password 
 // DeleteThread deletes a thread from the database and records a moderation action.
 // It will also delete all posts.
 func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error {
-	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE thread = 0 OR thread = ?", board), thread)
+	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ? OR thread = ?", board), thread, thread)
 	if err != nil {
 		return err
 	}
