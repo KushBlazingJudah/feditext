@@ -26,6 +26,7 @@ const sqliteNewBoard = `CREATE TABLE IF NOT EXISTS posts_%s(
 	name TEXT,
 	tripcode TEXT,
 	date INTEGER,
+	bumpdate INTEGER,
 	options TEXT,
 	content TEXT,
 
@@ -96,8 +97,10 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 }
 
 // Threads fetches all threads on a board.
+// TODO: specify sort. We assume that we're just going to sort by latest bumped threads.
+// This is true in 99% of cases but not always.
 func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS 0 ORDER BY id ASC`, board))
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, date, content, source FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
 	if err != nil {
 		return nil, err
 	}
@@ -321,10 +324,23 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 
 	if post.ID == 0 {
 		// We are creating a new post.
+		if post.Thread == 0 {
+			// Set bumpdate.
+			args = append(args, sql.Named("bumpdate", post.Date.Unix()))
+		} else {
+			// Bump the thread.
+			// TODO: sage
+			args = append(args, sql.Named("bumpdate", nil)) // So the query doesn't break
+
+			if _, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET
+			bumpdate = ? WHERE id = ?`, board), post.Date.Unix(), post.Thread); err != nil {
+				return err
+			}
+		}
 
 		r, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
-			posts_%s(thread, name, tripcode, date, content, source) VALUES (
-			:thread, :name, :tripcode, :date, :content, :source)`,
+			posts_%s(thread, name, tripcode, date, content, source, bumpdate) VALUES (
+			:thread, :name, :tripcode, :date, :content, :source, :bumpdate)`,
 			board), args...)
 		if err != nil {
 			return err
