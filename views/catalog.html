@@ -1,5 +1,4 @@
 {{$board := .board}}
-{{$privs := .privs}}
 <ul id="boardlist">
 	<li><a href="/">index</a></li>
 	{{range .boards}}
@@ -12,7 +11,7 @@
 	<p>{{.board.Description}}</p>
 </div>
 
-<p><a href="/{{.board.ID}}/catalog">[Catalog]</a></p>
+<p><a href="/{{.board.ID}}">[Index]</a></p>
 
 <h2>Create a new thread</h2>
 <form action="/{{.board.ID}}" method="post">
@@ -39,17 +38,25 @@
 </form>
 
 <h2>Current threads</h2>
-{{range .threads}}
-{{$thread := (index .Posts 0).ID}}
-{{$nposts := .NPosts}}
-{{$posters := .Posters}}
-{{range .Posts}}
-<div id="p{{.ID}}" class="post">
-	<h3>{{if eq .ID $thread}}[{{$nposts}}:{{$posters}}] {{end}}<a href="/{{$board.ID}}/{{$thread}}/#p{{.ID}}">#{{.ID}}</a> <span class="name">{{.Name}}</span>{{if gt (len .Tripcode) 0}}<span class="tripcode">{{.Tripcode}}</span>{{end}} <span class="subject">{{.Subject}}</span> {{time .Date}}{{if .Bumpdate.IsZero}} sage{{end}} <a href="/{{$board.ID}}/report/{{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}</h3>
-	<blockquote class="content">
-		{{format .Content}}
-	</blockquote>
-</div>
-{{end}}
-<hr>
-{{end}}
+<table id="threads" class="table">
+	<tr>
+		<th>ID</th>
+		<th>Name</th>
+		<th>Date</th>
+		<th>Subject</th>
+		<th>Content</th>
+	</tr>
+	{{range .threads}}
+	{{$nposts := .NPosts}}
+	{{$posters := .Posters}}
+	{{with .Post}}
+	<tr>
+		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
+		<td><span class="name">{{.Name}}</span>{{if gt (len .Tripcode) 0}}<span class="tripcode">{{.Tripcode}}</span>{{end}}</td>
+		<td>{{time .Date}}<br>{{if ne .Date .Bumpdate}}<small>{{time .Bumpdate}}</small>{{end}}</td>
+		<td><span class="subject">{{.Subject}}</span></td>
+		<td><b>[{{$nposts}}:{{$posters}}]</b> {{summarize .Content}}</td>
+	</tr>
+	{{end}}
+	{{end}}
+</table>

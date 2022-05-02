@@ -129,8 +129,14 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 }
 
 // Thread fetches all posts on a thread.
-func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
+func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID, tail int) ([]Post, error) {
+	var rows *sql.Rows
+	var err error
+	if tail > 0 {
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate FROM posts_%s WHERE id IS :thread or (thread IS :thread AND id > :thread+(SELECT count(id) FROM posts_%s WHERE thread = :thread)-:tail)`, board, board), sql.Named("thread", thread), sql.Named("tail", tail))
+	} else {
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +168,16 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 	}
 
 	return posts, err
+}
+
+// ThreadStat returns the number of posts and unique posters in any given thread.
+func (db *SqliteDatabase) ThreadStat(ctx context.Context, board string, thread PostID) (int, int, error) {
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT count(id), count(distinct source) FROM posts_%s WHERE id IS ? OR thread IS ?`, board), thread, thread)
+
+	var posts int
+	var posters int
+
+	return posts, posters, row.Scan(&posts, &posters)
 }
 
 // Post fetches a single post from a thread.

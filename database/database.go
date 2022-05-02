@@ -130,7 +130,10 @@ type Database interface {
 	Threads(ctx context.Context, board string) ([]Post, error)
 
 	// Thread fetches all posts on a thread.
-	Thread(ctx context.Context, board string, thread PostID) ([]Post, error)
+	Thread(ctx context.Context, board string, thread PostID, tail int) ([]Post, error)
+
+	// ThreadStat returns the number of posts and unique posters in any given thread.
+	ThreadStat(ctx context.Context, board string, thread PostID) (int, int, error)
 
 	// Post fetches a single post from a thread.
 	Post(ctx context.Context, board string, post PostID) (Post, error)

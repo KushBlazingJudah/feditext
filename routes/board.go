@@ -15,6 +15,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type indexData struct {
+	Posts           []database.Post
+	NPosts, Posters int
+}
+
+type catalogData struct {
+	database.Post
+	NPosts, Posters int
+}
+
 func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
 	board := database.Board{}
 
@@ -56,7 +66,6 @@ func checkCaptcha(c *fiber.Ctx) bool {
 	return true
 }
 
-// GetBoardIndex ("/:board") returns a summary of all of the threads on the board.
 func GetBoardIndex(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if board.ID == "" || err != nil {
@@ -68,9 +77,53 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		return err
 	}
 
+	posts := []indexData{}
+
+	for _, thread := range threads {
+		t, err := DB.Thread(c.Context(), board.ID, thread.ID, 5)
+		if err != nil {
+			return err
+		}
+
+		nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, thread.ID)
+		if err != nil {
+			return err
+		}
+
+		posts = append(posts, indexData{t, nposts, posters})
+	}
+
 	return render(c, board.Title, "board", fiber.Map{
 		"board":   board,
-		"threads": threads,
+		"threads": posts,
+	})
+}
+
+func GetBoardCatalog(c *fiber.Ctx) error {
+	_, board, err := board(c)
+	if board.ID == "" || err != nil {
+		return err
+	}
+
+	threads, err := DB.Threads(c.Context(), board.ID)
+	if err != nil {
+		return err
+	}
+
+	posts := []catalogData{}
+
+	for _, thread := range threads {
+		nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, thread.ID)
+		if err != nil {
+			return err
+		}
+
+		posts = append(posts, catalogData{thread, nposts, posters})
+	}
+
+	return render(c, board.Title, "catalog", fiber.Map{
+		"board":   board,
+		"threads": posts,
 	})
 }
 
@@ -133,7 +186,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return errResp(c, "Invalid thread number.", 404, fmt.Sprintf("/%s", board.ID))
 	}
 
-	posts, err := DB.Thread(c.Context(), board.ID, database.PostID(pid))
+	posts, err := DB.Thread(c.Context(), board.ID, database.PostID(pid), 0)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return errResp(c, "This thread does not exist.", 404, fmt.Sprintf("/%s", board.ID))
@@ -142,9 +195,17 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return err
 	}
 
+	nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, database.PostID(pid))
+	if err != nil {
+		return err
+	}
+
 	return render(c, fmt.Sprintf("/%s/%d", board.ID, pid), "thread", fiber.Map{
 		"board": board,
 		"posts": posts,
+
+		"nposts":  nposts,
+		"posters": posters,
 	})
 }
 

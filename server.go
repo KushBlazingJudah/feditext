@@ -132,6 +132,7 @@ func Serve() {
 	app.Get("/:board", routes.GetBoardIndex)
 	app.Post("/:board", routes.PostBoardIndex)
 
+	app.Get("/:board/catalog", routes.GetBoardCatalog)
 	app.Get("/:board/delete/:post", routes.GetPostDelete)
 	app.Get("/:board/report/:post", routes.GetBoardReport)
 	app.Post("/:board/report/:post", routes.PostBoardReport)

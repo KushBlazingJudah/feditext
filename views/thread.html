@@ -14,7 +14,7 @@
 	<p>{{.board.Description}}</p>
 </div>
 
-<p><a href="/{{.board.ID}}">[Index]</a></p>
+<p><a href="/{{.board.ID}}">[Index]</a> <a href="/{{.board.ID}}/catalog">[Catalog]</a></p>
 
 <h2>Create a new post</h2>
 <form action="/{{.board.ID}}/{{$thread}}" method="post">
@@ -43,6 +43,7 @@
 </form>
 
 <h2>Posts</h2>
+<p>{{.nposts}} post{{if gt .nposts 1}}s{{end}}, {{.posters}} poster{{if gt .posters 1}}s{{end}}.</p>
 {{range .posts}}
 <div id="p{{.ID}}" class="post">
 	<h3><a href="#p{{.ID}}">#{{.ID}}</a> <span class="name">{{.Name}}</span>{{if gt (len .Tripcode) 0}}<span class="tripcode">{{.Tripcode}}</span>{{end}} <span class="subject">{{.Subject}}</span> {{time .Date}}{{if .Bumpdate.IsZero}} sage{{end}} <a href="/{{$board.ID}}/report/{{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}</h3>
