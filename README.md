@@ -1,6 +1,6 @@
 # feditext
 
-A textboard for the fediverse.
+A textboard ~~for the fediverse~~.
 
 This project aims to federate with existing FChannel instances, barring images,
 since text is much easier to moderate, as fun as images are.
@@ -23,8 +23,8 @@ works fine, a nice foundation for implementing ActivityPub on top of.
 
 I have previously done a great deal of work on [FChannel's
 codebase](https://github.com/FChannel0/FChannel-Server), however I very quickly
-lost interest in the project after doing a huge amount of work converting a good
-portion of the code to Fiber and restructuring a good chunk of the codebase.
+lost interest in the project after doing a lot of work converting a portion of
+the code to Fiber and restructuring a good chunk of the codebase.
 I was generally burnt out of programming at that time so I turned my attention
 to other projects outside of programming, however eventually got the courage
 back and worked on other programming projects and pushed FChannel off to the
@@ -36,10 +36,12 @@ each other's mistakes while having their own uniqueness to it.
 This is one such project I'd like to see.
 
 I have a huge amount of respect for the developer, however I'm afraid he made
-some awful design choices while writing FChannel, so this serves to be a project
-to expand upon later and to use to improve the main codebase of FChannel, or
-maybe even my unfinished Fiber branch which I may eventually finish.
-I'm not saying my choices will be much better.
+some awful design choices while writing FChannel (so did I when I started
+working on the Fiber port), so this serves to be a project to expand upon later
+and to use to improve the main codebase of FChannel, or maybe even aid in the
+effort to port to Fiber.
+I'm not saying my choices will be much better, but half the point of this
+project is to coexist with FChannel and to share improvements.
 
 ## Goals
 
@@ -85,12 +87,11 @@ If you build with SQLite3:
 
 ## Running
 
-Feditext is not in a very usable state, however a Makefile is included.
+Feditext can be built easily using the included Makefile:
 
 - `build` builds a **release** build; this strips out some data that is
   necessary for debugging.
-- `dev` builds a **developer** build; debugging information is left intact and
-  the race detector is turned on.
+- `dev` builds a **developer** build; debugging information is left intact.
 - `run` runs a **developer** build.
 
 Less important targets:

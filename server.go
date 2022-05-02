@@ -15,6 +15,7 @@ import (
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -82,6 +83,8 @@ func Serve() {
 	})
 
 	app.Static("/", "./static")
+
+	app.Use(logger.New())
 
 	// Authentication middleware
 	app.Use(func(c *fiber.Ctx) error {
