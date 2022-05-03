@@ -271,13 +271,13 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 
 // FindAPID finds a post given its ActivityPub ID.
 func (db *SqliteDatabase) FindAPID(ctx context.Context, board string, apid string) (Post, error) {
-	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, content, source, bumpdate FROM posts_%s WHERE apid = ?`, board), apid)
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate FROM posts_%s WHERE apid = ?`, board), apid)
 	post := Post{APID: apid}
 
 	var ttime int64
 	var btime *int64
 
-	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Content, &post.Source, &btime)
+	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime)
 	post.Date = time.Unix(ttime, 0)
 
 	if btime != nil {

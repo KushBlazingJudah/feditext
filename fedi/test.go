@@ -1,4 +1,10 @@
-package main
+//go:build test
+// +build test
+
+// Proof of concept file.
+// Run if you dare.
+
+package fedi
 
 import (
 	"context"
@@ -6,55 +12,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/database"
 )
-
-var DB database.Database
-
-func init() {
-	var err error
-	DB, err = database.Engines["sqlite3"]("./test.db")
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func FixOrderedNotes(o *OrderedNoteCollection, depth int) {
-	o.Type = "OrderedCollection"
-
-	for _, note := range o.OrderedItems {
-		FixNote(note, depth)
-
-		if note.Replies != nil {
-			if note.Replies.OrderedItems == nil {
-				note.Replies = nil
-			} else {
-				FixOrderedNotes(note.Replies, depth+1)
-			}
-		}
-	}
-}
-
-func FixNote(n Note, depth int) {
-	if depth > 1 {
-		n.InReplyTo = nil
-		n.Replies = nil
-	} else {
-		for _, note := range n.InReplyTo {
-			FixNote(note, depth+1)
-		}
-
-		if n.Replies != nil && n.Replies.OrderedItems != nil {
-			for _, note := range n.Replies.OrderedItems {
-				FixNote(note, depth+1)
-			}
-		}
-	}
-}
 
 func deserialize() {
 	ctx := context.TODO()
@@ -62,20 +25,20 @@ func deserialize() {
 	// A bulk of the slowness is the connection speed of the main instance and
 	// what I'd have to assume is the sheer amount of time it takes to gather
 	// everything up and serialize it.
-	// res, err := http.Get("https://fchan.xyz/prog/outbox")
+	res, err := http.Get("https://fchan.xyz/prog/outbox")
 
-	fp, err := os.Open("./outbox")
+	// fp, err := os.Open("./outbox")
 	if err != nil {
 		panic(err)
 	}
-	// defer res.Body.Close()
-	defer fp.Close()
+	defer res.Body.Close()
+	// defer fp.Close()
 
 	dt := time.Now()
 
 	var ob Outbox
-	// decoder := json.NewDecoder(res.Body)
-	decoder := json.NewDecoder(fp)
+	decoder := json.NewDecoder(res.Body)
+	// decoder := json.NewDecoder(fp)
 	if err := decoder.Decode(&ob); err != nil {
 		panic(err)
 	}
@@ -155,7 +118,7 @@ func serialize() {
 		panic(err)
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(io.Discard)
 	encoder.SetIndent("", "  ")
 	encoder.SetEscapeHTML(false)
 
@@ -166,7 +129,15 @@ func serialize() {
 	fmt.Println("serialize", time.Since(start))
 }
 
-func main() {
+func _main() {
+	var err error
+	DB, err = database.Engines["sqlite3"]("./test.db")
+	if err != nil {
+		panic(err)
+	}
+
 	defer DB.Close()
+
+	deserialize()
 	serialize()
 }

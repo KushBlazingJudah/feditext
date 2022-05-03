@@ -41,6 +41,7 @@ func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
 	}
 
 	if board.ID == "" {
+		// TODO: Servers won't like this. Check for ActivityPub accept.
 		return boards, board, errResp(c, "Invalid board.", 404, "/")
 	}
 
@@ -67,6 +68,10 @@ func checkCaptcha(c *fiber.Ctx) bool {
 }
 
 func GetBoardIndex(c *fiber.Ctx) error {
+	if isStreams(c) {
+		return GetBoardActor(c)
+	}
+
 	_, board, err := board(c)
 	if board.ID == "" || err != nil {
 		return err
@@ -176,6 +181,10 @@ func PostBoardIndex(c *fiber.Ctx) error {
 }
 
 func GetBoardThread(c *fiber.Ctx) error {
+	if isStreams(c) {
+		return GetBoardNote(c)
+	}
+
 	_, board, err := board(c)
 	if board.ID == "" || err != nil {
 		return err

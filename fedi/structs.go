@@ -1,12 +1,22 @@
-package main
+package fedi
 
 // A lot of things here are explicitly pointers so they get dropped when there
 // are no values to go in there, and omitempty wouldn't normally omit it.
 // This applies for any struct.
 // If there's a struct in there that may not matter, make it a pointer.
 // encoding/json will handle nils just fine, will you?
+//
+// This is also not exactly compliant, i.e. we take what we care about and nothing else.
+// However, attachments and previews will never be used by us as we're a textboard.
 
-import "time"
+import (
+	"time"
+
+	"github.com/KushBlazingJudah/feditext/database"
+)
+
+// Didn't want to make a new file for it
+var DB database.Database
 
 // Actor represents a user, or in our case, a board, which is actually a
 // service account according to ActivityPub.

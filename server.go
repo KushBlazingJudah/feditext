@@ -13,6 +13,7 @@ import (
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/fedi"
 	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -49,6 +50,7 @@ func Startup() {
 
 	routes.DB = DB
 	captcha.DB = DB
+	fedi.DB = DB
 
 	// Set a random admin password
 	if config.RandAdmin {
@@ -134,6 +136,9 @@ func Serve() {
 	// Boards
 	app.Get("/:board", routes.GetBoardIndex)
 	app.Post("/:board", routes.PostBoardIndex)
+
+	// ActivityPub stuff
+	app.Get("/:board/outbox", routes.GetBoardOutbox)
 
 	app.Get("/:board/catalog", routes.GetBoardCatalog)
 	app.Get("/:board/delete/:post", routes.GetPostDelete)

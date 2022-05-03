@@ -1,4 +1,4 @@
-package main
+package fedi
 
 import (
 	"github.com/KushBlazingJudah/feditext/database"
