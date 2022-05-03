@@ -5,7 +5,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha512"
+	"database/sql"
 	"errors"
+	"fmt"
+	"html"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -48,6 +54,9 @@ var (
 
 var Engines = map[string]InitFunc{}
 
+var citeRegex = regexp.MustCompile(`&gt;&gt;(\d+)`)
+var quoteRegex = regexp.MustCompile("(?m)^&gt;(.+?)$")
+
 // Post contains data related to a single post.
 // If this is a thread opening post, ID will be equal to Thread.
 // ID does not have to be filled out; it will be done while saving to the
@@ -62,6 +71,7 @@ type Post struct {
 
 	Date     time.Time
 	Bumpdate time.Time // Set to above zero to bump if making a new post
+	Raw      string
 	Content  string
 
 	Source string
@@ -195,6 +205,9 @@ type Database interface {
 	// Solve checks a captcha.
 	Solve(ctx context.Context, id, solution string) (bool, error)
 
+	// AddReply links two posts together as a reply.
+	AddReply(ctx context.Context, board string, from, to PostID) error
+
 	// DeleteThread deletes a thread from the database and records a moderation action.
 	// It will also delete all posts.
 	DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error
@@ -236,4 +249,54 @@ func check(password []byte, salt []byte, target []byte) bool {
 
 	hash := sha512.Sum512(buf)
 	return bytes.Equal(hash[:], target)
+}
+
+func formatPost(ctx context.Context, d Database, board string, p *Post) error {
+	var e error
+	s := p.Raw
+
+	s = html.EscapeString(s)
+
+	// Database functionality in here isn't implemented greatly but it'll work more or less
+	s = citeRegex.ReplaceAllStringFunc(s, func(s string) string {
+		s = s[len("&gt;&gt;"):] // Very cool. I didn't want my captures anyway.
+		id, err := strconv.Atoi(s)
+		if err != nil {
+			// bad cite
+			return fmt.Sprintf(`<a href="#" class="cite invalid">&gt;&gt;%s</a>`, s)
+		}
+
+		ref, err := d.Post(ctx, board, PostID(id))
+		if errors.Is(err, sql.ErrNoRows) {
+			// bad cite
+			return fmt.Sprintf(`<a href="#" class="cite invalid">&gt;&gt;%s</a>`, s)
+		} else if err != nil {
+			e = err
+		}
+
+		if ref.Thread == p.Thread {
+			// Reply to another post on this thread
+			if err := d.AddReply(ctx, board, p.ID, ref.ID); err != nil {
+				e = err
+			}
+
+			return fmt.Sprintf(`<a href="#p%d" class="cite">&gt;&gt;%d</a>`, ref.ID, ref.ID)
+		} else {
+			// Cross-cite
+			if ref.Thread == 0 {
+				return fmt.Sprintf(`<a href="/%s/%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.ID, ref.ID)
+			} else {
+				return fmt.Sprintf(`<a href="/%s/%d#p%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.Thread, ref.ID, ref.ID)
+			}
+		}
+	})
+	if e != nil {
+		return e
+	}
+
+	s = quoteRegex.ReplaceAllString(s, `<span class="quote">&gt;$1</span>`)
+	s = strings.ReplaceAll(s, "\n", "<br/>")
+
+	p.Content = s
+	return nil
 }

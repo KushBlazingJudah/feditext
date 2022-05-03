@@ -27,7 +27,7 @@ func (n Note) AsPost() database.Post {
 		Subject:  n.Subject,
 		Date:     n.Published,
 		Bumpdate: updated,
-		Content:  n.Content,
+		Raw:      n.Content,
 		Source:   n.Actor,
 		APID:     n.ID,
 	}

@@ -6,6 +6,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -13,7 +14,10 @@ import (
 
 	_ "embed"
 
+	"github.com/KushBlazingJudah/feditext/config"
 	_ "github.com/mattn/go-sqlite3"
+
+	"math/rand"
 )
 
 //go:embed schema.sqlite3
@@ -30,6 +34,7 @@ const sqliteNewBoard = `CREATE TABLE IF NOT EXISTS posts_%s(
 	date INTEGER,
 	bumpdate INTEGER,
 
+	raw TEXT,
 	content TEXT,
 
 	source TEXT,
@@ -41,11 +46,12 @@ const sqliteNewBoard = `CREATE TABLE IF NOT EXISTS posts_%s(
 CREATE TABLE IF NOT EXISTS replies_%s(
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-	from INTEGER,
-	to INTEGER,
+	source INTEGER,
+	target INTEGER,
 
-	FOREIGN KEY(from) REFERENCES posts_%s(id),
-	FOREIGN KEY(to) REFERENCES posts_%s(id)
+	FOREIGN KEY(source) REFERENCES posts_%s(id),
+	FOREIGN KEY(target) REFERENCES posts_%s(id),
+	UNIQUE(source,target)
 );
 `
 
@@ -116,7 +122,7 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 // TODO: specify sort. We assume that we're just going to sort by latest bumped threads.
 // This is true in 99% of cases but not always.
 func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate, apid FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
 	if err != nil {
 		return nil, err
 	}
@@ -129,14 +135,32 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 		var ttime int64
 		var btime int64 // Should never be nil
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
 			return posts, err
 		}
 
 		post.Date = time.Unix(ttime, 0)
 		post.Bumpdate = time.Unix(btime, 0)
 		post.Thread = post.ID
+
 		posts = append(posts, post)
+	}
+
+	// Format all of the posts that need formatting
+	// Would've done it inside of rows but locking is in my way
+	for i, post := range posts {
+		if post.Content == "" {
+			if err := formatPost(ctx, db, board, &post); err != nil {
+				return posts, err
+			}
+
+			// Save it back
+			if err := db.SavePost(ctx, board, &post); err != nil {
+				return posts, err
+			}
+
+			posts[i] = post
+		}
 	}
 
 	return posts, rows.Err()
@@ -147,14 +171,13 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 	var rows *sql.Rows
 	var err error
 	if tail > 0 {
-		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate, apid FROM posts_%s WHERE id IS :thread or (thread IS :thread AND id > :thread+(SELECT count(id) FROM posts_%s WHERE thread = :thread)-:tail)`, board, board), sql.Named("thread", thread), sql.Named("tail", tail))
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IS :thread or (thread IS :thread AND id > :thread+(SELECT count(id) FROM posts_%s WHERE thread = :thread)-:tail)`, board, board), sql.Named("thread", thread), sql.Named("tail", tail))
 	} else {
-		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, content, source, bumpdate, apid FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
 	}
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	posts := []Post{}
 
@@ -163,7 +186,8 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		var ttime int64
 		var btime *int64 // Will most likely be nil
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+			rows.Close()
 			return posts, err
 		}
 
@@ -175,10 +199,30 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		posts = append(posts, post)
 	}
 
+	// Close rows since we're done
+	rows.Close()
+
 	// Say no rows if we get nothing back
 	err = rows.Err()
 	if err == nil && len(posts) == 0 {
 		err = sql.ErrNoRows
+	}
+
+	// Format all of the posts that need formatting
+	// Would've done it inside of rows but locking is in my way
+	for i, post := range posts {
+		if post.Content == "" {
+			if err := formatPost(ctx, db, board, &post); err != nil {
+				return posts, err
+			}
+
+			// Save it back
+			if err := db.SavePost(ctx, board, &post); err != nil {
+				return posts, err
+			}
+
+			posts[i] = post
+		}
 	}
 
 	return posts, err
@@ -196,17 +240,30 @@ func (db *SqliteDatabase) ThreadStat(ctx context.Context, board string, thread P
 
 // Post fetches a single post from a thread.
 func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Post, error) {
-	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, content, source, bumpdate, apid FROM posts_%s WHERE id = ?`, board), id)
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
 	var ttime int64
 	var btime *int64
 
-	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Content, &post.Source, &btime, &post.APID)
-	post.Date = time.Unix(ttime, 0)
+	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID)
+	if err != nil {
+		return post, err
+	}
 
+	post.Date = time.Unix(ttime, 0)
 	if btime != nil {
 		post.Bumpdate = time.Unix(*btime, 0)
+	}
+
+	// Format the post if we need to
+	if post.Content == "" {
+		if err := formatPost(ctx, db, board, &post); err != nil {
+			return post, err
+		}
+
+		// Save it back
+		err = db.SavePost(ctx, board, &post)
 	}
 
 	return post, err
@@ -439,7 +496,7 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 
 	// Create posts table
 	// Hack sprintf statement, go away
-	_, err = db.conn.ExecContext(ctx, fmt.Sprintf(sqliteNewBoard, board.ID, board.ID, board.ID, board.ID, board.ID))
+	_, err = db.conn.ExecContext(ctx, fmt.Sprintf(sqliteNewBoard, board.ID, board.ID, board.ID, board.ID))
 	return err
 }
 
@@ -452,21 +509,30 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	}
 
 	// Forbid empty posting
-	if strings.TrimSpace(post.Content) == "" {
+	if strings.TrimSpace(post.Raw) == "" {
 		return ErrPostContents
+	}
+
+	// Generate APID
+	// Random hex number for now
+	if post.APID == "" {
+		// TODO: This really sucks. Really.
+		post.APID = fmt.Sprintf("%s/%s/%08x", "http://"+config.FQDN, board, rand.Intn(math.MaxInt32))
 	}
 
 	// This is used to prevent passing an absurdly large amount of arguments.
 	// Of course, we still do that, this just looks nicer :)
 	args := []interface{}{
+		sql.Named("apid", post.APID),
 		sql.Named("content", post.Content),
 		sql.Named("date", post.Date.Unix()),
 		sql.Named("name", post.Name),
+		sql.Named("raw", post.Raw),
 		sql.Named("source", post.Source),
 		sql.Named("subject", post.Subject),
 		sql.Named("thread", post.Thread),
 		sql.Named("tripcode", post.Tripcode),
-		sql.Named("apid", post.APID),
+		sql.Named("tripcode", post.Tripcode),
 	}
 
 	if post.ID == 0 {
@@ -490,8 +556,8 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 		}
 
 		r, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
-			posts_%s(thread, name, tripcode, subject, date, content, source, bumpdate, apid) VALUES (
-			:thread, :name, :tripcode, :subject, :date, :content, :source, :bumpdate, :apid)`,
+			posts_%s(thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid) VALUES (
+			:thread, :name, :tripcode, :subject, :date, :raw, :content, :source, :bumpdate, :apid)`,
 			board), args...)
 		if err != nil {
 			return err
@@ -508,7 +574,7 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	// the user controls.
 	args = append(args, sql.Named("id", post.ID))
 	_, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET name =
-		:name, tripcode = :tripcode, subject = :subject, content = :content WHERE id = :id`,
+		:name, tripcode = :tripcode, subject = :subject, raw = :raw, content = :content WHERE id = :id`,
 		board), args...)
 	return err
 }
@@ -613,6 +679,12 @@ func (db *SqliteDatabase) Solve(ctx context.Context, id, solution string) (bool,
 
 	_, err := db.conn.ExecContext(ctx, `DELETE FROM captchas WHERE id = ?`, id)
 	return solution == sol, err
+}
+
+// AddReply links two posts together as a reply.
+func (db *SqliteDatabase) AddReply(ctx context.Context, board string, from, to PostID) error {
+	_, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT OR IGNORE INTO replies_%s(source, target) VALUES(?, ?)`, board), from, to)
+	return err
 }
 
 // DeleteThread deletes a thread from the database and records a moderation action.

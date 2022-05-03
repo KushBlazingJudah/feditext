@@ -48,7 +48,7 @@
 <div id="p{{.ID}}" class="post">
 	<h3><a href="#p{{.ID}}">#{{.ID}}</a> <span class="name">{{.Name}}</span>{{if gt (len .Tripcode) 0}}<span class="tripcode">{{.Tripcode}}</span>{{end}} <span class="subject">{{.Subject}}</span> {{time .Date}}{{if .Bumpdate.IsZero}} sage{{end}} <a href="/{{$board.ID}}/report/{{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}</h3>
 	<blockquote class="content">
-		{{format .Content}}
+		{{unescape .Content}}
 	</blockquote>
 </div>
 {{end}}

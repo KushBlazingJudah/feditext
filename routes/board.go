@@ -162,7 +162,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 	post := database.Post{
 		Name:     name,
 		Tripcode: trip,
-		Content:  content,
+		Raw:      content,
 		Subject:  subject,
 		Source:   c.IP(),
 	}
@@ -265,7 +265,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 		Thread:   database.PostID(tid),
 		Name:     name,
 		Tripcode: trip,
-		Content:  content,
+		Raw:      content,
 		Bumpdate: bumpdate,
 		Subject:  subject,
 		Source:   c.IP(),

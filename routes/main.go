@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"regexp"
 	"strings"
 	"time"
 
@@ -23,26 +22,11 @@ var DB database.Database
 
 var Tmpl *html.Engine
 
-var citeRegex = regexp.MustCompile(`&gt;&gt;(\d+)`)
-var quoteRegex = regexp.MustCompile("(?m)^&gt;(.+?)$")
-
 func init() {
 	Tmpl = html.New("./views", ".html")
 	Tmpl.Debug(true)
 
 	Tmpl.AddFunc("unescape", func(s string) template.HTML {
-		return template.HTML(s)
-	})
-
-	Tmpl.AddFunc("format", func(s string) template.HTML {
-		s = template.HTMLEscapeString(s)
-
-		// TODO: Handle links not on page.
-		// I would've done this myself if ReplaceAllStringFunc would expand.
-		s = citeRegex.ReplaceAllString(s, `<a href="#p$1" class="cite">&gt;&gt;$1</a>`)
-
-		s = quoteRegex.ReplaceAllString(s, `<span class="quote">&gt;$1</span>`)
-		s = strings.ReplaceAll(s, "\n", "<br/>")
 		return template.HTML(s)
 	})
 
