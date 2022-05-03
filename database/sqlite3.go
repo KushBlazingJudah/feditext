@@ -428,6 +428,36 @@ func (db *SqliteDatabase) Captcha(ctx context.Context, id string) ([]byte, strin
 	return img, sol, row.Scan(&img, &sol)
 }
 
+// Replies returns a list of replies to a post.
+// We don't process them here because they will not be displayed. Be aware of this.
+func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID) ([]Post, error) {
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []Post{}
+
+	for rows.Next() {
+		post := Post{}
+		var ttime int64
+		var btime int64 // Should never be nil
+
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+			return posts, err
+		}
+
+		post.Date = time.Unix(ttime, 0)
+		post.Bumpdate = time.Unix(btime, 0)
+		post.Thread = post.ID
+
+		posts = append(posts, post)
+	}
+
+	return posts, rows.Err()
+}
+
 // Banned checks to see if a user is banned.
 func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time.Time, string, error) {
 	row := db.conn.QueryRowContext(ctx, "SELECT expires, reason FROM bans WHERE source = ?", source)

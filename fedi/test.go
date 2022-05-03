@@ -39,7 +39,7 @@ func FixOrderedNotes(o *OrderedNoteCollection, depth int) {
 	}
 }
 
-func FixNote(n *Note, depth int) {
+func FixNote(n Note, depth int) {
 	if depth > 1 {
 		n.InReplyTo = nil
 		n.Replies = nil
@@ -56,27 +56,25 @@ func FixNote(n *Note, depth int) {
 	}
 }
 
-func main() {
-	defer DB.Close()
-
+func deserialize() {
 	ctx := context.TODO()
 
 	// A bulk of the slowness is the connection speed of the main instance and
 	// what I'd have to assume is the sheer amount of time it takes to gather
 	// everything up and serialize it.
-	//res, err := http.Get("https://fchan.xyz/prog/outbox")
+	// res, err := http.Get("https://fchan.xyz/prog/outbox")
 
 	fp, err := os.Open("./outbox")
 	if err != nil {
 		panic(err)
 	}
-	//defer res.Body.Close()
+	// defer res.Body.Close()
 	defer fp.Close()
 
 	dt := time.Now()
 
 	var ob Outbox
-	//decoder := json.NewDecoder(res.Body)
+	// decoder := json.NewDecoder(res.Body)
 	decoder := json.NewDecoder(fp)
 	if err := decoder.Decode(&ob); err != nil {
 		panic(err)
@@ -96,6 +94,8 @@ func main() {
 	} else if err != nil {
 		panic(err)
 	}
+
+	ss := time.Now()
 
 	for i, thread := range ob.OrderedItems {
 		fmt.Println(i)
@@ -137,5 +137,36 @@ func main() {
 	}
 
 	fmt.Println("deserialization", df.Sub(dt))
-	fmt.Println("serialization", time.Since(df))
+	fmt.Println("save into db", time.Since(ss))
+}
+
+func serialize() {
+	ctx := context.TODO()
+
+	start := time.Now()
+
+	board, err := DB.Board(ctx, "prog")
+	if err != nil {
+		panic(err)
+	}
+
+	outbox, err := GenerateOutbox(ctx, board)
+	if err != nil {
+		panic(err)
+	}
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+
+	if err := encoder.Encode(outbox); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("serialize", time.Since(start))
+}
+
+func main() {
+	defer DB.Close()
+	serialize()
 }

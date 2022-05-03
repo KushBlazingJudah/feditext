@@ -52,16 +52,16 @@ type Note struct {
 	Updated   *time.Time `json:"updated,omitempty"` // Usually always nil
 
 	Replies   *OrderedNoteCollection `json:"replies,omitempty"` // Sometimes nil
-	InReplyTo []*Note                `json:"inReplyTo,omitempty"`
+	InReplyTo []Note                 `json:"inReplyTo,omitempty"`
 
 	// Preview/attachment is ignored since we don't do images
 }
 
 // OrderedNoteCollection is an OrderedCollection of notes.
 type OrderedNoteCollection struct {
-	Type         string  `json:"type"`
-	TotalItems   int     `json:"totalItems"`
-	OrderedItems []*Note `json:"orderedItems"`
+	Type         string `json:"type"`
+	TotalItems   int    `json:"totalItems"`
+	OrderedItems []Note `json:"orderedItems"`
 }
 
 type Outbox struct {

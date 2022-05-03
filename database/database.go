@@ -174,6 +174,9 @@ type Database interface {
 	// Captcha returns a captcha.
 	Captcha(ctx context.Context, id string) ([]byte, string, error)
 
+	// Replies returns a list of replies to a post.
+	Replies(ctx context.Context, board string, id PostID) ([]Post, error)
+
 	// Banned checks to see if a user is banned.
 	Banned(ctx context.Context, source string) (bool, time.Time, string, error)
 

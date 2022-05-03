@@ -56,6 +56,10 @@ var (
 
 	// RandAdmin sets the "admin" user in the database to a random password that is printed in the console.
 	RandAdmin bool = true
+
+	// TransportProtocol is the protocol that is used to access this board.
+	// It should be one of http or https. Preferably https.
+	TransportProtocol = "http"
 )
 
 func init() {
