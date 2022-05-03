@@ -41,8 +41,12 @@ type Note struct {
 	ID   string `json:"id"`
 	Type string `json:"type"`
 
-	Actor   string `json:"actor"`
-	Content string `json:"content"`
+	Actor string `json:"actor"`
+
+	AttributedTo string `json:"attributedTo,omitempty"`
+	Tripcode     string `json:"tripcode,omitempty"`
+	Subject      string `json:"name,omitempty"`
+	Content      string `json:"content"`
 
 	Published time.Time  `json:"published"`
 	Updated   *time.Time `json:"updated,omitempty"` // Usually always nil

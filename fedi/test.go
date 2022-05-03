@@ -1,35 +1,27 @@
 package main
 
-/*
-	Proof of concept.
-
-	Keeping only what we care about and throwing away some things that won't
-	ever be used, the outbox of fchan's prog shrunk 50%.
-	On my machine, both serialization and deserialization take up ~38ms.
-
-	Deserialization using the output from this program is 2x as fast.
-	This makes sense because there's literally half as much data.
-	Serialization using the output from this program is par with real outbox.
-
-	All tests were conducted with a local file.
-	Those done over the net are bound to be slower.
-	No reference for /prog/ serialization times, but judging by response times,
-	not good.
-
-	This assumes a few things that are likely to be true:
-	- Replies doesn't matter when it is inside of a reply to a thread (2
-	  replies/inReplyTo deep, outbox -> thread -> reply (stop here))
-	- You don't care about preview/attachment (we don't)
-	- You're okay with nil values (we are)
-*/
-
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
+
+	"github.com/KushBlazingJudah/feditext/database"
 )
+
+var DB database.Database
+
+func init() {
+	var err error
+	DB, err = database.Engines["sqlite3"]("./test.db")
+
+	if err != nil {
+		panic(err)
+	}
+}
 
 func FixOrderedNotes(o *OrderedNoteCollection, depth int) {
 	o.Type = "OrderedCollection"
@@ -65,36 +57,83 @@ func FixNote(n *Note, depth int) {
 }
 
 func main() {
+	defer DB.Close()
+
+	ctx := context.TODO()
+
 	// A bulk of the slowness is the connection speed of the main instance and
 	// what I'd have to assume is the sheer amount of time it takes to gather
 	// everything up and serialize it.
-	res, err := http.Get("https://fchan.xyz/prog/outbox")
+	//res, err := http.Get("https://fchan.xyz/prog/outbox")
 
-	//fp, err := os.Open("./outbox")
+	fp, err := os.Open("./outbox")
 	if err != nil {
 		panic(err)
 	}
-	defer res.Body.Close()
-	//defer fp.Close()
+	//defer res.Body.Close()
+	defer fp.Close()
 
 	dt := time.Now()
 
 	var ob Outbox
-	decoder := json.NewDecoder(res.Body)
-	// decoder := json.NewDecoder(fp)
+	//decoder := json.NewDecoder(res.Body)
+	decoder := json.NewDecoder(fp)
 	if err := decoder.Decode(&ob); err != nil {
 		panic(err)
 	}
 
-	FixOrderedNotes(ob.OrderedNoteCollection, 0)
+	// FixOrderedNotes(ob.OrderedNoteCollection, 0)
 
 	df := time.Now()
 
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "") // remove to save 250k :)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(ob); err != nil {
+	// Create a new board if we need to.
+	board, err := DB.Board(ctx, ob.Actor.Name)
+	if errors.Is(err, sql.ErrNoRows) {
+		board = database.Board{ID: ob.Actor.Name, Title: ob.Actor.PreferredUsername, Description: ob.Actor.Summary}
+		if err := DB.SaveBoard(ctx, board); err != nil {
+			panic(err)
+		}
+	} else if err != nil {
 		panic(err)
+	}
+
+	for i, thread := range ob.OrderedItems {
+		fmt.Println(i)
+
+		posts := thread.AsThread()
+		op := posts[0]
+
+		// Attempt to save the OP into the database
+		// Check if it's already in the database
+		if _, err := DB.FindAPID(ctx, board.ID, op.APID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			panic(err)
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			// Skip! It's already in the database.
+			continue
+		}
+
+		if err := DB.SavePost(ctx, board.ID, &op); err != nil {
+			panic(err)
+		}
+
+		for j, post := range posts[1:] {
+			fmt.Println(i, j, op.APID, post.APID)
+
+			// Check if it's already in the database
+			if _, err := DB.FindAPID(ctx, board.ID, post.APID); err != nil {
+				if !errors.Is(err, sql.ErrNoRows) {
+					panic(err)
+				}
+
+			}
+
+			// It's not in the database, we must save it.
+
+			post.Thread = op.ID
+			if err := DB.SavePost(ctx, board.ID, &post); err != nil {
+				panic(err)
+			}
+		}
 	}
 
 	fmt.Println("deserialization", df.Sub(dt))

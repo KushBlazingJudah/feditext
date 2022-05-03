@@ -11,8 +11,7 @@ This is largely a work in progress, and most likely will be for a while.
 This is exacerbated by the fact that I probably will not work on this as often
 as I would for other projects.
 
-**This does not actually have federation support yet, and probably won't until I
-get the underlying engine worked out and stable.**
+**Federation is a work in progress, and by no means stable.**
 
 In its current state, it probably works quite well as a textboard even though
 it's not complete.

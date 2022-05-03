@@ -65,6 +65,7 @@ type Post struct {
 	Content  string
 
 	Source string
+	APID   string // ActivityPub ID
 }
 
 // ModerationAction records any moderation action taken.
@@ -137,6 +138,9 @@ type Database interface {
 
 	// Post fetches a single post from a thread.
 	Post(ctx context.Context, board string, post PostID) (Post, error)
+
+	// FindAPID finds a post given its ActivityPub ID.
+	FindAPID(ctx context.Context, board string, apid string) (Post, error)
 
 	// Privilege returns the type of moderator username is.
 	Privilege(ctx context.Context, username string) (ModType, error)
