@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net/url"
 	"strings"
 	"time"
 
@@ -38,6 +39,32 @@ func init() {
 		}
 
 		return template.HTML(s)
+	})
+
+	Tmpl.AddFunc("fancyname", func(p database.Post) template.HTML {
+		var name, trip, domain string
+		name = fmt.Sprintf(`<span class="name">%s</span>`, template.HTMLEscapeString(p.Name))
+
+		if strings.HasPrefix(p.Source, "http") {
+			// Treat as "external"
+			u, err := url.Parse(p.Source)
+			if err != nil {
+				log.Printf("failed parsing %s as source: %s", p.Source, err)
+				domain = "(unknown)"
+			} else {
+				domain = u.Hostname()
+				if len(domain) > 32 { // Arbitrary number
+					domain = domain[len(domain)-32:]
+				}
+			}
+			name += fmt.Sprintf(`<span class="external">@%s</span>`, domain)
+		}
+
+		if p.Tripcode != "" {
+			trip = fmt.Sprintf(`<span class="tripcode">%s</span>`, template.HTMLEscapeString(p.Tripcode)) // TODO: Clip
+		}
+
+		return template.HTML(name + trip)
 	})
 
 	Tmpl.AddFunc("captcha", func() template.HTML {

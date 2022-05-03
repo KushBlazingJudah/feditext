@@ -52,7 +52,7 @@
 	{{with .Post}}
 	<tr>
 		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
-		<td><span class="name">{{.Name}}</span>{{if gt (len .Tripcode) 0}}<span class="tripcode">{{.Tripcode}}</span>{{end}}</td>
+		<td>{{fancyname .}}</td>
 		<td>{{time .Date}}<br>{{if ne .Date .Bumpdate}}<small>{{time .Bumpdate}}</small>{{end}}</td>
 		<td><span class="subject">{{.Subject}}</span></td>
 		<td><b>[{{$nposts}}:{{$posters}}]</b> {{summarize .Raw}}</td>
