@@ -55,6 +55,7 @@ var (
 var Engines = map[string]InitFunc{}
 
 var citeRegex = regexp.MustCompile(`&gt;&gt;(\d+)`)
+var apCiteRegex = regexp.MustCompile(`&gt;&gt;(https?:\/\/[0-9a-z\-\.]+\.[a-z]+?\/[0-9a-z]+\/[0-9A-Za-z]+)`)
 var quoteRegex = regexp.MustCompile("(?m)^&gt;(.+?)$")
 
 // Post contains data related to a single post.
@@ -281,6 +282,43 @@ func formatPost(ctx context.Context, d Database, board string, p *Post) error {
 			}
 
 			return fmt.Sprintf(`<a href="#p%d" class="cite">&gt;&gt;%d</a>`, ref.ID, ref.ID)
+		} else {
+			// Cross-cite
+			if ref.Thread == 0 {
+				return fmt.Sprintf(`<a href="/%s/%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.ID, ref.ID)
+			} else {
+				return fmt.Sprintf(`<a href="/%s/%d#p%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.Thread, ref.ID, ref.ID)
+			}
+		}
+	})
+	if e != nil {
+		return e
+	}
+
+	// TODO: FChannel doesn't use IDs for its replies and instead uses the unique identifier.
+	// Should we follow along with them? Or just not bother for the sake of it?
+	s = apCiteRegex.ReplaceAllStringFunc(s, func(s string) string {
+		s = s[len("&gt;&gt;"):] // Very cool. I didn't want my captures anyway.
+
+		ref, err := d.FindAPID(ctx, board, s)
+		if errors.Is(err, sql.ErrNoRows) {
+			// bad cite. however since this is an activitypub cite, treat it as a valid link and nothing else
+			// TODO: probably dangerous.
+			return fmt.Sprintf(`<a href="%s" class="cite">&gt;&gt;%s</a>`, s, s)
+		} else if err != nil {
+			e = err
+		}
+
+		if ref.Thread == p.Thread {
+			// Reply to another post on this thread
+			if err := d.AddReply(ctx, board, p.ID, ref.ID); err != nil {
+				e = err
+			}
+
+			return fmt.Sprintf(`<a href="#p%d" class="cite">&gt;&gt;%d</a>`, ref.ID, ref.ID)
+		} else if ref.Thread == 0 && ref.ID == p.Thread {
+			// OP
+			return fmt.Sprintf(`<a href="#p%d" class="cite">&gt;&gt;%d (OP)</a>`, ref.ID, ref.ID)
 		} else {
 			// Cross-cite
 			if ref.Thread == 0 {
