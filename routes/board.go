@@ -192,7 +192,19 @@ func GetBoardThread(c *fiber.Ctx) error {
 
 	pid, err := strconv.Atoi(c.Params("thread"))
 	if err != nil {
-		return errResp(c, "Invalid thread number.", 404, fmt.Sprintf("/%s", board.ID))
+		// Try to look it up in the database.
+		// Since externally we use the randomly generated IDs like FChannel to
+		// avoid confusion with several posts being fprog-1, FChannel correctly
+		// assumes that the post will be available at /prog/deadbeef even
+		// though it is actually /prog/420.
+		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, c.Params("thread"))
+		post, err := DB.FindAPID(c.Context(), board.ID, q)
+		if err != nil {
+			return errResp(c, "Invalid thread number.", 404, fmt.Sprintf("/%s", board.ID))
+		}
+
+		// We found the true location, redirect them to it.
+		return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.ID))
 	}
 
 	posts, err := DB.Thread(c.Context(), board.ID, database.PostID(pid), 0)
