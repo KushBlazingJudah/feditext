@@ -2,6 +2,7 @@ package fedi
 
 import (
 	"context"
+	"strings"
 
 	"github.com/KushBlazingJudah/feditext/database"
 )
@@ -9,7 +10,7 @@ import (
 func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 	actor := TransformBoard(board)
 
-	oc := &OrderedNoteCollection{}
+	oc := &OrderedNoteCollection{Type: "OrderedCollection"}
 	ob := Outbox{
 		Context:               "https://www.w3.org/ns/activitystreams",
 		Actor:                 actor,
@@ -25,7 +26,11 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 	oc.OrderedItems = make([]Note, 0, oc.TotalItems)
 
 	for _, thread := range threads {
-		n, err := TransformPost(ctx, actor, thread, false)
+		if strings.HasPrefix(thread.Source, "http") {
+			continue // external, don't put in outbox
+		}
+
+		n, err := TransformPost(ctx, actor, thread, Note{}, false)
 		if err != nil {
 			return ob, err
 		}
@@ -35,15 +40,15 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 			return ob, err
 		}
 
-		if l := len(posts); l > 0 {
+		if l := len(posts) - 1; l > 0 { // -1 for OP
 			n.Replies = &OrderedNoteCollection{
 				Type:         "OrderedCollection",
 				TotalItems:   l,
 				OrderedItems: make([]Note, 0, l),
 			}
 
-			for _, post := range posts {
-				nn, err := TransformPost(ctx, actor, post, true)
+			for _, post := range posts[1:] { // Skip OP
+				nn, err := TransformPost(ctx, actor, post, n, true)
 				if err != nil {
 					return ob, err
 				}

@@ -18,6 +18,8 @@ import (
 // Didn't want to make a new file for it
 var DB database.Database
 
+const Context = "https://www.w3.org/ns/activitystreams"
+
 // Actor represents a user, or in our case, a board, which is actually a
 // service account according to ActivityPub.
 type Actor struct {
@@ -79,4 +81,16 @@ type Outbox struct {
 
 	Actor Actor `json:"actor"`
 	*OrderedNoteCollection
+}
+
+type Follower struct {
+	Id string `json:"id"`
+}
+
+type Followers struct {
+	Context string `json:"@context"`
+
+	Type       string     `json:"type"`
+	TotalItems int        `json:"totalItems"`
+	Follower   []Follower `json:"items"`
 }

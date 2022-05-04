@@ -167,8 +167,14 @@ func GetBoardNote(c *fiber.Ctx) error {
 				OrderedItems: make([]fedi.Note, 0, l),
 			}
 
-			for _, post := range thread { // Shadow post
-				nn, err := fedi.TransformPost(c.Context(), actor, post, true)
+			t := fedi.Note{}
+
+			for i, post := range thread { // Shadow post
+				if i == 1 { // HACK
+					t = out.OrderedItems[0]
+				}
+
+				nn, err := fedi.TransformPost(c.Context(), actor, post, t, true)
 				if err != nil {
 					return err
 				}
@@ -182,7 +188,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 		// No posts in thread
 		// Ignoring err because we don't touch the DB
 		// There are no replies to care about if there are no posts
-		op, _ := fedi.TransformPost(c.Context(), actor, post, false)
+		op, _ := fedi.TransformPost(c.Context(), actor, post, fedi.Note{}, false)
 
 		return jsonresp(c, fedi.OrderedNoteCollection{
 			Type:         "OrderedCollection",
@@ -192,8 +198,15 @@ func GetBoardNote(c *fiber.Ctx) error {
 	}
 
 	// It's a post if we got here
+	thread, err := DB.Post(c.Context(), board.ID, post.Thread)
+	if err != nil {
+		return err
+	}
 
-	op, err := fedi.TransformPost(c.Context(), actor, post, true)
+	// Not accessing DB so err doesn't matter
+	nthread, _ := fedi.TransformPost(c.Context(), actor, thread, fedi.Note{}, false)
+
+	op, err := fedi.TransformPost(c.Context(), actor, post, nthread, true)
 	if err != nil {
 		return err
 	}
@@ -207,5 +220,14 @@ func GetBoardNote(c *fiber.Ctx) error {
 		Type:         "OrderedCollection",
 		TotalItems:   1,
 		OrderedItems: []fedi.Note{op},
+	})
+}
+
+func GetBoardFollowers(c *fiber.Ctx) error {
+	return c.JSON(fedi.Followers{
+		Context:    fedi.Context,
+		Type:       "Collection",
+		TotalItems: 0,
+		Follower:   []fedi.Follower{},
 	})
 }
