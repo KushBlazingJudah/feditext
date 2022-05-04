@@ -1,11 +1,18 @@
 package fedi
 
 import (
+	"time"
+
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
 func (n Note) AsPost() database.Post {
-	updated := n.Published
+	published := time.Now()
+	if n.Published != nil && !n.Published.IsZero() {
+		published = *n.Updated
+	}
+
+	updated := time.Now()
 	if n.Updated != nil && !n.Updated.IsZero() {
 		updated = *n.Updated
 	}
@@ -25,7 +32,7 @@ func (n Note) AsPost() database.Post {
 		Name:     name,
 		Tripcode: n.Tripcode,
 		Subject:  n.Subject,
-		Date:     n.Published,
+		Date:     published,
 		Bumpdate: updated,
 		Raw:      n.Content,
 		Source:   n.Actor,

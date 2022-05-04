@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/KushBlazingJudah/feditext/config"
+	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/fedi"
 	"github.com/gofiber/fiber/v2"
@@ -93,6 +96,74 @@ func Webfinger(c *fiber.Ctx) error {
 	}
 }
 
+func PostBoardInbox(c *fiber.Ctx) error {
+	_, board, err := board(c)
+	if board.ID == "" || err != nil {
+		return err
+	}
+
+	for k, v := range c.GetReqHeaders() {
+		fmt.Printf("%s: %s\n", k, v)
+	}
+	_, err = os.Stdout.Write(c.Body())
+
+	act := fedi.Activity{}
+	if err := json.Unmarshal(c.Body(), &act); err != nil {
+		return err
+	}
+
+	if act.Actor == nil || act.Actor.ID == "" {
+		return fmt.Errorf("need actor")
+	} else if act.Actor.PublicKey == nil {
+		// TODO: Webfinger
+		return fmt.Errorf("need public key")
+	} else if act.Actor.PublicKey.Pem == "" {
+		// TODO: Webfinger
+		return fmt.Errorf("need public key data")
+	}
+
+	if err := crypto.CheckHeaders(c, act.Actor.PublicKey.Pem); err != nil {
+		return err
+	}
+
+	if act.Type == "Follow" {
+		if act.ObjectProp == nil {
+			return fmt.Errorf("need target")
+		}
+
+		// Accept it
+		// TODO: Blacklist
+		if err := DB.AddFollow(c.Context(), act.Actor.ID, board.ID); err != nil {
+			return err
+		}
+
+		b := fedi.TransformBoard(board)
+		accept := fedi.Activity{
+			Object: fedi.Object{
+				Context: fedi.Context,
+				Type:    "Accept",
+				Actor:   fmt.Sprintf("%s://%s/%s", config.TransportProtocol, config.FQDN, board.ID),
+				To:      []string{act.Actor.ID},
+			},
+
+			Actor: &b,
+
+			ObjectProp: &fedi.Object{
+				Actor: act.Actor.ID,
+				Type:  "Follow",
+			},
+		}
+
+		if err := fedi.SendActivity(c.Context(), accept); err != nil {
+			return err
+		}
+	} else {
+		log.Printf("%s sent unknown activity type %s", c.IP(), act.Type)
+	}
+
+	return err
+}
+
 func GetBoardActor(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if board.ID == "" || err != nil {
@@ -162,7 +233,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 
 		if l := len(thread); l > 1 {
 			out := fedi.OrderedNoteCollection{
-				Type:         "OrderedCollection",
+				Object:       fedi.Object{Type: "OrderedCollection"},
 				TotalItems:   l,
 				OrderedItems: make([]fedi.Note, 0, l),
 			}
@@ -191,7 +262,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 		op, _ := fedi.TransformPost(c.Context(), actor, post, fedi.Note{}, false)
 
 		return jsonresp(c, fedi.OrderedNoteCollection{
-			Type:         "OrderedCollection",
+			Object:       fedi.Object{Type: "OrderedCollection"},
 			TotalItems:   1,
 			OrderedItems: []fedi.Note{op},
 		})
@@ -211,23 +282,58 @@ func GetBoardNote(c *fiber.Ctx) error {
 		return err
 	}
 
-	fmt.Println(post.APID, post.Raw)
-
-	// TODO: Set inReplyTo for thread
-
 	// No replies
 	return jsonresp(c, fedi.OrderedNoteCollection{
-		Type:         "OrderedCollection",
+		Object:       fedi.Object{Type: "OrderedCollection"},
 		TotalItems:   1,
 		OrderedItems: []fedi.Note{op},
 	})
 }
 
 func GetBoardFollowers(c *fiber.Ctx) error {
-	return c.JSON(fedi.Followers{
-		Context:    fedi.Context,
-		Type:       "Collection",
-		TotalItems: 0,
-		Follower:   []fedi.Follower{},
+	_, board, err := board(c)
+	if board.ID == "" || err != nil {
+		return err
+	}
+
+	followers, err := DB.Followers(c.Context(), board.ID)
+	if err != nil {
+		return err
+	}
+
+	f := make([]fedi.Object, 0, len(followers))
+
+	for _, i := range followers {
+		f = append(f, fedi.Object{ID: i})
+	}
+
+	return c.JSON(fedi.Collection{
+		Object:     fedi.Object{Context: fedi.Context, Type: "Collection"},
+		TotalItems: len(f),
+		Items:      f,
+	})
+}
+
+func GetBoardFollowing(c *fiber.Ctx) error {
+	_, board, err := board(c)
+	if board.ID == "" || err != nil {
+		return err
+	}
+
+	following, err := DB.Following(c.Context(), board.ID)
+	if err != nil {
+		return err
+	}
+
+	f := make([]fedi.Object, 0, len(following))
+
+	for _, i := range following {
+		f = append(f, fedi.Object{ID: i})
+	}
+
+	return c.JSON(fedi.Collection{
+		Object:     fedi.Object{Context: fedi.Context, Type: "Collection"},
+		TotalItems: len(f),
+		Items:      f,
 	})
 }

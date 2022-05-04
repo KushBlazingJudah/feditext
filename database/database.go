@@ -16,7 +16,7 @@ import (
 )
 
 // PostID is the type of number used for posts.
-// FChannel uses random strings for this, we use numbers.
+// FChannel uses random strings for this, we use numbers (internally).
 type PostID uint64
 
 // ModerationActionType is an enum for moderation actions.
@@ -177,8 +177,20 @@ type Database interface {
 	// Replies returns a list of replies to a post.
 	Replies(ctx context.Context, board string, id PostID) ([]Post, error)
 
+	// Following returns a list of Actors a board is following.
+	Following(ctx context.Context, board string) ([]string, error)
+
+	// Followers returns a list of Actors a board is being followed by.
+	Followers(ctx context.Context, board string) ([]string, error)
+
 	// Banned checks to see if a user is banned.
 	Banned(ctx context.Context, source string) (bool, time.Time, string, error)
+
+	// AddFollow records an Actor as following a board.
+	AddFollow(ctx context.Context, source string, board string) error
+
+	// AddFollowing records a board is following an Actor.
+	AddFollowing(ctx context.Context, board string, target string) error
 
 	// Ban bans a user.
 	Ban(ctx context.Context, ban Ban, by string) error
@@ -224,6 +236,12 @@ type Database interface {
 
 	// DeleteModerator deletes a moderator.
 	DeleteModerator(ctx context.Context, username string) error
+
+	// DeleteFollow removes a follow from the "followers" entry from a board.
+	DeleteFollow(ctx context.Context, source string, board string) error
+
+	// DeleteFollowing removes a follow from the "following" entry from a board.
+	DeleteFollowing(ctx context.Context, board string, target string) error
 
 	// PasswordCheck checks a moderator's password.
 	PasswordCheck(ctx context.Context, username string, password string) (bool, error)

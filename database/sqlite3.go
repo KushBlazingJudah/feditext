@@ -15,6 +15,7 @@ import (
 	_ "embed"
 
 	"github.com/KushBlazingJudah/feditext/config"
+	"github.com/KushBlazingJudah/feditext/crypto"
 	_ "github.com/mattn/go-sqlite3"
 
 	"math/rand"
@@ -458,6 +459,50 @@ func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID) 
 	return posts, rows.Err()
 }
 
+// Following returns a list of Actors a board is following.
+func (db *SqliteDatabase) Following(ctx context.Context, board string) ([]string, error) {
+	rows, err := db.conn.QueryContext(ctx, `SELECT target FROM following WHERE board = ?`, board)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	following := []string{}
+
+	for rows.Next() {
+		f := ""
+		if err := rows.Scan(&f); err != nil {
+			return following, err
+		}
+
+		following = append(following, f)
+	}
+
+	return following, rows.Err()
+}
+
+// Followers returns a list of Actors a board is being followed by.
+func (db *SqliteDatabase) Followers(ctx context.Context, board string) ([]string, error) {
+	rows, err := db.conn.QueryContext(ctx, `SELECT source FROM followers WHERE board = ?`, board)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	followers := []string{}
+
+	for rows.Next() {
+		f := ""
+		if err := rows.Scan(&f); err != nil {
+			return followers, err
+		}
+
+		followers = append(followers, f)
+	}
+
+	return followers, rows.Err()
+}
+
 // Banned checks to see if a user is banned.
 func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time.Time, string, error) {
 	row := db.conn.QueryRowContext(ctx, "SELECT expires, reason FROM bans WHERE source = ?", source)
@@ -482,6 +527,18 @@ func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time
 	}
 
 	return false, time.Time{}, reason, nil
+}
+
+// AddFollow records an Actor as following a board.
+func (db *SqliteDatabase) AddFollow(ctx context.Context, source string, board string) error {
+	_, err := db.conn.ExecContext(ctx, "INSERT OR IGNORE INTO followers(source, board) VALUES(?, ?)", source, board)
+	return err
+}
+
+// AddFollowing records a board is following an Actor.
+func (db *SqliteDatabase) AddFollowing(ctx context.Context, board string, target string) error {
+	_, err := db.conn.ExecContext(ctx, "INSERT OR IGNORE INTO following(board, target) VALUES(?, ?)", board, target)
+	return err
 }
 
 // Ban bans a user.
@@ -521,6 +578,11 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 
 	_, err := db.conn.ExecContext(ctx, `INSERT INTO boards(id, title, description) VALUES(:id, :title, :description) ON CONFLICT(id) DO UPDATE SET title = excluded.title, description = excluded.description`, args...)
 	if err != nil {
+		return err
+	}
+
+	// Create keys
+	if _, err := crypto.CreatePem(board.ID); err != nil {
 		return err
 	}
 
@@ -747,6 +809,18 @@ func (db *SqliteDatabase) DeleteNews(ctx context.Context, id int) error {
 // DeleteModerator deletes a moderator.
 func (db *SqliteDatabase) DeleteModerator(ctx context.Context, username string) error {
 	_, err := db.conn.ExecContext(ctx, "DELETE FROM moderators WHERE username = ?", username)
+	return err
+}
+
+// DeleteFollow removes a follow from the "followers" entry from a board.
+func (db *SqliteDatabase) DeleteFollow(ctx context.Context, source string, board string) error {
+	_, err := db.conn.ExecContext(ctx, "DELETE FROM followers(source, board) WHERE source = ? AND board = ?", source, board)
+	return err
+}
+
+// DeleteFollowing removes a follow from the "following" entry from a board.
+func (db *SqliteDatabase) DeleteFollowing(ctx context.Context, board string, target string) error {
+	_, err := db.conn.ExecContext(ctx, "DELETE FROM following(board, target) WHERE board = ? AND target = ?", board, target)
 	return err
 }
 

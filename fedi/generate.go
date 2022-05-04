@@ -10,9 +10,9 @@ import (
 func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 	actor := TransformBoard(board)
 
-	oc := &OrderedNoteCollection{Type: "OrderedCollection"}
+	oc := &OrderedNoteCollection{Object: Object{Type: "OrderedCollection"}}
 	ob := Outbox{
-		Context:               "https://www.w3.org/ns/activitystreams",
+		Object:                Object{Context: "https://www.w3.org/ns/activitystreams"},
 		Actor:                 actor,
 		OrderedNoteCollection: oc,
 	}
@@ -42,7 +42,7 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 
 		if l := len(posts) - 1; l > 0 { // -1 for OP
 			n.Replies = &OrderedNoteCollection{
-				Type:         "OrderedCollection",
+				Object:       Object{Type: "OrderedCollection"},
 				TotalItems:   l,
 				OrderedItems: make([]Note, 0, l),
 			}

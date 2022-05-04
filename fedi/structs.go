@@ -20,20 +20,40 @@ var DB database.Database
 
 const Context = "https://www.w3.org/ns/activitystreams"
 
+type Object struct {
+	Context string `json:"@context,omitempty"`
+
+	ID   string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
+
+	Name         string `json:"name,omitempty"`
+	AttributedTo string `json:"attributedTo,omitempty"`
+
+	Content string `json:"content,omitempty"`
+	Summary string `json:"summary,omitempty"`
+
+	Published *time.Time `json:"published,omitempty"` // Usually never nil
+	Updated   *time.Time `json:"updated,omitempty"`   // Usually always nil
+
+	Replies   *OrderedNoteCollection `json:"replies,omitempty"` // Sometimes nil
+	InReplyTo []Note                 `json:"inReplyTo,omitempty"`
+
+	Actor string `json:"actor,omitempty"`
+
+	To []string `json:"to,omitempty"`
+}
+
 // Actor represents a user, or in our case, a board, which is actually a
 // service account according to ActivityPub.
 type Actor struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
+	Object
 
 	Inbox     string `json:"inbox"`
 	Outbox    string `json:"outbox"`
 	Following string `json:"following"`
 	Followers string `json:"followers"`
 
-	Name              string `json:"name"`
 	PreferredUsername string `json:"preferredUsername"`
-	Summary           string `json:"summary"`
 
 	PublicKey  *PublicKey `json:"publicKey,omitempty"`
 	Restricted bool       `json:"restricted"`
@@ -50,47 +70,41 @@ type PublicKey struct {
 // Note is an object representing a single post.
 // This could be a thread, or a reply.
 type Note struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
+	Object
 
 	Actor string `json:"actor"`
 
-	AttributedTo string `json:"attributedTo,omitempty"`
-	Tripcode     string `json:"tripcode,omitempty"`
-	Subject      string `json:"name,omitempty"`
-	Content      string `json:"content"`
-
-	Published time.Time  `json:"published"`
-	Updated   *time.Time `json:"updated,omitempty"` // Usually always nil
-
-	Replies   *OrderedNoteCollection `json:"replies,omitempty"` // Sometimes nil
-	InReplyTo []Note                 `json:"inReplyTo,omitempty"`
+	Tripcode string `json:"tripcode,omitempty"`
+	Subject  string `json:"name,omitempty"`
 
 	// Preview/attachment is ignored since we don't do images
 }
 
 // OrderedNoteCollection is an OrderedCollection of notes.
 type OrderedNoteCollection struct {
-	Type         string `json:"type"`
+	Object
+
 	TotalItems   int    `json:"totalItems"`
 	OrderedItems []Note `json:"orderedItems"`
 }
 
 type Outbox struct {
-	Context string `json:"@context"`
+	Object
 
 	Actor Actor `json:"actor"`
 	*OrderedNoteCollection
 }
 
-type Follower struct {
-	Id string `json:"id"`
+type Collection struct {
+	Object
+
+	TotalItems int      `json:"totalItems"`
+	Items      []Object `json:"items"`
 }
 
-type Followers struct {
-	Context string `json:"@context"`
+type Activity struct {
+	Object
+	Actor *Actor `json:"actor,omitempty"`
 
-	Type       string     `json:"type"`
-	TotalItems int        `json:"totalItems"`
-	Follower   []Follower `json:"items"`
+	ObjectProp *Object `json:"object,omitempty"`
 }

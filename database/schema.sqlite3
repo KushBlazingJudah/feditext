@@ -75,3 +75,19 @@ CREATE TABLE IF NOT EXISTS bans(
 
 	UNIQUE(source)
 );
+
+CREATE TABLE IF NOT EXISTS followers(
+	board TEXT,
+	source TEXT,
+
+	UNIQUE(board, source),
+	FOREIGN KEY(board) REFERENCES boards(id)
+);
+
+CREATE TABLE IF NOT EXISTS following(
+	board TEXT,
+	target TEXT,
+
+	UNIQUE(board, target),
+	FOREIGN KEY(board) REFERENCES boards(id)
+);

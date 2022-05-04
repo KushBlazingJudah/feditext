@@ -6,26 +6,41 @@ import (
 	"strings"
 
 	"github.com/KushBlazingJudah/feditext/config"
+	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
 func TransformBoard(board database.Board) Actor {
 	u := fmt.Sprintf("%s://%s/%s", config.TransportProtocol, config.FQDN, board.ID)
 
+	var pkey *PublicKey
+
+	pubKey, err := crypto.PublicKey(board.ID)
+	if err == nil {
+		pkey = &PublicKey{
+			ID:    u + "#key",
+			Owner: u,
+			Pem:   pubKey,
+		}
+	}
+
 	return Actor{
-		ID:                u,
-		Type:              "Service",
+		Object: Object{
+			ID:   u,
+			Type: "Group",
+			Name: board.ID,
+
+			Summary: board.Description,
+		},
+
 		Inbox:             u + "/inbox",
 		Outbox:            u + "/outbox",
 		Following:         u + "/following",
 		Followers:         u + "/followers",
-		Name:              board.ID,
 		PreferredUsername: board.Title,
-		Summary:           board.Description,
 		Restricted:        true,
 
-		// No support yet:
-		// PublicKey:         &PublicKey{},
+		PublicKey: pkey,
 	}
 }
 
@@ -44,15 +59,19 @@ func TransformPost(ctx context.Context, actor Actor, p database.Post, irt Note, 
 	}
 
 	n := Note{
-		ID:           p.APID,
-		Type:         "Note",
-		Actor:        a,
-		AttributedTo: attTo,
-		Tripcode:     p.Tripcode,
-		Subject:      p.Subject,
-		Content:      p.Raw, // Don't send already formatted posts
-		Published:    p.Date,
-		Replies:      nil,
+		Object: Object{
+			ID:           p.APID,
+			Type:         "Note",
+			AttributedTo: attTo,
+			Content:      p.Raw, // Don't send already formatted posts
+
+			Published: &p.Date,
+
+			Replies: nil,
+		},
+		Actor:    a,
+		Tripcode: p.Tripcode,
+		Subject:  p.Subject,
 
 		// We don't bother with Updated.
 	}
@@ -60,8 +79,11 @@ func TransformPost(ctx context.Context, actor Actor, p database.Post, irt Note, 
 	if irt.ID != "" {
 		// Trim off a lot of the fat.
 		irt = Note{
-			ID:    irt.ID,
-			Type:  irt.Type,
+			Object: Object{
+				ID:   irt.ID,
+				Type: irt.Type,
+			},
+
 			Actor: irt.Actor,
 		}
 
@@ -76,7 +98,7 @@ func TransformPost(ctx context.Context, actor Actor, p database.Post, irt Note, 
 
 		if len(reps) > 0 {
 			n.Replies = &OrderedNoteCollection{
-				Type:       "OrderedCollection",
+				Object:     Object{Type: "OrderedCollection"},
 				TotalItems: len(reps),
 			}
 

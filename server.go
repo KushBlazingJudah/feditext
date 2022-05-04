@@ -141,7 +141,9 @@ func Serve() {
 
 	// ActivityPub stuff
 	app.Get("/:board/outbox", routes.GetBoardOutbox)
+	app.Post("/:board/inbox", routes.PostBoardInbox)
 	app.Get("/:board/followers", routes.GetBoardFollowers)
+	app.Get("/:board/following", routes.GetBoardFollowing)
 
 	app.Get("/:board/catalog", routes.GetBoardCatalog)
 	app.Get("/:board/delete/:post", routes.GetPostDelete)
