@@ -9,14 +9,20 @@ since text is much easier to moderate, as fun as images are.
 
 This is largely a work in progress, and most likely will be for a while.
 This is exacerbated by the fact that I probably will not work on this as often
-as I would for other projects.
+as I would for other projects, but as of writing it's my current interest.
 
-**Federation is a work in progress, and by no means stable.**
+**Federation is a work in progress, and by no means stable nor working.**
+
+The scaffholding is in place but it is by no means compliant with ActivityPub.
+I'm trying to get this up and going as fast as possible, and be compatible with
+FChannel at the same time, which is focusing more on features and stability.
 
 In its current state, it probably works quite well as a textboard even though
 it's not complete.
 The idea behind doing it this way is so I have a core engine that more or less
 works fine, a nice foundation for implementing ActivityPub on top of.
+You can probably rip ActivityPub out of this quite easily and use it as a
+standalone textboard, which is what I've intended.
 
 ## Rationale
 
@@ -55,20 +61,13 @@ Feditext's goals are simple and to the point:
 - ~~Tons of comments~~ (lol), good documentation
   - Comments were kinda thrown out the window but it's pretty easy to figure out
     what's going on if you're even remotely proficient in SQL or Golang
-  - I will document how the ActivityPub implementation works when the time
-    comes.
 - Sane moderation
   - FChannel says it won't keep IPs, we will.
     Not keeping them is good for privacy but not good when you have bad actors,
     and it's surprising that FChannel hasn't had any (yet, or that I know of).
     Or at least intentionally.
-  - Public moderation log.
-- Tor as a first-class citizen
-  - If I get this off the ground, my instance will be ran over Tor mainly for
-    privacy reasons. I hope that others prop up instances.
-  - Optionally, all requests will be made through a proxy.
-    Hosting over Tor and don't want to expose the server's IP? Sure!
-- Able to federate with FChannel, of course without images.
+  - Public moderation log. It's a little broken right now but it's there.
+- Later, but good Tor support. I don't want to rent a VPS.
 
 Any changes I may need to make to FChannel (hopefully few if not none!) I will
 upstream.
@@ -85,6 +84,11 @@ If you build with SQLite3:
 - SQLite3 itself and its headers
 
 ## Running
+
+As it stands, the core engine of Feditext is relatively complete and will not be
+facing many changes.
+However, I advise against using this for any serious purposes until the first
+proper release, which is when I'll most likely fire up an instance of my own.
 
 Feditext can be built easily using the included Makefile:
 
