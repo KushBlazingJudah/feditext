@@ -1,10 +1,13 @@
 package routes
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
@@ -16,6 +19,17 @@ const streams = `application/ld+json; profile="https://www.w3.org/ns/activitystr
 
 // False positive for application/ld+ld, application/activity+ld, application/json+json
 var streamsRegex = regexp.MustCompile(`application/(ld|json|activity)\+(ld|json)`)
+
+type link struct {
+	Rel  string `json:"rel"`
+	Type string `json:"type"`
+	Href string `json:"href"`
+}
+
+type webfingerResp struct {
+	Subject string `json:"subject"`
+	Links   []link
+}
 
 func isStreams(c *fiber.Ctx) bool {
 	// Hack, but it works
@@ -36,6 +50,47 @@ func jsonresp(c *fiber.Ctx, data any) error {
 	encoder.SetEscapeHTML(false)
 
 	return encoder.Encode(data)
+}
+
+func Webfinger(c *fiber.Ctx) error {
+	// Shotty implmentation but it works
+
+	query := c.Query("resource")
+	fmt.Println("webfinger", query, c.Request().URI())
+	if query == "" {
+		// TODO: JSON error
+		return c.Status(400).SendString("need a resource query")
+	}
+
+	if !strings.HasPrefix(query, "acct:") {
+		// TODO: JSON error
+		return c.Status(400).SendString("only support acct")
+	}
+
+	toks := strings.SplitN(query[5:], "@", 2)
+	fmt.Println(toks[0], toks[1])
+	if len(toks) != 2 {
+		return c.Status(404).SendString("no actor found")
+	} else if toks[1] != config.FQDN {
+		return c.Status(404).SendString("no actor found")
+	}
+
+	if board, err := DB.Board(c.Context(), toks[0]); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.Status(404).SendString("no actor found")
+		}
+
+		return err
+	} else {
+		return c.JSON(webfingerResp{
+			Subject: fmt.Sprintf("acct:/%s@%s", board.ID, config.FQDN),
+			Links: []link{{
+				Rel:  "self",
+				Type: "application/activity+json",
+				Href: fmt.Sprintf("%s://%s/%s", config.TransportProtocol, config.FQDN, board.ID),
+			}},
+		})
+	}
 }
 
 func GetBoardActor(c *fiber.Ctx) error {

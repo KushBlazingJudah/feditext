@@ -120,6 +120,8 @@ func Serve() {
 	app.Get("/banned", routes.GetBanned)
 	app.Get("/captcha/:id", routes.GetCaptcha)
 
+	app.Get("/.well-known/webfinger", routes.Webfinger)
+
 	// Admin
 	app.Get("/admin", routes.GetAdmin)
 	app.Get("/admin/ban/:ip", routes.GetAdminBan)
