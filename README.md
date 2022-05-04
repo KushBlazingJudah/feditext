@@ -35,27 +35,32 @@ to other projects outside of programming, however eventually got the courage
 back and worked on other programming projects and pushed FChannel off to the
 side.
 
+Then I seen activity on the Git repository once again, and then this project was
+started.
+
+I have a huge amount of respect for the developer of FChannel, and this is by no
+means made as a killer to his project.
+However, this project was also made in response to some... odd design choices in
+FChannel to say the least.
+I'm guilty of it myself, especially in the Fiber port, and probably here too,
+however this aims to implement things better and serve as a potential reference
+on things FChannel can improve upon.
+
 FChannel is an ambitious project and I am glad I got to play a role in its
 development, and I hope that more projects like FChannel pop up to improve upon
 each other's mistakes while having their own uniqueness to it.
-This is one such project I'd like to see.
 
-I have a huge amount of respect for the developer, however I'm afraid he made
-some awful design choices while writing FChannel (so did I when I started
-working on the Fiber port), so this serves to be a project to expand upon later
-and to use to improve the main codebase of FChannel, or maybe even aid in the
-effort to port to Fiber.
-I'm not saying my choices will be much better, but half the point of this
-project is to coexist with FChannel and to share improvements.
+When I am largely finished with this project, I plan to contribute some good
+differences here into FChannel's actual code base to improve quality of life
+there too.
 
 ## Goals
 
 Feditext's goals are simple and to the point:
 
 - <=4000 SLOC in the main codebase according to cloc
-  - The core textboard engine is approaching 2000 lines, by then it will
-    probably be complete, and may even shrink once I do some optimization.
-    I have bumped the line limit to 4000 lines from 3000 as a result.
+  - Previously it was 3,000 lines but the core engine came close to 2,000 so I
+    bumped it. I don't think I will hit 4,000 but will most likely exceed 3,000.
   - FChannel was approaching 6,000 lines when I started work on it and I found it
     hard to comprehend at times. I don't want it to be like this.
 - ~~Tons of comments~~ (lol), good documentation
