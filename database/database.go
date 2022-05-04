@@ -276,7 +276,11 @@ func formatPost(ctx context.Context, d Database, board string, p *Post) error {
 			return fmt.Sprintf(`<a href="#" class="cite invalid">&gt;&gt;%s</a>`, s)
 		} else if err != nil {
 			e = err
+			return ""
 		}
+
+		// Rewrite raw content to be compatible
+		p.Raw = strings.ReplaceAll(p.Raw, fmt.Sprintf(">>%d", id), fmt.Sprintf(">>%s", ref.APID))
 
 		if ref.Thread == p.Thread {
 			// Reply to another post on this thread
