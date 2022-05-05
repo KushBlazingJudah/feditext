@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/crypto"
+	"github.com/KushBlazingJudah/feditext/database"
 )
 
 var P Proxy = NullProxy{}
@@ -138,6 +140,8 @@ func SendActivity(ctx context.Context, act Activity) error {
 		return err
 	}
 
+	wg := sync.WaitGroup{}
+
 	for _, to := range act.To {
 		if to.Type != "Link" {
 			continue
@@ -175,13 +179,67 @@ func SendActivity(ctx context.Context, act Activity) error {
 			req.Header.Set("Signature", fmt.Sprintf(`keyId="%s",headers="(request-target) host date",signature="%s"`, act.Actor.PublicKey.ID, sig))
 			req.Host = u.Host
 
-			_, err = P.Do(req)
-			if err != nil {
-				log.Printf("failed sending activity to %s: %v", to.ID, err)
-				continue
-			}
+			wg.Add(1)
+
+			go func() {
+				_, err = P.Do(req)
+				if err != nil {
+					log.Printf("failed sending activity to %s: %v", to.ID, err)
+				}
+				wg.Done()
+			}()
 		}
 	}
 
+	wg.Wait()
+
 	return nil
+}
+
+// PostOut sends a post out to federated servers.
+func PostOut(ctx context.Context, board database.Board, post database.Post) error {
+	actor := TransformBoard(board)
+	lactor := LinkActor(actor)
+
+	irt := Object{}
+	if post.Thread != 0 {
+		thread, err := DB.Post(ctx, board.ID, post.Thread)
+		if err != nil {
+			return err
+		}
+
+		irt.Type = "Note"
+		irt.ID = thread.APID
+	}
+
+	note, err := TransformPost(ctx, &actor, post, irt, false)
+	if err != nil {
+		return err
+	}
+
+	followers, err := DB.Followers(ctx, board.ID)
+	if err != nil {
+		return err
+	}
+
+	flo := make([]LinkObject, 0, len(followers))
+	for _, follower := range followers {
+		flo = append(flo, LinkObject{Type: "Link", ID: follower})
+	}
+
+	activity := Activity{
+		Object: &Object{
+			Context: Context,
+			Type:    "Create",
+			Actor:   &lactor,
+			To:      flo,
+		},
+
+		ObjectProp: &note,
+	}
+
+	d, _ := json.MarshalIndent(activity, "out ", "  ")
+	fmt.Println(string(d))
+
+	return SendActivity(ctx, activity)
 }

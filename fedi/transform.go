@@ -70,8 +70,7 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 		Actor:    a,
 		Tripcode: p.Tripcode,
 		Subject:  p.Subject,
-
-		// We don't bother with Updated.
+		Updated:  &p.Bumpdate,
 	}
 
 	if irt.ID != "" {

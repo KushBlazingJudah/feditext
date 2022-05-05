@@ -1,9 +1,11 @@
 package routes
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/fedi"
 	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 )
@@ -176,6 +179,12 @@ func PostBoardIndex(c *fiber.Ctx) error {
 		return err
 	}
 
+	go func() {
+		if err := fedi.PostOut(context.Background(), board, post); err != nil {
+			log.Printf("fedi.PostOut for /%s/%d: error: %s", board.ID, post.ID, err)
+		}
+	}()
+
 	// Redirect to the newly created thread
 	return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.ID))
 }
@@ -295,6 +304,12 @@ func PostBoardThread(c *fiber.Ctx) error {
 	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
 		return err
 	}
+
+	go func() {
+		if err := fedi.PostOut(context.Background(), board, post); err != nil {
+			log.Printf("fedi.PostOut for /%s/%d: error: %s", board.ID, post.ID, err)
+		}
+	}()
 
 	// Redirect back to the thread
 	return c.Redirect("")
