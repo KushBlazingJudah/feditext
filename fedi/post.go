@@ -17,12 +17,12 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 		return database.Post{}, fmt.Errorf("Object.AsPost: invalid type; expected Note, got %s", n.Type)
 	}
 
-	published := time.Now()
+	published := time.Now().UTC()
 	if n.Published != nil && !n.Published.IsZero() {
 		published = *n.Updated
 	}
 
-	updated := time.Now()
+	updated := time.Now().UTC()
 	if n.Updated != nil && !n.Updated.IsZero() {
 		updated = *n.Updated
 	}

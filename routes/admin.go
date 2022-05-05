@@ -108,7 +108,7 @@ func PostAdminLogin(c *fiber.Ctx) error {
 		}
 
 		// Generate a token
-		exp := time.Now().Add((time.Hour * 24) * 7)
+		exp := time.Now().UTC().Add((time.Hour * 24) * 7)
 		token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"username": user,
 			"priv":     int(priv),

@@ -80,7 +80,7 @@ func init() {
 
 func (db *SqliteDatabase) audit(ctx context.Context, modAction ModerationAction) error {
 	if modAction.Date.IsZero() {
-		modAction.Date = time.Now()
+		modAction.Date = time.Now().UTC()
 	}
 
 	_, err := db.conn.ExecContext(ctx,
@@ -140,8 +140,8 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 			return posts, err
 		}
 
-		post.Date = time.Unix(ttime, 0)
-		post.Bumpdate = time.Unix(btime, 0)
+		post.Date = time.Unix(ttime, 0).UTC()
+		post.Bumpdate = time.Unix(btime, 0).UTC()
 		post.Thread = post.ID
 
 		posts = append(posts, post)
@@ -175,9 +175,9 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 			return posts, err
 		}
 
-		post.Date = time.Unix(ttime, 0)
+		post.Date = time.Unix(ttime, 0).UTC()
 		if btime != nil {
-			post.Bumpdate = time.Unix(*btime, 0)
+			post.Bumpdate = time.Unix(*btime, 0).UTC()
 		}
 
 		posts = append(posts, post)
@@ -215,9 +215,9 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 		return post, err
 	}
 
-	post.Date = time.Unix(ttime, 0)
+	post.Date = time.Unix(ttime, 0).UTC()
 	if btime != nil {
-		post.Bumpdate = time.Unix(*btime, 0)
+		post.Bumpdate = time.Unix(*btime, 0).UTC()
 	}
 
 	return post, err
@@ -232,10 +232,10 @@ func (db *SqliteDatabase) FindAPID(ctx context.Context, board string, apid strin
 	var btime *int64
 
 	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime)
-	post.Date = time.Unix(ttime, 0)
+	post.Date = time.Unix(ttime, 0).UTC()
 
 	if btime != nil {
-		post.Bumpdate = time.Unix(*btime, 0)
+		post.Bumpdate = time.Unix(*btime, 0).UTC()
 	}
 
 	return post, err
@@ -271,7 +271,7 @@ func (db *SqliteDatabase) Reports(ctx context.Context, inclResolved bool) ([]Rep
 			return reports, err
 		}
 
-		report.Date = time.Unix(ttime, 0)
+		report.Date = time.Unix(ttime, 0).UTC()
 		reports = append(reports, report)
 	}
 
@@ -296,7 +296,7 @@ func (db *SqliteDatabase) Audits(ctx context.Context) ([]ModerationAction, error
 			return acts, err
 		}
 
-		act.Date = time.Unix(ttime, 0)
+		act.Date = time.Unix(ttime, 0).UTC()
 		acts = append(acts, act)
 	}
 
@@ -321,7 +321,7 @@ func (db *SqliteDatabase) News(ctx context.Context) ([]News, error) {
 			return allNews, err
 		}
 
-		news.Date = time.Unix(ttime, 0)
+		news.Date = time.Unix(ttime, 0).UTC()
 		allNews = append(allNews, news)
 	}
 
@@ -402,8 +402,8 @@ func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID) 
 			return posts, err
 		}
 
-		post.Date = time.Unix(ttime, 0)
-		post.Bumpdate = time.Unix(btime, 0)
+		post.Date = time.Unix(ttime, 0).UTC()
+		post.Bumpdate = time.Unix(btime, 0).UTC()
 		post.Thread = post.ID
 
 		posts = append(posts, post)
@@ -468,9 +468,9 @@ func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time
 	}
 
 	if ttime != nil {
-		exp := time.Unix(*ttime, 0)
+		exp := time.Unix(*ttime, 0).UTC()
 
-		if time.Now().After(exp) {
+		if time.Now().UTC().After(exp) {
 			// Delete
 			_, err := db.conn.ExecContext(ctx, "DELETE FROM bans WHERE source = ?", source)
 			return true, exp, "", err
@@ -500,7 +500,7 @@ func (db *SqliteDatabase) Ban(ctx context.Context, ban Ban, by string) error {
 	// Of course, we still do that, this just looks nicer :)
 	args := []interface{}{
 		sql.Named("source", ban.Target),
-		sql.Named("placed", time.Now().Unix()),
+		sql.Named("placed", time.Now().UTC().Unix()),
 		sql.Named("expires", ban.Expires.Unix()),
 		sql.Named("reason", ban.Reason),
 	}
@@ -515,7 +515,7 @@ func (db *SqliteDatabase) Ban(ctx context.Context, ban Ban, by string) error {
 		Author: by,
 		Type:   ModActionBan,
 		Reason: fmt.Sprintf("banned %s until %s: %s", ban.Target, ban.Expires.String(), ban.Reason),
-		Date:   time.Now(),
+		Date:   time.Now().UTC(),
 	})
 }
 
@@ -550,7 +550,7 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 // If Post.Thread is 0, it is considered a thread.
 func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post) error {
 	if post.Date.IsZero() {
-		post.Date = time.Now()
+		post.Date = time.Now().UTC()
 	}
 
 	// Forbid empty posting
@@ -651,7 +651,7 @@ func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password 
 // If News.ID is 0, a new article is created.
 func (db *SqliteDatabase) SaveNews(ctx context.Context, news *News) error {
 	if news.Date.IsZero() {
-		news.Date = time.Now()
+		news.Date = time.Now().UTC()
 	}
 
 	// Forbid empty posting
@@ -665,7 +665,7 @@ func (db *SqliteDatabase) SaveNews(ctx context.Context, news *News) error {
 		sql.Named("author", news.Author),
 		sql.Named("subject", news.Subject),
 		sql.Named("content", news.Content),
-		sql.Named("date", news.Date.Unix()),
+		sql.Named("date", news.Date.UTC().Unix()),
 	}
 
 	if news.ID == 0 {
@@ -704,7 +704,7 @@ func (db *SqliteDatabase) FileReport(ctx context.Context, report Report) error {
 		sql.Named("board", report.Board),
 		sql.Named("post", report.Post),
 		sql.Named("reason", report.Reason),
-		sql.Named("date", time.Now().Unix()),
+		sql.Named("date", time.Now().UTC().Unix()),
 	}
 
 	_, err := db.conn.ExecContext(ctx, `INSERT INTO reports(source, board, post, reason, date, resolved) VALUES(:source, :board, :post, :reason, :date, 0)`, args...)

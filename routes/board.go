@@ -285,7 +285,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 	var trip string
 	name, trip = crypto.DoTrip(name)
 
-	bumpdate := time.Now()
+	bumpdate := time.Now().UTC()
 	if c.FormValue("sage") == "on" {
 		bumpdate = time.Time{}
 	}
@@ -347,7 +347,7 @@ func GetThreadDelete(c *fiber.Ctx) error {
 		Board:  board.ID,
 		Post:   post.ID,
 		Reason: "TODO",
-		Date:   time.Now(),
+		Date:   time.Now().UTC(),
 	}); err != nil {
 		return err
 	}
@@ -390,7 +390,7 @@ func GetPostDelete(c *fiber.Ctx) error {
 		Board:  board.ID,
 		Post:   post.ID,
 		Reason: "TODO",
-		Date:   time.Now(),
+		Date:   time.Now().UTC(),
 	}); err != nil {
 		return err
 	}
@@ -461,7 +461,7 @@ func PostBoardReport(c *fiber.Ctx) error {
 		Board:  board.ID,
 		Post:   database.PostID(pid),
 		Reason: reason,
-		Date:   time.Now(),
+		Date:   time.Now().UTC(),
 	}); err != nil {
 		return err
 	}
