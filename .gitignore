@@ -1,7 +1,9 @@
+*.bak
 *.config
 .env
 /*.sqlite3
 /feditext
 /feditext.exe
 /jwtsecret
+/pem/
 /tripsecret

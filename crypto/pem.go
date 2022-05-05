@@ -64,6 +64,13 @@ func PublicKey(id string) (string, error) {
 }
 
 func CreatePem(id string) ([]byte, error) {
+	// Create pem directory
+	if _, err := os.Stat(pemDir); err != nil {
+		if err := os.Mkdir(pemDir, 0700); err != nil {
+			return nil, err
+		}
+	}
+
 	key, err := rsa.GenerateKey(rand.Reader, keySize)
 	if err != nil {
 		return nil, err
@@ -77,7 +84,7 @@ func CreatePem(id string) ([]byte, error) {
 		return nil, err
 	}
 
-	pubkey, err := x509.MarshalPKIXPublicKey(key.PublicKey)
+	pubkey, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
 	if err != nil {
 		return pubkey, err
 	}

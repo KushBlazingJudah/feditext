@@ -1,12 +1,19 @@
 package fedi
 
 import (
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
-func (n Note) AsPost() database.Post {
+func (n Object) AsPost() (database.Post, error) {
+	if n.Type != "Note" {
+		// We need an actor to save.
+		return database.Post{}, fmt.Errorf("Object.AsPost: invalid type; expected Note, got %s", n.Type)
+	}
+
 	published := time.Now()
 	if n.Published != nil && !n.Published.IsZero() {
 		published = *n.Updated
@@ -17,10 +24,21 @@ func (n Note) AsPost() database.Post {
 		updated = *n.Updated
 	}
 
-	name := n.AttributedTo
-	if name == "" {
+	name := ""
+	if n.AttributedTo == nil || n.AttributedTo.ID == "" {
 		name = "Anonymous"
+	} else {
+		name = n.AttributedTo.ID
 	}
+
+	actor := ""
+	if n.Actor == nil || n.Actor.ID == "" {
+		// We need an actor to save.
+		return database.Post{}, fmt.Errorf("Object.AsPost: no actor")
+	}
+	actor = n.Actor.ID
+
+	// TODO: Sanitize
 
 	return database.Post{
 		// Thread and ID aren't really possible to fill out, nor should we care.
@@ -35,25 +53,36 @@ func (n Note) AsPost() database.Post {
 		Date:     published,
 		Bumpdate: updated,
 		Raw:      n.Content,
-		Source:   n.Actor,
+		Source:   actor,
 		APID:     n.ID,
-	}
+	}, nil
 }
 
-func (n Note) AsThread() []database.Post {
+func (n Object) AsThread() ([]database.Post, error) {
 	var posts []database.Post
 
 	if n.Replies == nil || n.Replies.TotalItems < 1 {
 		// No more work needs to be done
-		return []database.Post{n.AsPost()}
+		p, err := n.AsPost()
+		return []database.Post{p}, err
+	}
+
+	op, err := n.AsPost()
+	if err != nil {
+		return nil, err
 	}
 
 	posts = make([]database.Post, 0, n.Replies.TotalItems+1) // +1 for OP
-	posts = append(posts, n.AsPost())
+	posts = append(posts, op)
 
 	for _, note := range n.Replies.OrderedItems[1:] {
-		posts = append(posts, note.AsPost())
+		if note, err := Object(note).AsPost(); err != nil {
+			log.Printf("error importing %s: %s", note.ID, err)
+			continue
+		} else {
+			posts = append(posts, note)
+		}
 	}
 
-	return posts
+	return posts, nil
 }

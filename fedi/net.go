@@ -55,7 +55,11 @@ func SendActivity(ctx context.Context, act Activity) error {
 	}
 
 	for _, to := range act.To {
-		actor, err := Finger(ctx, to)
+		if to.Type != "Link" {
+			continue
+		}
+
+		actor, err := Finger(ctx, to.ID)
 		if err != nil {
 			log.Printf("failed to finger %s: %v", to, err)
 			continue

@@ -137,19 +137,17 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return err
 		}
 
-		b := fedi.TransformBoard(board)
+		b := fedi.LinkActor(fedi.TransformBoard(board))
 		accept := fedi.Activity{
-			Object: fedi.Object{
+			Object: &fedi.Object{
 				Context: fedi.Context,
 				Type:    "Accept",
-				Actor:   fmt.Sprintf("%s://%s/%s", config.TransportProtocol, config.FQDN, board.ID),
-				To:      []string{act.Actor.ID},
+				Actor:   &b,
+				To:      []fedi.LinkObject{{Type: "Link", ID: act.Actor.ID}},
 			},
 
-			Actor: &b,
-
 			ObjectProp: &fedi.Object{
-				Actor: act.Actor.ID,
+				Actor: &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
 				Type:  "Follow",
 			},
 		}
@@ -190,7 +188,7 @@ func GetBoardOutbox(c *fiber.Ctx) error {
 }
 
 func GetBoardNote(c *fiber.Ctx) error {
-	// Correct me if I'm wrong, but I don't think we're supposed to return an OrderedNoteCollection here.
+	// Correct me if I'm wrong, but I don't think we're supposed to return an OrderedCollection here.
 	// Anyways, this is what FChannel does.
 	// I thought we should return the Note representation...?
 
@@ -226,31 +224,33 @@ func GetBoardNote(c *fiber.Ctx) error {
 		// It's a thread
 		// Fetch the replies and send
 
-		thread, err := DB.Thread(c.Context(), board.ID, database.PostID(pid), 0)
+		thread, err := DB.Thread(c.Context(), board.ID, post.ID, 0)
 		if err != nil {
 			return err
 		}
 
 		if l := len(thread); l > 1 {
-			out := fedi.OrderedNoteCollection{
-				Object:       fedi.Object{Type: "OrderedCollection"},
+			out := fedi.OrderedCollection{
+				Object:       &fedi.Object{Type: "OrderedCollection"},
 				TotalItems:   l,
-				OrderedItems: make([]fedi.Note, 0, l),
+				OrderedItems: make([]fedi.LinkObject, 0, l),
 			}
 
-			t := fedi.Note{}
+			t := fedi.Object{
+				Type: "Note",
+			}
 
 			for i, post := range thread { // Shadow post
 				if i == 1 { // HACK
-					t = out.OrderedItems[0]
+					t = fedi.Object(out.OrderedItems[0])
 				}
 
-				nn, err := fedi.TransformPost(c.Context(), actor, post, t, true)
+				nn, err := fedi.TransformPost(c.Context(), &actor, post, t, true)
 				if err != nil {
 					return err
 				}
 
-				out.OrderedItems = append(out.OrderedItems, nn)
+				out.OrderedItems = append(out.OrderedItems, fedi.LinkObject(nn))
 			}
 
 			return jsonresp(c, out)
@@ -259,34 +259,34 @@ func GetBoardNote(c *fiber.Ctx) error {
 		// No posts in thread
 		// Ignoring err because we don't touch the DB
 		// There are no replies to care about if there are no posts
-		op, _ := fedi.TransformPost(c.Context(), actor, post, fedi.Note{}, false)
+		op, _ := fedi.TransformPost(c.Context(), &actor, post, fedi.Object{}, false)
 
-		return jsonresp(c, fedi.OrderedNoteCollection{
-			Object:       fedi.Object{Type: "OrderedCollection"},
+		return jsonresp(c, fedi.OrderedCollection{
+			Object:       &fedi.Object{Type: "OrderedCollection"},
 			TotalItems:   1,
-			OrderedItems: []fedi.Note{op},
+			OrderedItems: []fedi.LinkObject{fedi.LinkObject(op)},
 		})
 	}
 
 	// It's a post if we got here
-	thread, err := DB.Post(c.Context(), board.ID, post.Thread)
+	thread, err := DB.Post(c.Context(), board.ID, post.ID)
 	if err != nil {
 		return err
 	}
 
 	// Not accessing DB so err doesn't matter
-	nthread, _ := fedi.TransformPost(c.Context(), actor, thread, fedi.Note{}, false)
+	nthread, _ := fedi.TransformPost(c.Context(), &actor, thread, fedi.Object{}, false)
 
-	op, err := fedi.TransformPost(c.Context(), actor, post, nthread, true)
+	op, err := fedi.TransformPost(c.Context(), &actor, post, nthread, true)
 	if err != nil {
 		return err
 	}
 
 	// No replies
-	return jsonresp(c, fedi.OrderedNoteCollection{
-		Object:       fedi.Object{Type: "OrderedCollection"},
+	return jsonresp(c, fedi.OrderedCollection{
+		Object:       &fedi.Object{Type: "OrderedCollection"},
 		TotalItems:   1,
-		OrderedItems: []fedi.Note{op},
+		OrderedItems: []fedi.LinkObject{fedi.LinkObject(op)},
 	})
 }
 
@@ -301,14 +301,14 @@ func GetBoardFollowers(c *fiber.Ctx) error {
 		return err
 	}
 
-	f := make([]fedi.Object, 0, len(followers))
+	f := make([]fedi.LinkObject, 0, len(followers))
 
 	for _, i := range followers {
-		f = append(f, fedi.Object{ID: i})
+		f = append(f, fedi.LinkObject{ID: i})
 	}
 
 	return c.JSON(fedi.Collection{
-		Object:     fedi.Object{Context: fedi.Context, Type: "Collection"},
+		Object:     &fedi.Object{Context: fedi.Context, Type: "Collection"},
 		TotalItems: len(f),
 		Items:      f,
 	})
@@ -325,14 +325,14 @@ func GetBoardFollowing(c *fiber.Ctx) error {
 		return err
 	}
 
-	f := make([]fedi.Object, 0, len(following))
+	f := make([]fedi.LinkObject, 0, len(following))
 
 	for _, i := range following {
-		f = append(f, fedi.Object{ID: i})
+		f = append(f, fedi.LinkObject{ID: i})
 	}
 
 	return c.JSON(fedi.Collection{
-		Object:     fedi.Object{Context: fedi.Context, Type: "Collection"},
+		Object:     &fedi.Object{Context: fedi.Context, Type: "Collection"},
 		TotalItems: len(f),
 		Items:      f,
 	})

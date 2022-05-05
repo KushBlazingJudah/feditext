@@ -13,11 +13,11 @@ import (
 func TransformBoard(board database.Board) Actor {
 	u := fmt.Sprintf("%s://%s/%s", config.TransportProtocol, config.FQDN, board.ID)
 
-	var pkey *PublicKey
+	var pkey *publicKey
 
 	pubKey, err := crypto.PublicKey(board.ID)
 	if err == nil {
-		pkey = &PublicKey{
+		pkey = &publicKey{
 			ID:    u + "#key",
 			Owner: u,
 			Pem:   pubKey,
@@ -25,7 +25,7 @@ func TransformBoard(board database.Board) Actor {
 	}
 
 	return Actor{
-		Object: Object{
+		Object: &Object{
 			ID:   u,
 			Type: "Group",
 			Name: board.ID,
@@ -45,30 +45,28 @@ func TransformBoard(board database.Board) Actor {
 }
 
 // TransformPost converts our native post structure to ActivityPub's Note.
-func TransformPost(ctx context.Context, actor Actor, p database.Post, irt Note, fetchReplies bool) (Note, error) {
+func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Object, fetchReplies bool) (Object, error) {
 	// This part is (database.Post).AsPost backwards
-	attTo := p.Name
-	if attTo == "Anonymous" {
+	var attTo *LinkObject
+	if p.Name != "" && p.Name != "Anonymous" {
 		// FChannel uses Anonymous by default.
-		attTo = ""
+		attTo = &LinkObject{Type: "Link", ID: p.Name}
 	}
 
-	a := actor.ID
+	a := &LinkActor{Object: &Object{Type: "Group", ID: actor.ID}}
 	if strings.HasPrefix(p.Source, "http") {
-		a = p.Source
+		a.ID = p.Source
 	}
 
-	n := Note{
-		Object: Object{
-			ID:           p.APID,
-			Type:         "Note",
-			AttributedTo: attTo,
-			Content:      p.Raw, // Don't send already formatted posts
+	n := Object{
+		ID:           p.APID,
+		Type:         "Note",
+		AttributedTo: attTo, // FChannel misuses this
+		Content:      p.Raw, // Don't send already formatted posts
 
-			Published: &p.Date,
+		Published: &p.Date,
 
-			Replies: nil,
-		},
+		Replies:  nil,
 		Actor:    a,
 		Tripcode: p.Tripcode,
 		Subject:  p.Subject,
@@ -78,16 +76,13 @@ func TransformPost(ctx context.Context, actor Actor, p database.Post, irt Note, 
 
 	if irt.ID != "" {
 		// Trim off a lot of the fat.
-		irt = Note{
-			Object: Object{
-				ID:   irt.ID,
-				Type: irt.Type,
-			},
-
+		irt = Object{
+			ID:    irt.ID,
+			Type:  irt.Type,
 			Actor: irt.Actor,
 		}
 
-		n.InReplyTo = append(n.InReplyTo, irt)
+		n.InReplyTo = append(n.InReplyTo, LinkObject(irt))
 	}
 
 	if fetchReplies {
@@ -97,8 +92,8 @@ func TransformPost(ctx context.Context, actor Actor, p database.Post, irt Note, 
 		}
 
 		if len(reps) > 0 {
-			n.Replies = &OrderedNoteCollection{
-				Object:     Object{Type: "OrderedCollection"},
+			n.Replies = &OrderedCollection{
+				Object:     &Object{Type: "OrderedCollection"},
 				TotalItems: len(reps),
 			}
 
@@ -106,7 +101,7 @@ func TransformPost(ctx context.Context, actor Actor, p database.Post, irt Note, 
 				// We throw away the error value as it will always be nil if we don't touch the database.
 				// This is true when we tell it to ignore replies.
 				rep, _ := TransformPost(ctx, actor, reply, n, false)
-				n.Replies.OrderedItems = append(n.Replies.OrderedItems, rep)
+				n.Replies.OrderedItems = append(n.Replies.OrderedItems, LinkObject(rep))
 			}
 		}
 	}
