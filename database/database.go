@@ -280,44 +280,50 @@ func formatPost(ctx context.Context, d Database, board string, p *Post) error {
 	s = html.EscapeString(s)
 
 	// Database functionality in here isn't implemented greatly but it'll work more or less
-	s = citeRegex.ReplaceAllStringFunc(s, func(s string) string {
-		s = s[len("&gt;&gt;"):] // Very cool. I didn't want my captures anyway.
-		id, err := strconv.Atoi(s)
-		if err != nil {
-			// bad cite
-			return fmt.Sprintf(`<a href="#" class="cite invalid">&gt;&gt;%s</a>`, s)
-		}
+	// Don't bother with local cites from external sources
+	if p.Source[:4] != "http" {
+		s = citeRegex.ReplaceAllStringFunc(s, func(s string) string {
+			s = s[len("&gt;&gt;"):] // Very cool. I didn't want my captures anyway.
+			id, err := strconv.Atoi(s)
+			if err != nil {
+				// bad cite
+				return fmt.Sprintf(`<a href="#" class="cite invalid">&gt;&gt;%s</a>`, s)
+			}
 
-		ref, err := d.Post(ctx, board, PostID(id))
-		if errors.Is(err, sql.ErrNoRows) {
-			// bad cite
-			return fmt.Sprintf(`<a href="#" class="cite invalid">&gt;&gt;%s</a>`, s)
-		} else if err != nil {
-			e = err
-			return ""
-		}
-
-		// Rewrite raw content to be compatible
-		p.Raw = strings.ReplaceAll(p.Raw, fmt.Sprintf(">>%d", id), fmt.Sprintf(">>%s", ref.APID))
-
-		if ref.Thread == p.Thread {
-			// Reply to another post on this thread
-			if err := d.AddReply(ctx, board, p.ID, ref.ID); err != nil {
+			ref, err := d.Post(ctx, board, PostID(id))
+			if errors.Is(err, sql.ErrNoRows) {
+				// bad cite
+				return fmt.Sprintf(`<a href="#" class="cite invalid">&gt;&gt;%s</a>`, s)
+			} else if err != nil {
 				e = err
+				return ""
 			}
 
-			return fmt.Sprintf(`<a href="#p%d" class="cite">&gt;&gt;%d</a>`, ref.ID, ref.ID)
-		} else {
-			// Cross-cite
-			if ref.Thread == 0 {
-				return fmt.Sprintf(`<a href="/%s/%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.ID, ref.ID)
+			// Rewrite raw content to be compatible
+			p.Raw = strings.ReplaceAll(p.Raw, fmt.Sprintf(">>%d", id), fmt.Sprintf(">>%s", ref.APID))
+
+			if ref.Thread == p.Thread {
+				// Reply to another post on this thread
+				if err := d.AddReply(ctx, board, p.ID, ref.ID); err != nil {
+					e = err
+				}
+
+				return fmt.Sprintf(`<a href="#p%d" class="cite">&gt;&gt;%d</a>`, ref.ID, ref.ID)
+			} else if ref.Thread == 0 && p.Thread == ref.ID {
+				// OP
+				return fmt.Sprintf(`<a href="/%s/%d#p%d" class="cite">&gt;&gt;%d (OP)</a>`, board, ref.ID, ref.ID, ref.ID)
 			} else {
-				return fmt.Sprintf(`<a href="/%s/%d#p%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.Thread, ref.ID, ref.ID)
+				// Cross-cite
+				if ref.Thread == 0 {
+					return fmt.Sprintf(`<a href="/%s/%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.ID, ref.ID)
+				} else {
+					return fmt.Sprintf(`<a href="/%s/%d#p%d" class="cite cross">&gt;&gt;%d (Cross-thread)</a>`, board, ref.Thread, ref.ID, ref.ID)
+				}
 			}
+		})
+		if e != nil {
+			return e
 		}
-	})
-	if e != nil {
-		return e
 	}
 
 	// TODO: FChannel doesn't use IDs for its replies and instead uses the unique identifier.

@@ -147,23 +147,6 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 		posts = append(posts, post)
 	}
 
-	// Format all of the posts that need formatting
-	// Would've done it inside of rows but locking is in my way
-	for i, post := range posts {
-		if post.Content == "" {
-			if err := formatPost(ctx, db, board, &post); err != nil {
-				return posts, err
-			}
-
-			// Save it back
-			if err := db.SavePost(ctx, board, &post); err != nil {
-				return posts, err
-			}
-
-			posts[i] = post
-		}
-	}
-
 	return posts, rows.Err()
 }
 
@@ -179,6 +162,7 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	posts := []Post{}
 
@@ -188,7 +172,6 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		var btime *int64 // Will most likely be nil
 
 		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
-			rows.Close()
 			return posts, err
 		}
 
@@ -200,30 +183,10 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		posts = append(posts, post)
 	}
 
-	// Close rows since we're done
-	rows.Close()
-
 	// Say no rows if we get nothing back
 	err = rows.Err()
 	if err == nil && len(posts) == 0 {
 		err = sql.ErrNoRows
-	}
-
-	// Format all of the posts that need formatting
-	// Would've done it inside of rows but locking is in my way
-	for i, post := range posts {
-		if post.Content == "" {
-			if err := formatPost(ctx, db, board, &post); err != nil {
-				return posts, err
-			}
-
-			// Save it back
-			if err := db.SavePost(ctx, board, &post); err != nil {
-				return posts, err
-			}
-
-			posts[i] = post
-		}
 	}
 
 	return posts, err
@@ -255,16 +218,6 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 	post.Date = time.Unix(ttime, 0)
 	if btime != nil {
 		post.Bumpdate = time.Unix(*btime, 0)
-	}
-
-	// Format the post if we need to
-	if post.Content == "" {
-		if err := formatPost(ctx, db, board, &post); err != nil {
-			return post, err
-		}
-
-		// Save it back
-		err = db.SavePost(ctx, board, &post)
 	}
 
 	return post, err
@@ -608,8 +561,15 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	// Generate APID
 	// Random hex number for now
 	if post.APID == "" {
-		// TODO: This really sucks. Really.
-		post.APID = fmt.Sprintf("%s/%s/%08x", "http://"+config.FQDN, board, rand.Intn(math.MaxInt32))
+		// TODO: This really sucks. Really. However, it does work well enough. 16^8 possible different IDs.
+		post.APID = fmt.Sprintf("%s://%s/%s/%08X", config.TransportProtocol, config.FQDN, board, rand.Intn(math.MaxInt32))
+	}
+
+	// Format the post from raw unless we don't need to
+	if post.Content == "" {
+		if err := formatPost(ctx, db, board, post); err != nil {
+			return err
+		}
 	}
 
 	// This is used to prevent passing an absurdly large amount of arguments.
@@ -623,7 +583,6 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 		sql.Named("source", post.Source),
 		sql.Named("subject", post.Subject),
 		sql.Named("thread", post.Thread),
-		sql.Named("tripcode", post.Tripcode),
 		sql.Named("tripcode", post.Tripcode),
 	}
 
