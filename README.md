@@ -1,9 +1,9 @@
 # feditext
 
-A textboard ~~for the fediverse~~.
+A textboard for ~~the fediverse~~ FChannel and itself.
 
-This project aims to federate with existing FChannel instances, barring images,
-since text is much easier to moderate, as fun as images are.
+This project aims to federate with existing FChannel instances, and itself,
+while maintaining a strictly text-only interface.
 
 ## Achtung!
 
@@ -11,11 +11,12 @@ This is largely a work in progress, and most likely will be for a while.
 This is exacerbated by the fact that I probably will not work on this as often
 as I would for other projects, but as of writing it's my current interest.
 
-**Federation is a work in progress, and by no means stable nor working.**
-
-The scaffholding is in place but it is by no means compliant with ActivityPub.
-I'm trying to get this up and going as fast as possible, and be compatible with
-FChannel at the same time, which is focusing more on features and stability.
+**Federation is a work in progress, and by no means stable nor good.**
+You can federate with FChannel (more or less) and other instances of Feditext,
+however it is by no means perfect at this time.
+I highly doubt you'll have any luck going out to any other servers as Feditext
+follows how FChannel does things, which is not entirely compliant but *mostly*
+compliant.
 
 In its current state, it probably works quite well as a textboard even though
 it's not complete.
