@@ -182,6 +182,44 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		if err := fedi.SendActivity(c.Context(), followback); err != nil {
 			return err
 		}
+	} else if act.Type == "Create" {
+		if act.Object == nil || act.Actor == nil || act.To == nil || act.ObjectProp == nil {
+			return c.SendStatus(400) // TODO
+		}
+		// TODO: Should we ignore from places that aren't marked as following?
+		// TODO: Check for spoofing?
+
+		// Check what board it should go to
+		// TODO: Improve upon this. It kinda sucks.
+		boards := []database.Board{}
+		start := fmt.Sprintf("%s://%s/", config.TransportProtocol, config.FQDN)
+		for _, t := range act.To {
+			if strings.HasPrefix(t.ID, start) {
+				// That's us!
+				board, err := DB.Board(c.Context(), t.ID[len(start):])
+				if err != nil {
+					return err
+				}
+
+				boards = append(boards, board)
+			}
+		}
+
+		if len(boards) == 0 {
+			return c.SendStatus(404) // TODO
+		}
+
+		post, err := act.ObjectProp.AsPost(c.Context(), board.ID)
+		if err != nil {
+			return err
+		}
+
+		for _, board := range boards {
+			if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
+				return err
+			}
+			post.ID = 0
+		}
 	} else { // TODO: FChannel doesn't send back an accept, so assume it's fine?
 		log.Printf("%s sent unknown activity type %s", c.IP(), act.Type)
 	}

@@ -1,6 +1,9 @@
 package fedi
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -8,7 +11,7 @@ import (
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
-func (n Object) AsPost() (database.Post, error) {
+func (n Object) AsPost(ctx context.Context, board string) (database.Post, error) {
 	if n.Type != "Note" {
 		// We need an actor to save.
 		return database.Post{}, fmt.Errorf("Object.AsPost: invalid type; expected Note, got %s", n.Type)
@@ -38,6 +41,35 @@ func (n Object) AsPost() (database.Post, error) {
 	}
 	actor = n.Actor.ID
 
+	// The post coming in may have a thread attached to it.
+	// Look for it.
+	thread := database.PostID(0)
+
+	if len(n.InReplyTo) > 0 {
+		for _, t := range n.InReplyTo {
+			if t.ID != "" {
+				// Check if it exists in the database
+				th, err := DB.FindAPID(ctx, board, t.ID)
+				if err != nil && !errors.Is(err, sql.ErrNoRows) {
+					return database.Post{}, err
+				} else if errors.Is(err, sql.ErrNoRows) {
+					continue
+				}
+
+				if th.Thread == 0 {
+					thread = th.ID
+					break
+				}
+			} else {
+				// FChannel implementation bug
+				thread = 0
+			}
+		}
+	} else {
+		// Not in reply to anything so it's obviously a thread
+		thread = 0
+	}
+
 	// TODO: Sanitize
 
 	return database.Post{
@@ -48,6 +80,7 @@ func (n Object) AsPost() (database.Post, error) {
 		// The approach of doing nothing is the simplest and most people won't care too much anyway.
 
 		Name:     name,
+		Thread:   thread,
 		Tripcode: n.Tripcode,
 		Subject:  n.Subject,
 		Date:     published,
@@ -58,16 +91,16 @@ func (n Object) AsPost() (database.Post, error) {
 	}, nil
 }
 
-func (n Object) AsThread() ([]database.Post, error) {
+func (n Object) AsThread(ctx context.Context, board string) ([]database.Post, error) {
 	var posts []database.Post
 
 	if n.Replies == nil || n.Replies.TotalItems < 1 {
 		// No more work needs to be done
-		p, err := n.AsPost()
+		p, err := n.AsPost(ctx, board)
 		return []database.Post{p}, err
 	}
 
-	op, err := n.AsPost()
+	op, err := n.AsPost(ctx, board)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +109,11 @@ func (n Object) AsThread() ([]database.Post, error) {
 	posts = append(posts, op)
 
 	for _, note := range n.Replies.OrderedItems[1:] {
-		if note, err := Object(note).AsPost(); err != nil {
+		if nnn, err := Object(note).AsPost(ctx, board); err != nil {
 			log.Printf("error importing %s: %s", note.ID, err)
 			continue
 		} else {
-			posts = append(posts, note)
+			posts = append(posts, nnn)
 		}
 	}
 

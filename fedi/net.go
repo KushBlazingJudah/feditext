@@ -103,6 +103,10 @@ func Finger(ctx context.Context, actor string) (Actor, error) {
 
 	// Finally, do one more request to the server.
 	req, err = http.NewRequestWithContext(ctx, "GET", target, nil)
+	if err != nil {
+		return Actor{}, err
+	}
+
 	req.Header.Set("Accept", streams)
 
 	res, err = P.Do(req)
