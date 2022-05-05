@@ -134,6 +134,8 @@ func Serve() {
 	app.Get("/admin/moderator/delete/:name", routes.GetModeratorDel)
 	app.Post("/admin/login", routes.PostAdminLogin)
 	app.Post("/admin/board", routes.PostBoard)
+	app.Get("/admin/follow", routes.GetAdminFollow)
+	app.Get("/admin/unfollow", routes.GetAdminUnfollow)
 
 	// Boards
 	app.Get("/:board", routes.GetBoardIndex)

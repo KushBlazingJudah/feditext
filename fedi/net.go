@@ -199,6 +199,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 // PostOut sends a post out to federated servers.
 func PostOut(ctx context.Context, board database.Board, post database.Post) error {
 	actor := TransformBoard(board)
+	actor.NoCollapse = true
 	lactor := LinkActor(actor)
 
 	irt := Object{}

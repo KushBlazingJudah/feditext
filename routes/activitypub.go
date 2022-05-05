@@ -161,25 +161,7 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			},
 		}
 
-		// TODO: Testing purposes, auto follow back.
-		followback := fedi.Activity{
-			Object: &fedi.Object{
-				Context: fedi.Context,
-				Type:    "Follow",
-				Actor:   &b,
-				To:      []fedi.LinkObject{{Type: "Link", ID: act.Actor.ID}},
-			},
-
-			ObjectProp: &fedi.Object{
-				Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
-				NoCollapse: true,
-			},
-		}
-
 		if err := fedi.SendActivity(c.Context(), accept); err != nil {
-			return err
-		}
-		if err := fedi.SendActivity(c.Context(), followback); err != nil {
 			return err
 		}
 	} else if act.Type == "Create" {

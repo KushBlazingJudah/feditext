@@ -1,12 +1,17 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/fedi"
 	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
@@ -27,6 +32,11 @@ func GetAdmin(c *fiber.Ctx) error {
 		return errResp(c, "Unauthorized", 403)
 	}
 
+	boards, err := DB.Boards(c.Context())
+	if err != nil {
+		return err
+	}
+
 	reports, err := DB.Reports(c.Context(), false)
 	if err != nil {
 		return err
@@ -42,10 +52,35 @@ func GetAdmin(c *fiber.Ctx) error {
 		return err
 	}
 
+	followers := [][]string{}
+	following := [][]string{}
+
+	for _, board := range boards {
+		fin, err := DB.Followers(c.Context(), board.ID)
+		if err != nil {
+			return err
+		}
+
+		fout, err := DB.Following(c.Context(), board.ID)
+		if err != nil {
+			return err
+		}
+
+		for _, source := range fin {
+			followers = append(followers, []string{board.ID, source})
+		}
+
+		for _, target := range fout {
+			following = append(following, []string{board.ID, target})
+		}
+	}
+
 	return render(c, "Admin Area", "admin", fiber.Map{
-		"reports": reports,
-		"news":    news,
-		"mods":    mods,
+		"reports":   reports,
+		"news":      news,
+		"mods":      mods,
+		"followers": followers,
+		"following": following,
 	})
 }
 
@@ -285,6 +320,112 @@ func PostAdminBan(c *fiber.Ctx) error {
 		Reason:  reason,
 		Expires: exptime,
 	}, c.Locals("username").(string)); err != nil {
+		return err
+	}
+
+	return c.Redirect("/admin")
+}
+
+func GetAdminFollow(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return errResp(c, "Unauthorized", 403, "/admin")
+	}
+
+	boardReq := strings.TrimSpace(c.Query("board"))
+	targetReq := strings.TrimSpace(c.Query("target"))
+	if boardReq == "" || targetReq == "" {
+		return errResp(c, "You must specify a board and a target.", 400, "/admin")
+	}
+
+	board, err := DB.Board(c.Context(), boardReq)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return errResp(c, "That board does not exist.", 404, "/admin")
+	} else if err != nil {
+		return err
+	}
+
+	target, err := url.Parse(targetReq)
+	if err != nil {
+		return errResp(c, "The target link is invalid.", 400, "/admin")
+	}
+
+	// Tell them that we want to follow them.
+	b := fedi.LinkActor(fedi.TransformBoard(board))
+	b.NoCollapse = true // FChannel doesn't understand
+	follow := fedi.Activity{
+		Object: &fedi.Object{
+			Context: fedi.Context,
+			Type:    "Follow",
+			Actor:   &b,
+			To:      []fedi.LinkObject{{Type: "Link", ID: target.String()}},
+		},
+
+		ObjectProp: &fedi.Object{
+			Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: target.String()}},
+			NoCollapse: true,
+		},
+	}
+
+	if err := fedi.SendActivity(c.Context(), follow); err != nil {
+		return err
+	}
+
+	if err := DB.AddFollowing(c.Context(), board.ID, target.String()); err != nil {
+		return err
+	}
+
+	return c.Redirect("/admin")
+}
+
+func GetAdminUnfollow(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return errResp(c, "Unauthorized", 403, "/admin")
+	}
+
+	boardReq := strings.TrimSpace(c.Query("board"))
+	targetReq := strings.TrimSpace(c.Query("target"))
+	if boardReq == "" || targetReq == "" {
+		return errResp(c, "You must specify a board and a target.", 400, "/admin")
+	}
+
+	target, err := url.Parse(targetReq)
+	if err != nil {
+		return errResp(c, "The target link is invalid.", 400, "/admin")
+	}
+
+	board, err := DB.Board(c.Context(), boardReq)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return errResp(c, "That board does not exist.", 404, "/admin")
+	} else if err != nil {
+		return err
+	}
+
+	if err := DB.DeleteFollowing(c.Context(), board.ID, target.String()); err != nil {
+		return err
+	}
+
+	// I don't know why, but FChannel will remove you from the following list if you send another follow request.
+	// This really sucks, because there's an Unfollow type. Oh well.
+	// TODO: Implement Unfollow in FChannel
+	b := fedi.LinkActor(fedi.TransformBoard(board))
+	b.NoCollapse = true // FChannel doesn't understand
+	follow := fedi.Activity{
+		Object: &fedi.Object{
+			Context: fedi.Context,
+			Type:    "Follow",
+			Actor:   &b,
+			To:      []fedi.LinkObject{{Type: "Link", ID: target.String()}},
+		},
+
+		ObjectProp: &fedi.Object{
+			Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: target.String()}},
+			NoCollapse: true,
+		},
+	}
+
+	if err := fedi.SendActivity(c.Context(), follow); err != nil {
 		return err
 	}
 

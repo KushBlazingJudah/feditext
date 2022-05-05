@@ -53,10 +53,33 @@
 	<input type="submit">
 </form>
 
-<table id="news" class="table">
+<table id="mods" class="table">
 	<tr><th>Username</th><th>Privilege</th><th>Action</th></tr>
 	{{range .mods}}
 	<tr><td><span class="name">{{.Username}}</span></td><td>{{.Privilege}}</td><td><a href="/admin/moderator/delete/{{.Username}}">Delete</a></td></tr>
+	{{end}}
+</table>
+
+<h2>Federation</h2>
+
+<h3>Followers</h3>
+<table id="followers" class="table">
+	<tr><th>Board</th><th>Follower</th></tr>
+	{{range .followers}}
+	<tr><td>{{index . 0}}</td><td>{{index . 1}}</td></tr>
+	{{end}}
+</table>
+
+<h3>Following</h3>
+<form action="/admin/follow" method="get">
+	<input type="text" name="board" id="board" value="" placeholder="Board">
+	<input type="text" name="target" id="target" value="" placeholder="Target">
+	<input type="submit">
+</form>
+<table id="following" class="table">
+	<tr><th>Board</th><th>Following</th><th>Action</th></tr>
+	{{range .following}}
+	<tr><td>{{index . 0}}</td><td>{{index . 1}}</td><td><a href="/admin/unfollow?board={{index . 0}}&target={{index . 1}}">Unfollow</a></td></tr>
 	{{end}}
 </table>
 

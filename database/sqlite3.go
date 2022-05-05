@@ -773,13 +773,13 @@ func (db *SqliteDatabase) DeleteModerator(ctx context.Context, username string) 
 
 // DeleteFollow removes a follow from the "followers" entry from a board.
 func (db *SqliteDatabase) DeleteFollow(ctx context.Context, source string, board string) error {
-	_, err := db.conn.ExecContext(ctx, "DELETE FROM followers(source, board) WHERE source = ? AND board = ?", source, board)
+	_, err := db.conn.ExecContext(ctx, "DELETE FROM followers WHERE source = ? AND board = ?", source, board)
 	return err
 }
 
 // DeleteFollowing removes a follow from the "following" entry from a board.
 func (db *SqliteDatabase) DeleteFollowing(ctx context.Context, board string, target string) error {
-	_, err := db.conn.ExecContext(ctx, "DELETE FROM following(board, target) WHERE board = ? AND target = ?", board, target)
+	_, err := db.conn.ExecContext(ctx, "DELETE FROM following WHERE board = ? AND target = ?", board, target)
 	return err
 }
 
