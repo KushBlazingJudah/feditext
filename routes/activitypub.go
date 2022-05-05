@@ -304,7 +304,9 @@ func GetBoardFollowers(c *fiber.Ctx) error {
 	f := make([]fedi.LinkObject, 0, len(followers))
 
 	for _, i := range followers {
-		f = append(f, fedi.LinkObject{ID: i})
+		f = append(f, fedi.LinkObject{Type: "Actor", ID: i}) // TODO: What type goes here?
+		// Seems to me like Mastodon just uses links here.
+		// Done this way solely to prevent it from doing that.
 	}
 
 	return c.JSON(fedi.Collection{
@@ -328,7 +330,8 @@ func GetBoardFollowing(c *fiber.Ctx) error {
 	f := make([]fedi.LinkObject, 0, len(following))
 
 	for _, i := range following {
-		f = append(f, fedi.LinkObject{ID: i})
+		// See GetBoardFollowers.
+		f = append(f, fedi.LinkObject{Type: "Actor", ID: i})
 	}
 
 	return c.JSON(fedi.Collection{

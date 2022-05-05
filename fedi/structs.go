@@ -210,8 +210,10 @@ func (l *LinkActor) UnmarshalJSON(data []byte) error {
 	var value string
 	err := json.Unmarshal(data, &value)
 
-	l.Type = "Link"
-	l.ID = value
+	l.Object = &Object{
+		Type: "Link",
+		ID:   value,
+	}
 
 	return err
 }
@@ -255,10 +257,6 @@ type Collection struct {
 }
 
 func (c Collection) MarshalJSON() ([]byte, error) {
-	if c.TotalItems == 0 {
-		return []byte("null"), nil
-	}
-
 	// There's something to encode!
 	// Time for some hacks.
 	type cool Collection
@@ -278,9 +276,6 @@ type OrderedCollection struct {
 
 func (c OrderedCollection) MarshalJSON() ([]byte, error) {
 	// See Collection.MarshalJSON.
-	if c.TotalItems == 0 {
-		return []byte("null"), nil
-	}
 
 	// There's something to encode!
 	// Time for some hacks.
