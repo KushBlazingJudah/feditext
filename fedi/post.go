@@ -82,7 +82,7 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 		Name:     name,
 		Thread:   thread,
 		Tripcode: n.Tripcode,
-		Subject:  n.Subject,
+		Subject:  n.Name,
 		Date:     published,
 		Bumpdate: updated,
 		Raw:      n.Content,

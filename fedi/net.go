@@ -238,8 +238,5 @@ func PostOut(ctx context.Context, board database.Board, post database.Post) erro
 		ObjectProp: &note,
 	}
 
-	d, _ := json.MarshalIndent(activity, "out ", "  ")
-	fmt.Println(string(d))
-
 	return SendActivity(ctx, activity)
 }

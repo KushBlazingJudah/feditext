@@ -289,42 +289,32 @@ func GetBoardNote(c *fiber.Ctx) error {
 		// It's a thread
 		// Fetch the replies and send
 
-		thread, err := DB.Thread(c.Context(), board.ID, post.ID, 0)
+		op, err := fedi.TransformPost(c.Context(), &actor, post, fedi.Object{}, false)
 		if err != nil {
 			return err
 		}
 
-		if l := len(thread); l > 1 {
-			out := fedi.OrderedCollection{
+		posts, err := DB.Thread(c.Context(), board.ID, post.ID, 0)
+		if err != nil {
+			return err
+		}
+
+		if l := len(posts) - 1; l > 0 {
+			op.Replies = &fedi.OrderedCollection{
 				Object:       &fedi.Object{Type: "OrderedCollection"},
 				TotalItems:   l,
 				OrderedItems: make([]fedi.LinkObject, 0, l),
 			}
 
-			t := fedi.Object{
-				Type: "Note",
-			}
-
-			for i, post := range thread { // Shadow post
-				if i == 1 { // HACK
-					t = fedi.Object(out.OrderedItems[0])
-				}
-
-				nn, err := fedi.TransformPost(c.Context(), &actor, post, t, true)
+			for _, post := range posts[1:] {
+				p, err := fedi.TransformPost(c.Context(), &actor, post, op, true)
 				if err != nil {
 					return err
 				}
 
-				out.OrderedItems = append(out.OrderedItems, fedi.LinkObject(nn))
+				op.Replies.OrderedItems = append(op.Replies.OrderedItems, fedi.LinkObject(p))
 			}
-
-			return jsonresp(c, out)
 		}
-
-		// No posts in thread
-		// Ignoring err because we don't touch the DB
-		// There are no replies to care about if there are no posts
-		op, _ := fedi.TransformPost(c.Context(), &actor, post, fedi.Object{}, false)
 
 		return jsonresp(c, fedi.OrderedCollection{
 			Object:       &fedi.Object{Type: "OrderedCollection"},

@@ -69,7 +69,7 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 		Replies:  nil,
 		Actor:    a,
 		Tripcode: p.Tripcode,
-		Subject:  p.Subject,
+		Name:     p.Subject, // don't worry I don't understand either
 		Updated:  &p.Bumpdate,
 	}
 
