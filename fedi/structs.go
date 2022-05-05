@@ -138,7 +138,7 @@ type LinkObject Object
 func (l *LinkObject) MarshalJSON() ([]byte, error) {
 	if l.Type == "" {
 		return []byte("null"), nil
-	} else if l.Type == "Link" {
+	} else if l.Type == "Link" && !l.NoCollapse {
 		link := Link{Href: l.ID}
 
 		return link.MarshalJSON()
@@ -179,9 +179,7 @@ func (l *LinkObject) UnmarshalJSON(data []byte) error {
 type LinkActor Actor
 
 func (l *LinkActor) MarshalJSON() ([]byte, error) {
-	if l.Type == "" {
-		return []byte("null"), nil
-	} else if l.Type == "Group" {
+	if l.Type == "Group" && !l.NoCollapse {
 		link := Link{Href: l.ID}
 
 		return link.MarshalJSON()
@@ -240,6 +238,9 @@ type Object struct {
 	Tripcode string     `json:"tripcode,omitempty"`
 	Subject  string     `json:"subject,omitempty"`
 	Actor    *LinkActor `json:"actor,omitempty"`
+
+	// Hack to prevent collapsing objects because FChannel can't read them
+	NoCollapse bool `json:"-"`
 }
 
 type Activity struct {

@@ -137,7 +137,15 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return err
 		}
 
+		// FChannel doesn't send back an Accept, it just is what it is
+		if err := DB.AddFollowing(c.Context(), board.ID, act.Actor.ID); err != nil {
+			return err
+		}
+
+		log.Printf("Accepted follow from %s to board %s", act.Actor.ID, board.ID)
+
 		b := fedi.LinkActor(fedi.TransformBoard(board))
+		b.NoCollapse = true // FChannel doesn't understand
 		accept := fedi.Activity{
 			Object: &fedi.Object{
 				Context: fedi.Context,
@@ -147,15 +155,34 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			},
 
 			ObjectProp: &fedi.Object{
-				Actor: &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
-				Type:  "Follow",
+				Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
+				Type:       "Follow",
+				NoCollapse: true,
+			},
+		}
+
+		// TODO: Testing purposes, auto follow back.
+		followback := fedi.Activity{
+			Object: &fedi.Object{
+				Context: fedi.Context,
+				Type:    "Follow",
+				Actor:   &b,
+				To:      []fedi.LinkObject{{Type: "Link", ID: act.Actor.ID}},
+			},
+
+			ObjectProp: &fedi.Object{
+				Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
+				NoCollapse: true,
 			},
 		}
 
 		if err := fedi.SendActivity(c.Context(), accept); err != nil {
 			return err
 		}
-	} else {
+		if err := fedi.SendActivity(c.Context(), followback); err != nil {
+			return err
+		}
+	} else { // TODO: FChannel doesn't send back an accept, so assume it's fine?
 		log.Printf("%s sent unknown activity type %s", c.IP(), act.Type)
 	}
 

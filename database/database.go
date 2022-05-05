@@ -55,7 +55,7 @@ var (
 var Engines = map[string]InitFunc{}
 
 var citeRegex = regexp.MustCompile(`&gt;&gt;(\d+)`)
-var apCiteRegex = regexp.MustCompile(`&gt;&gt;(https?:\/\/[0-9a-z\-\.]+\.[a-z]+?\/[0-9a-z]+\/[0-9A-Za-z]+)`)
+var apCiteRegex = regexp.MustCompile(`&gt;&gt;(https?:\/\/[0-9a-z\-\.]*\.[0-9a-z]+(?::\d+)?\/[0-9A-Za-z]+\/[0-9A-Za-z]+)`)
 var quoteRegex = regexp.MustCompile("(?m)^&gt;(.+?)$")
 
 // Post contains data related to a single post.
