@@ -2,6 +2,8 @@ package routes
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -139,7 +141,43 @@ func redirBanned(c *fiber.Ctx) (bool, error) {
 	return true, nil
 }
 
-func errResp(c *fiber.Ctx, msg string, status int, ret ...string) error {
+func errhtml(c *fiber.Ctx, err error, ret ...string) error {
+	retu := ""
+	if len(ret) == 1 {
+		retu = ret[0]
+	}
+
+	if err == nil {
+		panic("nil err passed to errjson")
+	}
+
+	text := "An unknown error has occurred."
+	status := 500
+
+	if errors.Is(err, sql.ErrNoRows) || strings.HasPrefix(err.Error(), "no such table") {
+		status = 404
+		text = "not found"
+	} else if errors.Is(err, database.ErrPostContents) {
+		status = 400
+		text = "invalid post contents"
+	} else if errors.Is(err, database.ErrPostRejected) {
+		status = 400
+		text = "post was rejected"
+	} else {
+		// TODO: More filters.
+		// TODO: RSA verification error
+		// TODO: JSON
+		log.Printf("uncaught error on %s: %s", c.Path(), err)
+		text = "an internal server error has occurred"
+	}
+
+	return render(c.Status(status), "Error", "error", fiber.Map{
+		"error":  text,
+		"return": retu,
+	})
+}
+
+func errhtmlc(c *fiber.Ctx, msg string, status int, ret ...string) error {
 	retu := ""
 	if len(ret) == 1 {
 		retu = ret[0]

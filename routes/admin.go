@@ -31,27 +31,27 @@ func hasPriv(c *fiber.Ctx, p database.ModType) bool {
 func GetAdmin(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errResp(c, "Unauthorized", 403)
+		return errhtmlc(c, "Unauthorized", 403)
 	}
 
 	boards, err := DB.Boards(c.Context())
 	if err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	reports, err := DB.Reports(c.Context(), false)
 	if err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	news, err := DB.News(c.Context())
 	if err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	mods, err := DB.Moderators(c.Context())
 	if err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	followers := [][]string{}
@@ -60,12 +60,12 @@ func GetAdmin(c *fiber.Ctx) error {
 	for _, board := range boards {
 		fin, err := DB.Followers(c.Context(), board.ID)
 		if err != nil {
-			return err
+			return errhtml(c, err, "/admin")
 		}
 
 		fout, err := DB.Following(c.Context(), board.ID)
 		if err != nil {
-			return err
+			return errhtml(c, err, "/admin")
 		}
 
 		for _, source := range fin {
@@ -89,16 +89,16 @@ func GetAdmin(c *fiber.Ctx) error {
 func PostBoard(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errResp(c, "Unauthorized", 403)
+		return errhtmlc(c, "Unauthorized", 403)
 	}
 
 	board := database.Board{}
 	if err := c.BodyParser(&board); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	if board.ID == "" {
-		return errResp(c, "No ID was specified in your request.", 400, "/admin")
+		return errhtmlc(c, "No ID was specified in your request.", 400, "/admin")
 	}
 
 	if err := DB.SaveBoard(c.Context(), board); err != nil {
@@ -129,19 +129,19 @@ func PostAdminLogin(c *fiber.Ctx) error {
 
 	// Usernames are alphanumeric
 	if !util.IsAlnum(user) {
-		return errResp(c, "Invalid credentials.", 403, "/admin/login")
+		return errhtmlc(c, "Invalid credentials.", 403, "/admin/login")
 	}
 
 	pass := c.FormValue("password")[:64]
 
 	if ok, err := DB.PasswordCheck(c.Context(), user, pass); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	} else if !ok {
-		return errResp(c, "Invalid credentials.", 403, "/admin/login")
+		return errhtmlc(c, "Invalid credentials.", 403, "/admin/login")
 	} else if ok {
 		priv, err := DB.Privilege(c.Context(), user)
 		if err != nil {
-			return err
+			return errhtml(c, err, "/admin")
 		}
 
 		// Generate a token
@@ -152,7 +152,7 @@ func PostAdminLogin(c *fiber.Ctx) error {
 			"exp":      exp.Unix(), // one week
 		}).SignedString(config.JWTSecret)
 		if err != nil {
-			return err
+			return errhtml(c, err, "/admin")
 		}
 
 		// Set it as a cookie
@@ -179,12 +179,12 @@ func GetAdminResolve(c *fiber.Ctx) error {
 
 	rid, err := strconv.Atoi(c.Params("report"))
 	if err != nil {
-		return errResp(c, "Invalid post number.", 400, "/admin")
+		return errhtmlc(c, "Invalid post number.", 400, "/admin")
 	}
 
 	// This fails silently if its a bad report
 	if err := DB.Resolve(c.Context(), rid); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	// Redirect back to the admin panel
@@ -194,14 +194,14 @@ func GetAdminResolve(c *fiber.Ctx) error {
 func PostAdminNews(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errResp(c, "Unauthorized", 403, "/admin")
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	subject := c.FormValue("subject", "Untitled")
 	content := c.FormValue("content")
 
 	if content == "" {
-		return errResp(c, "Invalid post contents.", 400, "/admin")
+		return errhtmlc(c, "Invalid post contents.", 400, "/admin")
 	}
 
 	if err := DB.SaveNews(c.Context(), &database.News{
@@ -209,7 +209,7 @@ func PostAdminNews(c *fiber.Ctx) error {
 		Subject: subject,
 		Content: content,
 	}); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	return c.Redirect("/admin")
@@ -218,16 +218,16 @@ func PostAdminNews(c *fiber.Ctx) error {
 func GetAdminNewsDelete(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errResp(c, "Unauthorized", 403, "/admin")
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	nid, err := strconv.Atoi(c.Params("news"))
 	if err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	if err := DB.DeleteNews(c.Context(), nid); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	return c.Redirect("/admin")
@@ -236,7 +236,7 @@ func GetAdminNewsDelete(c *fiber.Ctx) error {
 func PostModerator(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return c.SendStatus(401)
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	username := c.FormValue("username")[:32]
@@ -244,22 +244,22 @@ func PostModerator(c *fiber.Ctx) error {
 	priv := c.FormValue("priv")
 
 	if username == "" {
-		return errResp(c, "Need a username", 400, "/admin")
+		return errhtmlc(c, "Need a username", 400, "/admin")
 	} else if !util.IsAlnum(username) {
-		return errResp(c, "Username is not alphanumeric", 400, "/admin")
+		return errhtmlc(c, "Username is not alphanumeric", 400, "/admin")
 	} else if password == "" {
-		return errResp(c, "Need a password", 400, "/admin")
+		return errhtmlc(c, "Need a password", 400, "/admin")
 	} else if priv == "" {
 		priv = "0" // assume janitor
 	}
 
 	ipriv, err := strconv.Atoi(priv)
 	if err != nil {
-		return err
+		return errhtmlc(c, "Privilege number is not a number.", 400, "/admin")
 	}
 
 	if err := DB.SaveModerator(c.Context(), username, password, database.ModType(ipriv)); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	return c.Redirect("/admin")
@@ -268,13 +268,12 @@ func PostModerator(c *fiber.Ctx) error {
 func GetModeratorDel(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return c.SendStatus(401)
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	username := c.Params("name")
 	if username == "" {
-		// TODO: Error page
-		return c.SendStatus(400)
+		return errhtmlc(c, "Need a moderator to delete.", 400, "/admin")
 	}
 
 	// TODO: Sanitize
@@ -289,7 +288,7 @@ func GetModeratorDel(c *fiber.Ctx) error {
 func GetAdminBan(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errResp(c, "Unauthorized", 403, "/admin")
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	return render(c, "Ban User", "ban", fiber.Map{"ip": c.Params("ip")})
@@ -298,12 +297,12 @@ func GetAdminBan(c *fiber.Ctx) error {
 func PostAdminBan(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errResp(c, "Unauthorized", 403, "/admin")
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	source := c.Params("ip")
 	if source == "" {
-		return errResp(c, "Specify an IP to ban", 400, "/admin")
+		return errhtmlc(c, "Specify an IP to ban", 400, "/admin")
 	}
 
 	reason := c.FormValue("reason")
@@ -314,7 +313,7 @@ func PostAdminBan(c *fiber.Ctx) error {
 	exp := c.FormValue("expires")
 	exptime, err := time.Parse("2006-01-02T15:04", exp)
 	if err != nil {
-		return errResp(c, fmt.Sprintf("Invalid time: %s", err), 400, "/admin")
+		return errhtmlc(c, fmt.Sprintf("Invalid time: %s", err), 400, "/admin")
 	}
 
 	if err := DB.Ban(c.Context(), database.Ban{
@@ -322,7 +321,7 @@ func PostAdminBan(c *fiber.Ctx) error {
 		Reason:  reason,
 		Expires: exptime,
 	}, c.Locals("username").(string)); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	return c.Redirect("/admin")
@@ -331,25 +330,25 @@ func PostAdminBan(c *fiber.Ctx) error {
 func GetAdminFollow(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errResp(c, "Unauthorized", 403, "/admin")
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	boardReq := strings.TrimSpace(c.Query("board"))
 	targetReq := strings.TrimSpace(c.Query("target"))
 	if boardReq == "" || targetReq == "" {
-		return errResp(c, "You must specify a board and a target.", 400, "/admin")
+		return errhtmlc(c, "You must specify a board and a target.", 400, "/admin")
 	}
 
 	board, err := DB.Board(c.Context(), boardReq)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return errResp(c, "That board does not exist.", 404, "/admin")
+		return errhtmlc(c, "That board does not exist.", 404, "/admin")
 	} else if err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	target, err := url.Parse(targetReq)
 	if err != nil {
-		return errResp(c, "The target link is invalid.", 400, "/admin")
+		return errhtmlc(c, "The target link is invalid.", 400, "/admin")
 	}
 
 	// Tell them that we want to follow them.
@@ -370,11 +369,11 @@ func GetAdminFollow(c *fiber.Ctx) error {
 	}
 
 	if err := fedi.SendActivity(c.Context(), follow); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	if err := DB.AddFollowing(c.Context(), board.ID, target.String()); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	// If we made it through all of this, import their outbox in the background.
@@ -401,29 +400,29 @@ func GetAdminFollow(c *fiber.Ctx) error {
 func GetAdminUnfollow(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errResp(c, "Unauthorized", 403, "/admin")
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
 	boardReq := strings.TrimSpace(c.Query("board"))
 	targetReq := strings.TrimSpace(c.Query("target"))
 	if boardReq == "" || targetReq == "" {
-		return errResp(c, "You must specify a board and a target.", 400, "/admin")
+		return errhtmlc(c, "You must specify a board and a target.", 400, "/admin")
 	}
 
 	target, err := url.Parse(targetReq)
 	if err != nil {
-		return errResp(c, "The target link is invalid.", 400, "/admin")
+		return errhtmlc(c, "The target link is invalid.", 400, "/admin")
 	}
 
 	board, err := DB.Board(c.Context(), boardReq)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return errResp(c, "That board does not exist.", 404, "/admin")
+		return errhtmlc(c, "That board does not exist.", 404, "/admin")
 	} else if err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	if err := DB.DeleteFollowing(c.Context(), board.ID, target.String()); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	// I don't know why, but FChannel will remove you from the following list if you send another follow request.
@@ -446,7 +445,7 @@ func GetAdminUnfollow(c *fiber.Ctx) error {
 	}
 
 	if err := fedi.SendActivity(c.Context(), follow); err != nil {
-		return err
+		return errhtml(c, err, "/admin")
 	}
 
 	return c.Redirect("/admin")

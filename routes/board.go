@@ -76,12 +76,12 @@ func GetBoardIndex(c *fiber.Ctx) error {
 
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	threads, err := DB.Threads(c.Context(), board.ID)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	posts := []indexData{}
@@ -89,12 +89,12 @@ func GetBoardIndex(c *fiber.Ctx) error {
 	for _, thread := range threads {
 		t, err := DB.Thread(c.Context(), board.ID, thread.ID, 5)
 		if err != nil {
-			return err
+			return errhtml(c, err) // TODO: update
 		}
 
 		nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, thread.ID)
 		if err != nil {
-			return err
+			return errhtml(c, err) // TODO: update
 		}
 
 		posts = append(posts, indexData{t, nposts, posters})
@@ -109,12 +109,12 @@ func GetBoardIndex(c *fiber.Ctx) error {
 func GetBoardCatalog(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	threads, err := DB.Threads(c.Context(), board.ID)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	posts := []catalogData{}
@@ -122,7 +122,7 @@ func GetBoardCatalog(c *fiber.Ctx) error {
 	for _, thread := range threads {
 		nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, thread.ID)
 		if err != nil {
-			return err
+			return errhtml(c, err) // TODO: update
 		}
 
 		posts = append(posts, catalogData{thread, nposts, posters})
@@ -137,17 +137,18 @@ func GetBoardCatalog(c *fiber.Ctx) error {
 func PostBoardIndex(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	// Check ban status
 	if ok, err := redirBanned(c); err != nil || !ok {
+		// User was redirected already
 		return err
 	}
 
 	// Check captcha
 	if ok := checkCaptcha(c); !ok {
-		return errResp(c, "Bad captcha response.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	name := c.FormValue("name", "Anonymous")
@@ -160,7 +161,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 	content = content[:util.IMin(len(content), config.PostCutoff)]
 
 	if content == "" {
-		return errResp(c, "Invalid post contents.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	var trip string
@@ -175,7 +176,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 	}
 
 	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	go func() {
@@ -195,7 +196,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	pid, err := strconv.Atoi(c.Params("thread"))
@@ -208,7 +209,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, c.Params("thread"))
 		post, err := DB.FindAPID(c.Context(), board.ID, q)
 		if err != nil {
-			return errResp(c, "Invalid thread number.", 404, fmt.Sprintf("/%s", board.ID))
+			return errhtmlc(c, "Invalid thread number.", 404, fmt.Sprintf("/%s", board.ID))
 		}
 
 		// We found the true location, redirect them to it.
@@ -217,6 +218,10 @@ func GetBoardThread(c *fiber.Ctx) error {
 
 	// Check if this post is actually a thread.
 	op, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return errhtml(c, err, "/"+board.ID)
+	}
+
 	if op.Thread != 0 {
 		// Redirect to the true location.
 		return c.Redirect(fmt.Sprintf("/%s/%d#p%d", board.ID, op.Thread, pid))
@@ -225,15 +230,15 @@ func GetBoardThread(c *fiber.Ctx) error {
 	posts, err := DB.Thread(c.Context(), board.ID, database.PostID(pid), 0)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errResp(c, "This thread does not exist.", 404, fmt.Sprintf("/%s", board.ID))
+			return errhtmlc(c, "This thread does not exist.", 404, fmt.Sprintf("/%s", board.ID))
 		}
 
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, database.PostID(pid))
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	return render(c, fmt.Sprintf("/%s/%d", board.ID, pid), "thread", fiber.Map{
@@ -248,31 +253,32 @@ func GetBoardThread(c *fiber.Ctx) error {
 func PostBoardThread(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	// Check ban status
 	if ok, err := redirBanned(c); err != nil || !ok {
+		// User was redirected already
 		return err
 	}
 
 	// Check captcha
 	if ok := checkCaptcha(c); !ok {
-		return errResp(c, "Bad captcha response.", 400, fmt.Sprintf("/%s/%s", board.ID, c.Params("thread")))
+		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s/%s", board.ID, c.Params("thread")))
 	}
 
 	tid, err := strconv.Atoi(c.Params("thread"))
 	if err != nil {
-		return errResp(c, "Bad thread number.", 404, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "Bad thread number.", 404, fmt.Sprintf("/%s", board.ID))
 	}
 
 	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
-	if err != nil {
-		return err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return errhtml(c, err) // TODO: update
 	}
 
 	if post.Thread != 0 {
-		return errResp(c, "The thread you are posting to doesn't exist.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "The thread you are posting to doesn't exist.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	name := c.FormValue("name", "Anonymous")
@@ -285,7 +291,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 	content = content[:util.IMin(len(content), config.PostCutoff)]
 
 	if content == "" {
-		return errResp(c, "Invalid post contents.", 400, fmt.Sprintf("/%s/%d", board.ID, post.ID))
+		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s/%d", board.ID, post.ID))
 	}
 
 	var trip string
@@ -308,7 +314,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 	}
 
 	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
-		return err
+		return errhtml(c, err, c.Path())
 	}
 
 	go func() {
@@ -330,21 +336,21 @@ func GetThreadDelete(c *fiber.Ctx) error {
 
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	tid, err := strconv.Atoi(c.Params("thread"))
 	if err != nil {
-		return errResp(c, "Bad thread number.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "Bad thread number.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
 	if err != nil {
-		return errResp(c, "The thread you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "The thread you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
 	}
 
 	if post.Thread != 0 {
-		return errResp(c, "The thread you are looking for is actually a post.", 404, fmt.Sprintf("/%s/%d", board.ID, post.Thread))
+		return errhtmlc(c, "The thread you are looking for is actually a post.", 404, fmt.Sprintf("/%s/%d", board.ID, post.Thread))
 	}
 
 	if err := DB.DeleteThread(c.Context(), board.ID, post.ID, database.ModerationAction{
@@ -355,7 +361,7 @@ func GetThreadDelete(c *fiber.Ctx) error {
 		Reason: "TODO",
 		Date:   time.Now().UTC(),
 	}); err != nil {
-		return err
+		return errhtml(c, err)
 	}
 
 	// Redirect back to the board
@@ -371,23 +377,23 @@ func GetPostDelete(c *fiber.Ctx) error {
 
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	pid, err := strconv.Atoi(c.Params("post"))
 	if err != nil {
-		return errResp(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	// Check if it's a valid post
 	post, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
 	if err != nil {
-		return errResp(c, "The post you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "The post you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
 	}
 
 	if post.Thread == 0 {
 		// It's a thread
-		return errResp(c, "The post you are looking for is actually a thread.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "The post you are looking for is actually a thread.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	if err := DB.DeletePost(c.Context(), board.ID, post.ID, database.ModerationAction{
@@ -398,7 +404,7 @@ func GetPostDelete(c *fiber.Ctx) error {
 		Reason: "TODO",
 		Date:   time.Now().UTC(),
 	}); err != nil {
-		return err
+		return errhtml(c, err)
 	}
 
 	// Redirect back to the thread
@@ -408,22 +414,23 @@ func GetPostDelete(c *fiber.Ctx) error {
 func GetBoardReport(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	// Check ban status
 	if ok, err := redirBanned(c); err != nil || !ok {
+		// User was redirected already
 		return err
 	}
 
 	pid, err := strconv.Atoi(c.Params("post"))
 	if err != nil {
-		return errResp(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	post, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
 	if err != nil {
-		return errResp(c, "The post you are looking for doesn't exist.", 403, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "The post you are looking for doesn't exist.", 403, fmt.Sprintf("/%s", board.ID))
 	}
 
 	return render(c, fmt.Sprintf("Report Post /%s/%d", board.ID, pid), "report", fiber.Map{
@@ -435,28 +442,29 @@ func GetBoardReport(c *fiber.Ctx) error {
 func PostBoardReport(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
-		return err
+		return errhtml(c, err) // TODO: update
 	}
 
 	// Check ban status
 	if ok, err := redirBanned(c); err != nil || !ok {
+		// User was redirected already
 		return err
 	}
 
 	// Check captcha
 	if ok := checkCaptcha(c); !ok {
-		return errResp(c, "Bad captcha response.", 400, fmt.Sprintf("/%s/%s", board.ID, c.Params("thread")))
+		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s/%s", board.ID, c.Params("thread")))
 	}
 
 	pid, err := strconv.Atoi(c.Params("post"))
 	if err != nil {
-		return errResp(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
+		return errhtmlc(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
 	// Ensure it exists
 	_, err = DB.Post(c.Context(), board.ID, database.PostID(pid))
 	if err != nil {
-		return err
+		return errhtmlc(c, "Post was not found.", 404, "/"+board.ID)
 	}
 
 	reason := c.FormValue("reason")
@@ -469,7 +477,7 @@ func PostBoardReport(c *fiber.Ctx) error {
 		Reason: reason,
 		Date:   time.Now().UTC(),
 	}); err != nil {
-		return err
+		return errhtml(c, err)
 	}
 
 	// Redirect back to the index
