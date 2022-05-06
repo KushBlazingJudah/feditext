@@ -116,16 +116,22 @@ func Serve() {
 	})
 
 	app.Get("/", routes.GetIndex)
-	app.Get("/audit", routes.GetAudit)
-	app.Get("/banned", routes.GetBanned)
 	app.Get("/captcha/:id", routes.GetCaptcha)
+	if config.PublicAudit {
+		app.Get("/audit", routes.GetAudit)
+	}
+	if !config.Private {
+		app.Get("/banned", routes.GetBanned)
+	}
 
 	app.Get("/.well-known/webfinger", routes.Webfinger)
 
 	// Admin
 	app.Get("/admin", routes.GetAdmin)
-	app.Get("/admin/ban/:ip", routes.GetAdminBan)
-	app.Post("/admin/ban/:ip", routes.PostAdminBan)
+	if !config.Private {
+		app.Get("/admin/ban/:ip", routes.GetAdminBan)
+		app.Post("/admin/ban/:ip", routes.PostAdminBan)
+	}
 	app.Get("/admin/login", routes.GetAdminLogin)
 	app.Get("/admin/resolve/:report", routes.GetAdminResolve)
 	app.Post("/admin/news", routes.PostAdminNews)

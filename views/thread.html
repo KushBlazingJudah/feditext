@@ -1,6 +1,7 @@
 {{$board := .board}}
 {{$thread := (index .posts 0).ID}}
 {{$privs := .privs}}
+{{$private := .private}}
 
 <ul id="boardlist">
 	<li><a href="/">index</a></li>
@@ -46,7 +47,7 @@
 <p>{{.nposts}} post{{if gt .nposts 1}}s{{end}}, {{.posters}} poster{{if gt .posters 1}}s{{end}}.</p>
 {{range .posts}}
 <div id="p{{.ID}}" class="post">
-	<h3><a href="#p{{.ID}}">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}}{{if .Bumpdate.IsZero}} sage{{end}} <a href="/{{$board.ID}}/report/{{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}</h3>
+	<h3><a href="#p{{.ID}}">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}}{{if .Bumpdate.IsZero}} sage{{end}} <a href="/{{$board.ID}}/report/{{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}}{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}{{end}}</h3>
 	<blockquote class="content">
 		{{unescape .Content}}
 	</blockquote>

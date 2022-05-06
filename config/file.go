@@ -2,6 +2,7 @@ package config
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -46,6 +47,16 @@ func Load(path string) error {
 			Title = value
 		case "randadmin":
 			RandAdmin = value == "true"
+		case "transport":
+			value = strings.ToLower(value)
+			if value != "http" && value != "https" {
+				panic(fmt.Errorf("config: transport: expected http or https, got %s", value))
+			}
+			TransportProtocol = value
+		case "private":
+			Private = value == "true"
+		case "publicaudit":
+			PublicAudit = value == "true"
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}

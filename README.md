@@ -18,12 +18,12 @@ I highly doubt you'll have any luck going out to any other servers as Feditext
 follows how FChannel does things, which is not entirely compliant but *mostly*
 compliant.
 
-In its current state, it probably works quite well as a textboard even though
-it's not complete.
-The idea behind doing it this way is so I have a core engine that more or less
-works fine, a nice foundation for implementing ActivityPub on top of.
-You can probably rip ActivityPub out of this quite easily and use it as a
-standalone textboard, which is what I've intended.
+In its current state, ActivityPub is implemented on top of the core engine where
+possible.
+In some places it is hard to avoid reliance on it, however in most it is almost
+entirely transparent.
+You could probably rip out the ActivityPub features and use it solely as a
+textboard if you really care enough.
 
 ## Rationale
 
@@ -59,26 +59,45 @@ there too.
 
 Feditext's goals are simple and to the point:
 
-- <=4000 SLOC in the main codebase according to cloc
+- <=4000 SLOC in the main Go codebase according to cloc
   - Previously it was 3,000 lines but the core engine came close to 2,000 so I
-    bumped it. I don't think I will hit 4,000 but will most likely exceed 3,000.
+    bumped it. I don't think I will hit 4,000 but we're on track to hit 3,750.
+  - The target is for the Golang portion of the code.
   - FChannel was approaching 6,000 lines when I started work on it and I found it
     hard to comprehend at times. I don't want it to be like this.
 - ~~Tons of comments~~ (lol), good documentation
   - Comments were kinda thrown out the window but it's pretty easy to figure out
     what's going on if you're even remotely proficient in SQL or Golang
 - Sane moderation
-  - FChannel says it won't keep IPs, we will.
+  - FChannel says it won't keep IPs, we will, optionally.
     Not keeping them is good for privacy but not good when you have bad actors,
     and it's surprising that FChannel hasn't had any (yet, or that I know of).
     Or at least intentionally.
+  - If you're running a Tor instance, you can choose to not keep IPs.
+    You should because they will all probably be 127.0.0.1 anyway.
   - Public moderation log. It's a little broken right now but it's there.
-- Later, but good Tor support. I don't want to rent a VPS.
+    Can also be turned off.
+- Implemented in a simple and good fashion where possible.
+  - FChannel has 88+ database functions, we have 39 and they're all contained in
+    the database package.
+  - We use Golang contexts in numerous places.
 
 Any changes I may need to make to FChannel (hopefully few if not none!) I will
 upstream.
 The developer says that he's interested in adding textboards to FChannel, so
 maybe this will give just the push we all need.
+
+### Non-goals
+
+- Attachments and previews
+  - It's a textboard.
+    Our ActivityPub implementation doesn't even have anywhere to hold these, and
+    neither does my disk.
+- Proper ActivityPub support
+  - While work was done to try to make it not choke on some data it takes in,
+    Feditext will not be 100% compliant until FChannel is.
+
+This list is bound to grow and shrink given time.
 
 ## Dependencies
 
@@ -93,8 +112,8 @@ If you build with SQLite3:
 
 As it stands, the core engine of Feditext is relatively complete and will not be
 facing many changes.
-However, I advise against using this for any serious purposes until the first
-proper release, which is when I'll most likely fire up an instance of my own.
+The federation portions are what is primarily being worked on and what will be
+worked on mostly until that is also complete.
 
 Feditext can be built easily using the included Makefile:
 

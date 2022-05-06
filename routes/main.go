@@ -109,6 +109,7 @@ func render(c *fiber.Ctx, title, tmpl string, f fiber.Map) error {
 		"nameMax": config.NameCutoff,
 		"subMax":  config.SubjectCutoff,
 		"repMax":  config.ReportCutoff,
+		"private": config.Private,
 	}
 
 	// merge map
@@ -120,8 +121,9 @@ func render(c *fiber.Ctx, title, tmpl string, f fiber.Map) error {
 }
 
 func redirBanned(c *fiber.Ctx) (bool, error) {
-	// Skip if logged in
-	if c.Locals("privs") != nil {
+	// Skip if logged in, or private mode is on
+	// We can't ban people in private mode
+	if c.Locals("privs") != nil || config.Private {
 		return true, nil
 	}
 
@@ -151,4 +153,12 @@ func errResp(c *fiber.Ctx, msg string, status int, ret ...string) error {
 		"error":  msg,
 		"return": retu,
 	})
+}
+
+func getIP(c *fiber.Ctx) string {
+	if config.Private {
+		return "127.0.0.1"
+	}
+
+	return c.IP()
 }

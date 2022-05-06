@@ -172,7 +172,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 		Tripcode: trip,
 		Raw:      content,
 		Subject:  subject,
-		Source:   c.IP(),
+		Source:   getIP(c),
 	}
 
 	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
@@ -305,7 +305,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 		Raw:      content,
 		Bumpdate: bumpdate,
 		Subject:  subject,
-		Source:   c.IP(),
+		Source:   getIP(c),
 	}
 
 	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
@@ -464,7 +464,7 @@ func PostBoardReport(c *fiber.Ctx) error {
 	reason = reason[:util.IMin(len(reason), config.ReportCutoff)]
 
 	if err := DB.FileReport(c.Context(), database.Report{
-		Source: c.IP(),
+		Source: getIP(c),
 		Board:  board.ID,
 		Post:   database.PostID(pid),
 		Reason: reason,

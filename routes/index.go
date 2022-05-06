@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -14,7 +15,8 @@ func GetIndex(c *fiber.Ctx) error {
 	}
 
 	return render(c, "", "index", fiber.Map{
-		"news": news,
+		"news":  news,
+		"audit": config.PublicAudit,
 	})
 }
 
@@ -30,6 +32,8 @@ func GetAudit(c *fiber.Ctx) error {
 }
 
 func GetBanned(c *fiber.Ctx) error {
+	// This route is disabled in private mode
+
 	ok, exp, reason, err := DB.Banned(c.Context(), c.IP())
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err

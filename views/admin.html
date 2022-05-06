@@ -1,3 +1,5 @@
+{{$private := .private}}
+
 <ul id="boardlist">
 	<li><a href="/">index</a></li>
 	{{range .boards}}
@@ -85,10 +87,10 @@
 
 <h2>Reports</h3>
 <table id="reports" class="table">
-	<tr><th>Source</th><th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>
+	<tr>{{if not .private}}<th>Source</th>{{end}}<th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>
 	{{range .reports}}
 	<tr>
-		<td><code>{{.Source}}</code></td>
+		{{if not $private}}<td><code>{{.Source}}</code><a href="/admin/ban/{{.Source}}">[Ban]</a></td>{{end}}
 		<td>{{time .Date}}</td>
 		<td><a href="/{{.Board}}/{{.Post}}">/{{.Board}}/{{.Post}}</a></td>
 		<td><p>{{.Reason}}</p></td>

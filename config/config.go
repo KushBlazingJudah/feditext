@@ -59,7 +59,17 @@ var (
 
 	// TransportProtocol is the protocol that is used to access this board.
 	// It should be one of http or https. Preferably https.
-	TransportProtocol = "http"
+	TransportProtocol string = "http"
+
+	// Private turns off IP logging, and banning.
+	// You should have this off unless you're hosting this through Tor, as
+	// there is no point to log them there.
+	// It will not clear stored IPs.
+	Private bool = false
+
+	// PublicAudit enables the public audit log. Disabled, the audit log will be inaccessible.
+	// Flipping this arbitrarily will not delete the entries in the audit log.
+	PublicAudit bool = false
 )
 
 func init() {
