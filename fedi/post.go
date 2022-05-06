@@ -19,7 +19,7 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 
 	published := time.Now().UTC()
 	if n.Published != nil && !n.Published.IsZero() {
-		published = *n.Updated
+		published = *n.Published
 	}
 
 	updated := time.Now().UTC()

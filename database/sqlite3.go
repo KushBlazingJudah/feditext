@@ -5,6 +5,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -463,8 +464,11 @@ func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time
 	var ttime *int64
 	reason := ""
 
-	if err := row.Scan(&ttime, &reason); err != nil {
+	if err := row.Scan(&ttime, &reason); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return false, time.Time{}, reason, err
+	} else if errors.Is(err, sql.ErrNoRows) {
+		// Not banned
+		return true, time.Time{}, "", nil
 	}
 
 	if ttime != nil {

@@ -2,8 +2,6 @@ package routes
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -128,7 +126,7 @@ func redirBanned(c *fiber.Ctx) (bool, error) {
 	}
 
 	ok, _, _, err := DB.Banned(c.Context(), c.IP())
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil {
 		return false, err
 	}
 

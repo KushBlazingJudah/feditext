@@ -70,7 +70,9 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 		Actor:    a,
 		Tripcode: p.Tripcode,
 		Name:     p.Subject, // don't worry I don't understand either
-		Updated:  &p.Bumpdate,
+
+		// TODO: We don't bother with Updated as it is used as a sage marker for posts.
+		// FChannel doesn't even seem to use it all that much except for threads?
 	}
 
 	if irt.ID != "" {

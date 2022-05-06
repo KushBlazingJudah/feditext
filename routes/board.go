@@ -216,6 +216,13 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.ID))
 	}
 
+	// Check if this post is actually a thread.
+	op, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
+	if op.Thread != 0 {
+		// Redirect to the true location.
+		return c.Redirect(fmt.Sprintf("/%s/%d#p%d", board.ID, op.Thread, pid))
+	}
+
 	posts, err := DB.Thread(c.Context(), board.ID, database.PostID(pid), 0)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
