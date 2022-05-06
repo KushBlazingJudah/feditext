@@ -44,6 +44,7 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 	// The post coming in may have a thread attached to it.
 	// Look for it.
 	thread := database.PostID(0)
+	ok := false
 
 	if len(n.InReplyTo) > 0 {
 		for _, t := range n.InReplyTo {
@@ -58,16 +59,25 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 
 				if th.Thread == 0 {
 					thread = th.ID
+					ok = true
 					break
 				}
 			} else {
 				// FChannel implementation bug
 				thread = 0
+				ok = true
+				break
 			}
 		}
 	} else {
 		// Not in reply to anything so it's obviously a thread
 		thread = 0
+		ok = true
+	}
+
+	if !ok {
+		// No post in the database, ignore!
+		return database.Post{}, fmt.Errorf("no suitable thread in the database to reply to, ignoring")
 	}
 
 	// TODO: Sanitize
@@ -109,6 +119,8 @@ func (n Object) AsThread(ctx context.Context, board string) ([]database.Post, er
 	posts = append(posts, op)
 
 	for _, note := range n.Replies.OrderedItems[1:] {
+		// Kill InReplyTo here, we don't need it and it only makes things more painful.
+		note.InReplyTo = nil // "whoops"
 		if nnn, err := Object(note).AsPost(ctx, board); err != nil {
 			log.Printf("error importing %s: %s", note.ID, err)
 			continue

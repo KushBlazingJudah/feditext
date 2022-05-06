@@ -155,9 +155,8 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			},
 
 			ObjectProp: &fedi.Object{
-				Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
-				Type:       "Follow",
-				NoCollapse: true,
+				Actor: &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
+				Type:  "Follow",
 			},
 		}
 
@@ -191,6 +190,8 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return c.SendStatus(404) // TODO
 		}
 
+		// This does some checking to ensure that the thread exists if it's in reply to one.
+		// We don't care about threads we don't know about.
 		post, err := act.ObjectProp.AsPost(c.Context(), board.ID)
 		if err != nil {
 			return err

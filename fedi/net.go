@@ -147,6 +147,10 @@ func SendActivity(ctx context.Context, act Activity) error {
 			continue
 		}
 
+		// Reasonable amount of time for everything here to complete.
+		ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+		defer cancel()
+
 		actor, err := Finger(ctx, to.ID)
 		if err != nil {
 			log.Printf("failed to finger %s: %v", to.ID, err)
@@ -154,7 +158,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 		}
 
 		if actor.Inbox != "" {
-			req, err := http.NewRequest("POST", actor.Inbox, bytes.NewBuffer(data))
+			req, err := http.NewRequestWithContext(ctx, "POST", actor.Inbox, bytes.NewBuffer(data))
 			if err != nil {
 				log.Printf("unable to generate request for %s: %v", to.ID, err)
 				continue
@@ -240,4 +244,80 @@ func PostOut(ctx context.Context, board database.Board, post database.Post) erro
 	}
 
 	return SendActivity(ctx, activity)
+}
+
+func FetchOutbox(ctx context.Context, actorUrl string) (Outbox, error) {
+	actor, err := Finger(ctx, actorUrl)
+	if err != nil {
+		return Outbox{}, err
+	}
+
+	if actor.Outbox == "" {
+		return Outbox{}, fmt.Errorf("actor returned no outbox")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", actor.Outbox, nil)
+	if err != nil {
+		return Outbox{}, err
+	}
+
+	res, err := P.Do(req)
+	if err != nil {
+		return Outbox{}, err
+	}
+	defer res.Body.Close()
+
+	decoder := json.NewDecoder(res.Body)
+	outbox := Outbox{}
+	err = decoder.Decode(&outbox)
+	return outbox, err
+}
+
+func MergeOutbox(ctx context.Context, board string, ob Outbox) error {
+	for _, thread := range ob.OrderedItems {
+		if thread.Type != "Note" {
+			log.Printf("encountered unknown type %s in outbox", thread.Type)
+			continue
+		}
+
+		t, err := Object(thread).AsThread(ctx, board)
+		if err != nil {
+			log.Printf("error converting object %s to thread: %s", thread.ID, err)
+			continue
+		}
+
+		// Import it into the database
+		op := t[0]
+
+		// Check if we have the OP already in the database
+		if post, err := DB.FindAPID(ctx, board, op.APID); err != nil {
+			// We (probably) don't.
+			if err := DB.SavePost(ctx, board, &op); err != nil {
+				// Abandon hope.
+				return err
+			}
+		} else {
+			// We do have it in the database so we can ignore the first one.
+			op = post
+		}
+
+		for _, post := range t[1:] {
+			post.Thread = op.ID
+
+			fmt.Println(post.APID, post.Thread, op.APID)
+
+			// First, check if it's in the database.
+			// We'll save it if it isn't.
+			if _, err := DB.FindAPID(ctx, board, post.APID); err != nil {
+				// We're probably safe to save it into the database.
+				// Most likely fatal if it isn't.
+				if err := DB.SavePost(ctx, board, &post); err != nil {
+					return err
+				}
+			}
+
+		}
+	}
+
+	return nil
 }

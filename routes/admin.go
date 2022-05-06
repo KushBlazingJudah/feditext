@@ -1,9 +1,11 @@
 package routes
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -374,6 +376,24 @@ func GetAdminFollow(c *fiber.Ctx) error {
 	if err := DB.AddFollowing(c.Context(), board.ID, target.String()); err != nil {
 		return err
 	}
+
+	// If we made it through all of this, import their outbox in the background.
+	go func() {
+		// Give the request a reasonable amount of time to complete.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+		defer cancel()
+
+		ob, err := fedi.FetchOutbox(ctx, target.String())
+		if err != nil {
+			log.Printf("error fetching outbox of %s: %s", target.String(), board.ID)
+			return
+		}
+
+		// Don't worry about times here.
+		if err := fedi.MergeOutbox(context.Background(), board.ID, ob); err != nil {
+			log.Printf("error merging outbox of %s: %s", target.String(), board.ID)
+		}
+	}()
 
 	return c.Redirect("/admin")
 }
