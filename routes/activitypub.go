@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/crypto"
@@ -202,6 +203,62 @@ func PostBoardInbox(c *fiber.Ctx) error {
 				return err
 			}
 			post.ID = 0
+		}
+	} else if act.Type == "Delete" {
+		if act.Object == nil || act.Actor == nil || act.To == nil || act.ObjectProp == nil || act.ObjectProp.ID == "" {
+			return c.SendStatus(400) // TODO
+		}
+		// TODO: Should we ignore from places that aren't marked as following?
+		// TODO: Check for spoofing?
+
+		// Check what board it should go to
+		// TODO: Improve upon this. It kinda sucks.
+		boards := []database.Board{}
+		start := fmt.Sprintf("%s://%s/", config.TransportProtocol, config.FQDN)
+		for _, t := range act.To {
+			if strings.HasPrefix(t.ID, start) {
+				// That's us!
+				board, err := DB.Board(c.Context(), t.ID[len(start):])
+				if err != nil {
+					return err
+				}
+
+				boards = append(boards, board)
+			}
+		}
+
+		if len(boards) == 0 {
+			return c.SendStatus(404) // TODO
+		}
+
+		// Check if the post exists in our database.
+		post, err := DB.FindAPID(c.Context(), board.ID, act.ObjectProp.ID)
+		if err != nil {
+			return err
+		}
+
+		// TODO: Check if post is owned by said actor
+
+		// Delete it
+		action := database.ModerationAction{
+			Author: act.Actor.ID,
+			Type:   database.ModActionDelete,
+			Board:  board.ID,
+			Post:   post.ID,
+			Reason: "Externally deleted.",
+			Date:   time.Now().UTC(),
+		}
+
+		if post.Thread == 0 {
+			err = DB.DeleteThread(c.Context(), board.ID, post.ID, action)
+		} else {
+			err = DB.DeletePost(c.Context(), board.ID, post.ID, action)
+		}
+
+		if err != nil {
+			return err
+		} else {
+			return c.SendStatus(200)
 		}
 	} else { // TODO: FChannel doesn't send back an accept, so assume it's fine?
 		log.Printf("%s sent unknown activity type %s", c.IP(), act.Type)
