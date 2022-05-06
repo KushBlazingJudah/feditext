@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -58,7 +60,8 @@ CREATE TABLE IF NOT EXISTS replies_%s(
 `
 
 type SqliteDatabase struct {
-	conn *sql.DB
+	conn    *sql.DB
+	regexps map[int]*regexp.Regexp
 }
 
 func init() {
@@ -75,7 +78,25 @@ func init() {
 			return nil, err
 		}
 
-		return &SqliteDatabase{conn: db}, nil
+		sdb := &SqliteDatabase{conn: db, regexps: make(map[int]*regexp.Regexp)}
+
+		// Fetch regexps and compile them
+		regexps, err := sdb.Regexps(context.Background())
+		if err != nil {
+			return sdb, err
+		}
+
+		for _, rexp := range regexps {
+			re, err := regexp.Compile(rexp.Pattern)
+			if err != nil {
+				log.Printf("failed to compile regexp %d: %s", rexp.ID, rexp.Pattern)
+				continue
+			}
+
+			sdb.regexps[rexp.ID] = re
+		}
+
+		return sdb, nil
 	}
 }
 
@@ -457,6 +478,28 @@ func (db *SqliteDatabase) Followers(ctx context.Context, board string) ([]string
 	return followers, rows.Err()
 }
 
+// Regexps returns a list of regular expressions for filtering posts.
+func (db *SqliteDatabase) Regexps(ctx context.Context) ([]Regexp, error) {
+	rows, err := db.conn.QueryContext(ctx, `SELECT id,pattern FROM regexps`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	regexps := []Regexp{}
+
+	for rows.Next() {
+		f := Regexp{}
+		if err := rows.Scan(&f.ID, &f.Pattern); err != nil {
+			return regexps, err
+		}
+
+		regexps = append(regexps, f)
+	}
+
+	return regexps, rows.Err()
+}
+
 // Banned checks to see if a user is banned.
 func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time.Time, string, error) {
 	row := db.conn.QueryRowContext(ctx, "SELECT expires, reason FROM bans WHERE source = ?", source)
@@ -495,6 +538,27 @@ func (db *SqliteDatabase) AddFollow(ctx context.Context, source string, board st
 // AddFollowing records a board is following an Actor.
 func (db *SqliteDatabase) AddFollowing(ctx context.Context, board string, target string) error {
 	_, err := db.conn.ExecContext(ctx, "INSERT OR IGNORE INTO following(board, target) VALUES(?, ?)", board, target)
+	return err
+}
+
+// AddRegexp adds a regular expression to the post filter.
+func (db *SqliteDatabase) AddRegexp(ctx context.Context, pattern string) error {
+	// Compile it first
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return err
+	}
+
+	n, err := db.conn.ExecContext(ctx, "INSERT OR IGNORE INTO regexps(pattern) VALUES(?)", pattern)
+	if err != nil {
+		return err
+	}
+
+	var id int64
+	if id, err = n.LastInsertId(); err == nil {
+		db.regexps[int(id)] = re
+	}
+
 	return err
 }
 
@@ -560,6 +624,13 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	// Forbid empty posting
 	if strings.TrimSpace(post.Raw) == "" {
 		return ErrPostContents
+	}
+
+	// Check to see if this post is hit by the filter
+	for _, regexp := range db.regexps {
+		if regexp.MatchString(post.Raw) {
+			return ErrPostRejected
+		}
 	}
 
 	// Generate APID
@@ -784,6 +855,15 @@ func (db *SqliteDatabase) DeleteFollow(ctx context.Context, source string, board
 // DeleteFollowing removes a follow from the "following" entry from a board.
 func (db *SqliteDatabase) DeleteFollowing(ctx context.Context, board string, target string) error {
 	_, err := db.conn.ExecContext(ctx, "DELETE FROM following WHERE board = ? AND target = ?", board, target)
+	return err
+}
+
+// DeleteRegexp removes a regular expression from the post filter.
+func (db *SqliteDatabase) DeleteRegexp(ctx context.Context, id int) error {
+	// Remove it from our state
+	delete(db.regexps, id)
+
+	_, err := db.conn.ExecContext(ctx, "DELETE FROM regexps WHERE id = ?", id)
 	return err
 }
 

@@ -50,6 +50,7 @@ const (
 
 var (
 	ErrPostContents = errors.New("invalid post contents")
+	ErrPostRejected = errors.New("post was rejected")
 )
 
 var Engines = map[string]InitFunc{}
@@ -129,6 +130,11 @@ type Ban struct {
 	Expires time.Time
 }
 
+type Regexp struct {
+	ID      int
+	Pattern string
+}
+
 // Database implements everything you might need in a textboard database.
 // This should be generic enough to port to whatever engine you may like.
 type Database interface {
@@ -183,6 +189,9 @@ type Database interface {
 	// Followers returns a list of Actors a board is being followed by.
 	Followers(ctx context.Context, board string) ([]string, error)
 
+	// Regexps returns a list of regular expressions for filtering posts.
+	Regexps(ctx context.Context) ([]Regexp, error)
+
 	// Banned checks to see if a user is banned.
 	Banned(ctx context.Context, source string) (bool, time.Time, string, error)
 
@@ -191,6 +200,9 @@ type Database interface {
 
 	// AddFollowing records a board is following an Actor.
 	AddFollowing(ctx context.Context, board string, target string) error
+
+	// AddRegexp adds a regular expression to the post filter.
+	AddRegexp(ctx context.Context, regexp string) error
 
 	// Ban bans a user.
 	Ban(ctx context.Context, ban Ban, by string) error
@@ -242,6 +254,9 @@ type Database interface {
 
 	// DeleteFollowing removes a follow from the "following" entry from a board.
 	DeleteFollowing(ctx context.Context, board string, target string) error
+
+	// DeleteRegexp removes a regular expression from the post filter.
+	DeleteRegexp(ctx context.Context, id int) error
 
 	// PasswordCheck checks a moderator's password.
 	PasswordCheck(ctx context.Context, username string, password string) (bool, error)
