@@ -44,11 +44,10 @@ func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
 	}
 
 	if board.ID == "" {
-		// TODO: Servers won't like this. Check for ActivityPub accept.
-		return boards, board, errResp(c, "Invalid board.", 404, "/")
+		err = sql.ErrNoRows
 	}
 
-	return boards, board, nil
+	return boards, board, err
 }
 
 func checkCaptcha(c *fiber.Ctx) bool {
@@ -76,7 +75,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 	}
 
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -109,7 +108,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 
 func GetBoardCatalog(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -137,7 +136,7 @@ func GetBoardCatalog(c *fiber.Ctx) error {
 
 func PostBoardIndex(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -195,7 +194,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 	}
 
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -248,7 +247,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 
 func PostBoardThread(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -330,7 +329,7 @@ func GetThreadDelete(c *fiber.Ctx) error {
 	}
 
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -371,7 +370,7 @@ func GetPostDelete(c *fiber.Ctx) error {
 	}
 
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -408,7 +407,7 @@ func GetPostDelete(c *fiber.Ctx) error {
 
 func GetBoardReport(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -435,7 +434,7 @@ func GetBoardReport(c *fiber.Ctx) error {
 
 func PostBoardReport(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
+	if err != nil {
 		return err
 	}
 

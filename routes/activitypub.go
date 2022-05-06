@@ -56,35 +56,71 @@ func jsonresp(c *fiber.Ctx, data any) error {
 	return encoder.Encode(data)
 }
 
+func errjson(c *fiber.Ctx, err error) error {
+	var e error
+
+	if err == nil {
+		panic("nil err passed to errjson")
+	}
+
+	if errors.Is(err, sql.ErrNoRows) || strings.HasPrefix(err.Error(), "no such table") {
+		e = c.Status(404).JSON(map[string]string{
+			"error": "not found",
+		})
+	} else if errors.Is(err, database.ErrPostContents) {
+		e = c.Status(400).JSON(map[string]string{
+			"error": "invalid post contents",
+		})
+	} else if errors.Is(err, database.ErrPostRejected) {
+		e = c.Status(400).JSON(map[string]string{
+			"error": "post was rejected",
+		})
+	} else {
+		// TODO: More filters.
+		// TODO: RSA verification error
+		// TODO: JSON
+		log.Printf("uncaught error on %s: %s", c.Path(), err)
+		e = c.Status(500).JSON(map[string]string{
+			"error": "an internal server error has occurred",
+		})
+	}
+
+	return e
+}
+
+func errjsonc(c *fiber.Ctx, code int, err string) error {
+	return c.Status(code).JSON(map[string]string{
+		"error": err,
+	})
+}
+
 func Webfinger(c *fiber.Ctx) error {
 	// Shotty implmentation but it works
 
 	query := c.Query("resource")
 	fmt.Println("webfinger", query, c.Request().URI())
 	if query == "" {
-		// TODO: JSON error
-		return c.Status(400).SendString("need a resource query")
+		return errjsonc(c, 400, "need a resource query")
 	}
 
 	if !strings.HasPrefix(query, "acct:") {
-		// TODO: JSON error
-		return c.Status(400).SendString("only support acct")
+		return errjsonc(c, 400, "only acct is supported")
 	}
 
 	toks := strings.SplitN(query[5:], "@", 2)
 	fmt.Println(toks[0], toks[1])
 	if len(toks) != 2 {
-		return c.Status(404).SendString("no actor found")
+		return errjsonc(c, 404, "not found")
 	} else if toks[1] != config.FQDN {
-		return c.Status(404).SendString("no actor found")
+		return errjsonc(c, 404, "not found")
 	}
 
 	if board, err := DB.Board(c.Context(), toks[0]); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return c.Status(404).SendString("no actor found")
+			return errjsonc(c, 404, "not found")
 		}
 
-		return err
+		return errjson(c, err)
 	} else {
 		return c.JSON(webfingerResp{
 			Subject: fmt.Sprintf("acct:/%s@%s", board.ID, config.FQDN),
@@ -99,48 +135,42 @@ func Webfinger(c *fiber.Ctx) error {
 
 func PostBoardInbox(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
-		return err
+	if err != nil {
+		return errjson(c, err)
 	}
 
-	for k, v := range c.GetReqHeaders() {
-		fmt.Printf("%s: %s\n", k, v)
-	}
 	_, err = os.Stdout.Write(c.Body())
 
 	act := fedi.Activity{}
 	if err := json.Unmarshal(c.Body(), &act); err != nil {
-		return err
+		return errjson(c, err)
 	}
 
 	if act.Actor == nil || act.Actor.ID == "" {
-		return fmt.Errorf("need actor")
-	} else if act.Actor.PublicKey == nil {
+		return errjsonc(c, 404, "need actor")
+	} else if act.Actor.PublicKey == nil || act.Actor.PublicKey.Pem == "" {
 		// TODO: Webfinger
-		return fmt.Errorf("need public key")
-	} else if act.Actor.PublicKey.Pem == "" {
-		// TODO: Webfinger
-		return fmt.Errorf("need public key data")
+		return errjsonc(c, 400, "need public key")
 	}
 
 	if err := crypto.CheckHeaders(c, act.Actor.PublicKey.Pem); err != nil {
-		return err
+		return errjson(c, err)
 	}
 
 	if act.Type == "Follow" {
 		if act.ObjectProp == nil {
-			return fmt.Errorf("need target")
+			return errjsonc(c, 400, "need target")
 		}
 
 		// Accept it
 		// TODO: Blacklist
 		if err := DB.AddFollow(c.Context(), act.Actor.ID, board.ID); err != nil {
-			return err
+			return errjson(c, err)
 		}
 
 		// FChannel doesn't send back an Accept, it just is what it is
 		if err := DB.AddFollowing(c.Context(), board.ID, act.Actor.ID); err != nil {
-			return err
+			return errjson(c, err)
 		}
 
 		log.Printf("Accepted follow from %s to board %s", act.Actor.ID, board.ID)
@@ -162,11 +192,11 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		}
 
 		if err := fedi.SendActivity(c.Context(), accept); err != nil {
-			return err
+			return errjson(c, err)
 		}
 	} else if act.Type == "Create" {
 		if act.Object == nil || act.Actor == nil || act.To == nil || act.ObjectProp == nil {
-			return c.SendStatus(400) // TODO
+			return errjsonc(c, 400, "missing needed attributes")
 		}
 		// TODO: Should we ignore from places that aren't marked as following?
 		// TODO: Check for spoofing?
@@ -180,7 +210,7 @@ func PostBoardInbox(c *fiber.Ctx) error {
 				// That's us!
 				board, err := DB.Board(c.Context(), t.ID[len(start):])
 				if err != nil {
-					return err
+					return errjson(c, err)
 				}
 
 				boards = append(boards, board)
@@ -188,25 +218,25 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		}
 
 		if len(boards) == 0 {
-			return c.SendStatus(404) // TODO
+			return errjsonc(c, 404, "not found")
 		}
 
 		// This does some checking to ensure that the thread exists if it's in reply to one.
 		// We don't care about threads we don't know about.
 		post, err := act.ObjectProp.AsPost(c.Context(), board.ID)
 		if err != nil {
-			return err
+			return errjson(c, err)
 		}
 
 		for _, board := range boards {
 			if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
-				return err
+				return errjson(c, err)
 			}
 			post.ID = 0
 		}
 	} else if act.Type == "Delete" {
 		if act.Object == nil || act.Actor == nil || act.To == nil || act.ObjectProp == nil || act.ObjectProp.ID == "" {
-			return c.SendStatus(400) // TODO
+			return errjsonc(c, 400, "missing needed attributes")
 		}
 		// TODO: Should we ignore from places that aren't marked as following?
 		// TODO: Check for spoofing?
@@ -220,7 +250,7 @@ func PostBoardInbox(c *fiber.Ctx) error {
 				// That's us!
 				board, err := DB.Board(c.Context(), t.ID[len(start):])
 				if err != nil {
-					return err
+					return errjson(c, err)
 				}
 
 				boards = append(boards, board)
@@ -228,13 +258,13 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		}
 
 		if len(boards) == 0 {
-			return c.SendStatus(404) // TODO
+			return errjsonc(c, 404, "not found")
 		}
 
 		// Check if the post exists in our database.
 		post, err := DB.FindAPID(c.Context(), board.ID, act.ObjectProp.ID)
 		if err != nil {
-			return err
+			return errjson(c, err)
 		}
 
 		// TODO: Check if post is owned by said actor
@@ -256,7 +286,7 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		}
 
 		if err != nil {
-			return err
+			return errjson(c, err)
 		} else {
 			return c.SendStatus(200)
 		}
@@ -269,8 +299,8 @@ func PostBoardInbox(c *fiber.Ctx) error {
 
 func GetBoardActor(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
-		return err
+	if err != nil {
+		return errjson(c, err)
 	}
 
 	return jsonresp(c, fedi.TransformBoard(board))
@@ -278,15 +308,15 @@ func GetBoardActor(c *fiber.Ctx) error {
 
 func GetBoardOutbox(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
-		return err
+	if err != nil {
+		return errjson(c, err)
 	}
 
 	c.Response().Header.Add("Content-Type", streams)
 
 	outbox, err := fedi.GenerateOutbox(c.Context(), board)
 	if err != nil {
-		return err
+		return errjson(c, err)
 	}
 
 	return jsonresp(c, outbox)
@@ -298,8 +328,8 @@ func GetBoardNote(c *fiber.Ctx) error {
 	// I thought we should return the Note representation...?
 
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
-		return err
+	if err != nil {
+		return errjson(c, err)
 	}
 
 	actor := fedi.TransformBoard(board)
@@ -313,13 +343,13 @@ func GetBoardNote(c *fiber.Ctx) error {
 		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, c.Params("thread"))
 		post, err = DB.FindAPID(c.Context(), board.ID, q)
 		if err != nil {
-			return err
+			return errjson(c, err)
 		}
 	} else {
 		// It's a post number of ours
 		post, err = DB.Post(c.Context(), board.ID, database.PostID(pid))
 		if err != nil {
-			return err
+			return errjson(c, err)
 		}
 	}
 
@@ -331,12 +361,12 @@ func GetBoardNote(c *fiber.Ctx) error {
 
 		op, err := fedi.TransformPost(c.Context(), &actor, post, fedi.Object{}, false)
 		if err != nil {
-			return err
+			return errjson(c, err)
 		}
 
 		posts, err := DB.Thread(c.Context(), board.ID, post.ID, 0)
 		if err != nil {
-			return err
+			return errjson(c, err)
 		}
 
 		if l := len(posts) - 1; l > 0 {
@@ -349,7 +379,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 			for _, post := range posts[1:] {
 				p, err := fedi.TransformPost(c.Context(), &actor, post, op, true)
 				if err != nil {
-					return err
+					return errjson(c, err)
 				}
 
 				op.Replies.OrderedItems = append(op.Replies.OrderedItems, fedi.LinkObject(p))
@@ -366,7 +396,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 	// It's a post if we got here
 	thread, err := DB.Post(c.Context(), board.ID, post.ID)
 	if err != nil {
-		return err
+		return errjson(c, err)
 	}
 
 	// Not accessing DB so err doesn't matter
@@ -374,7 +404,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 
 	op, err := fedi.TransformPost(c.Context(), &actor, post, nthread, true)
 	if err != nil {
-		return err
+		return errjson(c, err)
 	}
 
 	// No replies
@@ -387,13 +417,13 @@ func GetBoardNote(c *fiber.Ctx) error {
 
 func GetBoardFollowers(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
-		return err
+	if err != nil {
+		return errjson(c, err)
 	}
 
 	followers, err := DB.Followers(c.Context(), board.ID)
 	if err != nil {
-		return err
+		return errjson(c, err)
 	}
 
 	f := make([]fedi.LinkObject, 0, len(followers))
@@ -413,13 +443,13 @@ func GetBoardFollowers(c *fiber.Ctx) error {
 
 func GetBoardFollowing(c *fiber.Ctx) error {
 	_, board, err := board(c)
-	if board.ID == "" || err != nil {
-		return err
+	if err != nil {
+		return errjson(c, err)
 	}
 
 	following, err := DB.Following(c.Context(), board.ID)
 	if err != nil {
-		return err
+		return errjson(c, err)
 	}
 
 	f := make([]fedi.LinkObject, 0, len(following))
