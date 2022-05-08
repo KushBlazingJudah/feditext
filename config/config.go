@@ -55,7 +55,7 @@ var (
 	TripSecret []byte = make([]byte, 16)
 
 	// RandAdmin sets the "admin" user in the database to a random password that is printed in the console.
-	RandAdmin bool = true
+	RandAdmin bool = false
 
 	// TransportProtocol is the protocol that is used to access this board.
 	// It should be one of http or https. Preferably https.
@@ -70,6 +70,15 @@ var (
 	// PublicAudit enables the public audit log. Disabled, the audit log will be inaccessible.
 	// Flipping this arbitrarily will not delete the entries in the audit log.
 	PublicAudit bool = false
+
+	// AllowLocal allows requests to local IPs to be made.
+	// You should turn this off in a server pointing to the outside.
+	AllowLocal bool = false
+
+	// AllowOnion allows requests to Tor Hidden Services to be made.
+	// You should keep this off unless you are running this behind a Tor proxy,
+	// in which case you should also turn on private mode.
+	AllowOnion bool = false
 )
 
 func init() {

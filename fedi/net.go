@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
@@ -63,7 +62,7 @@ func Finger(ctx context.Context, actor string) (Actor, error) {
 	// Assumes that the actor is in form of https?://instance/actor.
 	match := wfRegex.FindStringSubmatch(actor)
 	if match == nil || len(match) != 4 {
-		return Actor{}, fmt.Errorf("Finger: invalid format; %v", match)
+		return Actor{}, fmt.Errorf("Finger: invalid format; %s", actor)
 	}
 	tp, host, id := match[1], match[2], match[3]
 
@@ -173,7 +172,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 			date := time.Now().UTC().Format(time.RFC1123)
 			data := fmt.Sprintf("(request-target): post %s\nhost: %s\ndate: %s", u.Path, u.Host, date)
 
-			sig, err := crypto.Sign(act.Actor.Name, data) // TODO: Bad.
+			sig, err := Sign(act.Actor.Name, data) // TODO: Bad.
 			if err != nil {
 				return err
 			}
@@ -303,8 +302,6 @@ func MergeOutbox(ctx context.Context, board string, ob Outbox) error {
 
 		for _, post := range t[1:] {
 			post.Thread = op.ID
-
-			fmt.Println(post.APID, post.Thread, op.APID)
 
 			// First, check if it's in the database.
 			// We'll save it if it isn't.

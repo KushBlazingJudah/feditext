@@ -57,7 +57,9 @@ func init() {
 					domain = domain[len(domain)-32:]
 				}
 			}
-			name += fmt.Sprintf(`<span class="external">@%s</span>`, domain)
+
+			// TODO: sanitize?
+			name += fmt.Sprintf(`<a href="%s" class="external" title="%s">@%s</span>`, u.String(), u.Host, domain)
 		}
 
 		if p.Tripcode != "" {

@@ -18,7 +18,6 @@ import (
 	_ "embed"
 
 	"github.com/KushBlazingJudah/feditext/config"
-	"github.com/KushBlazingJudah/feditext/crypto"
 	_ "github.com/mattn/go-sqlite3"
 
 	"math/rand"
@@ -605,11 +604,6 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 
 	_, err := db.conn.ExecContext(ctx, `INSERT INTO boards(id, title, description) VALUES(:id, :title, :description) ON CONFLICT(id) DO UPDATE SET title = excluded.title, description = excluded.description`, args...)
 	if err != nil {
-		return err
-	}
-
-	// Create keys
-	if _, err := crypto.CreatePem(board.ID); err != nil {
 		return err
 	}
 

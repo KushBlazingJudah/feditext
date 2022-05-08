@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/config"
-	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/fedi"
+	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -98,7 +98,6 @@ func Webfinger(c *fiber.Ctx) error {
 	// Shotty implmentation but it works
 
 	query := c.Query("resource")
-	fmt.Println("webfinger", query, c.Request().URI())
 	if query == "" {
 		return errjsonc(c, 400, "need a resource query")
 	}
@@ -108,7 +107,6 @@ func Webfinger(c *fiber.Ctx) error {
 	}
 
 	toks := strings.SplitN(query[5:], "@", 2)
-	fmt.Println(toks[0], toks[1])
 	if len(toks) != 2 {
 		return errjsonc(c, 404, "not found")
 	} else if toks[1] != config.FQDN {
@@ -139,21 +137,25 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		return errjson(c, err)
 	}
 
-	_, err = os.Stdout.Write(c.Body())
-
 	act := fedi.Activity{}
 	if err := json.Unmarshal(c.Body(), &act); err != nil {
 		return errjson(c, err)
 	}
 
-	if act.Actor == nil || act.Actor.ID == "" {
-		return errjsonc(c, 404, "need actor")
-	} else if act.Actor.PublicKey == nil || act.Actor.PublicKey.Pem == "" {
-		// TODO: Webfinger
-		return errjsonc(c, 400, "need public key")
+	if act.Actor == nil || act.Actor.ID == "" || act.Object == nil {
+		return errjsonc(c, 400, "missing attributes")
 	}
 
-	if err := crypto.CheckHeaders(c, act.Actor.PublicKey.Pem); err != nil {
+	// Do a quick sanity check
+	if act.ObjectProp != nil {
+		if !util.EqualDomains(act.Actor.ID, act.ObjectProp.ID) {
+			// TODO: Reject
+			return errjsonc(c, 400, "rejecting; may be spoofed")
+		}
+	}
+
+	// Another sanity check
+	if err := fedi.CheckHeaders(c, act.Actor.ID); err != nil {
 		return errjson(c, err)
 	}
 
@@ -195,11 +197,10 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return errjson(c, err)
 		}
 	} else if act.Type == "Create" {
-		if act.Object == nil || act.Actor == nil || act.To == nil || act.ObjectProp == nil {
+		if act.Object == nil || act.To == nil || act.ObjectProp == nil {
 			return errjsonc(c, 400, "missing needed attributes")
 		}
 		// TODO: Should we ignore from places that aren't marked as following?
-		// TODO: Check for spoofing?
 
 		// Check what board it should go to
 		// TODO: Improve upon this. It kinda sucks.
@@ -239,7 +240,6 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return errjsonc(c, 400, "missing needed attributes")
 		}
 		// TODO: Should we ignore from places that aren't marked as following?
-		// TODO: Check for spoofing?
 
 		// Check what board it should go to
 		// TODO: Improve upon this. It kinda sucks.
@@ -267,7 +267,10 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return errjson(c, err)
 		}
 
-		// TODO: Check if post is owned by said actor
+		if !util.EqualDomains(post.APID, act.Actor.ID) {
+			// TODO: Reject
+			return errjsonc(c, 403, "attempted to delete object that you don't own")
+		}
 
 		// Delete it
 		action := database.ModerationAction{
@@ -280,6 +283,7 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		}
 
 		if post.Thread == 0 {
+			fmt.Println("delete thread")
 			err = DB.DeleteThread(c.Context(), board.ID, post.ID, action)
 		} else {
 			err = DB.DeletePost(c.Context(), board.ID, post.ID, action)
@@ -292,6 +296,8 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		}
 	} else { // TODO: FChannel doesn't send back an accept, so assume it's fine?
 		log.Printf("%s sent unknown activity type %s", c.IP(), act.Type)
+
+		_, err = os.Stdout.Write(c.Body())
 	}
 
 	return err
@@ -339,7 +345,6 @@ func GetBoardNote(c *fiber.Ctx) error {
 	pid, err := strconv.Atoi(c.Params("thread"))
 	if err != nil {
 		// It's probably ActivityPub
-		// TODO: Does FChannel resolve for post IDs not its own? If so, that sucks.
 		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, c.Params("thread"))
 		post, err = DB.FindAPID(c.Context(), board.ID, q)
 		if err != nil {

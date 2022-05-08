@@ -105,6 +105,11 @@ func PostBoard(c *fiber.Ctx) error {
 		return err
 	}
 
+	// Create keys
+	if _, err := fedi.CreatePem(board.ID); err != nil {
+		return err
+	}
+
 	return c.Redirect("/admin")
 }
 

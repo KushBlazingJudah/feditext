@@ -57,6 +57,10 @@ func Load(path string) error {
 			Private = value == "true"
 		case "publicaudit":
 			PublicAudit = value == "true"
+		case "local":
+			AllowLocal = value == "true"
+		case "onion":
+			AllowOnion = value == "true"
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}

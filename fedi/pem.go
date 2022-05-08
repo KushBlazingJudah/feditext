@@ -1,4 +1,4 @@
-package crypto
+package fedi
 
 import (
 	"crypto"
@@ -123,7 +123,7 @@ func Verify(keyPem string, sign string, data string) error {
 	return rsa.VerifyPKCS1v15(key.(*rsa.PublicKey), crypto.SHA256, hash[:], sig)
 }
 
-func CheckHeaders(c *fiber.Ctx, keyPem string) error {
+func CheckHeaders(c *fiber.Ctx, id string) error {
 	// See https://blog.joinmastodon.org/2018/07/how-to-make-friends-and-verify-requests/
 
 	// Check date for replay attacks
@@ -139,6 +139,7 @@ func CheckHeaders(c *fiber.Ctx, keyPem string) error {
 
 	out := []string{}
 	sig := ""
+	kid := ""
 
 	// Split up headers
 	headers := ""
@@ -151,12 +152,29 @@ func CheckHeaders(c *fiber.Ctx, keyPem string) error {
 		k := toks[0]
 		v = strings.TrimPrefix(strings.TrimSuffix(toks[1], "\""), "\"")
 		switch strings.ToLower(k) {
+		case "keyid":
+			kid = v
 		case "headers":
 			headers = v
 		case "signature":
 			sig = v
 		}
 	}
+
+	// Fetch key id, the one we may receive in the request that triggered this
+	// function could be uncool
+	actor, err := Finger(c.Context(), id)
+	if err != nil {
+		return err
+	}
+
+	if actor.PublicKey == nil || actor.PublicKey.Pem == "" {
+		return fmt.Errorf("fingered actor does not have public key")
+	} else if actor.PublicKey.ID != kid {
+		return fmt.Errorf(fmt.Sprintf("fetched key id (%s) does not match expected (%s)", actor.PublicKey.ID, kid))
+	}
+
+	keyPem := actor.PublicKey.Pem
 
 	// Parse header
 	for _, v := range strings.Split(headers, " ") {

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/KushBlazingJudah/feditext/config"
-	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
@@ -15,7 +14,7 @@ func TransformBoard(board database.Board) Actor {
 
 	var pkey *publicKey
 
-	pubKey, err := crypto.PublicKey(board.ID)
+	pubKey, err := PublicKey(board.ID)
 	if err == nil {
 		pkey = &publicKey{
 			ID:    u + "#key",

@@ -2,6 +2,47 @@
 # The format here is pretty simple, I need not explain it.
 # Tabs are not counted as spaces, do not use tabs.
 
+# Essential options
+#
+# Set this to the domain you will be hosting this on.
+# It *must* be valid, and point to *this* instance.
+# It could be an onion domain, it could be an IP with a port. It just needs to
+# point here.
 fqdn foo.example.com
+# Transport protocol specifies if this is a secure server or not.
+# Set this to mark it as such, and you have it running behind a reverse proxy
+# of some sort:
+#   transport https
+# Where to listen. It's the usual address:port scheme.
+# Use just ":port" to listen on said port on all interfaces.
+listen 127.0.0.1:8080
+
+# These options specify what database engine to use, and where it should be
+# pointed at.
+# Currently, the only engine Feditext supports is SQLite3, however this may be
+# expanded upon in the future.
 dbengine sqlite3
 dbarg ./db.sqlite3
+
+# Privacy options
+#
+# These two settings you will want on if you run this over Tor.
+# onion allows connections to hidden services to be made, and private turns off
+# IP logging and makes a few settings inaccessible.
+# Those who prefer FChannel's way of doing things (not keeping IPs) should turn
+# on private mode even if you don't want onion sites.
+#   onion true
+#   private true
+# The public audit log is off by default as it's broken in its current state
+# for most things.
+# However, you can turn it on quite easily:
+#   audit true
+
+# Security options
+# 
+# Local connections are not made by default, but in a testing environment they
+# can be useful to federating to an instance on another (or the same) machine.
+#   local true
+# Useful for testing, but not very much for production; generates a random
+# password for the "admin" user upon startup and writes it to the console.
+#   randadmin true
