@@ -62,6 +62,18 @@
 	{{end}}
 </table>
 
+<h3>Post filters</h3>
+<form action="/admin/regexps" method="post">
+	<input type="text" name="pattern" id="pattern" value="" placeholder="Pattern">
+	<input type="submit">
+</form>
+<table id="filters" class="table">
+	<tr><th>Pattern</th><th>Action</th></tr>
+	{{range .regexps}}
+	<tr><td><code>{{.Pattern}}</code></td><td><a href="/admin/regexps/delete/{{.ID}}">Delete</a></td></tr>
+	{{end}}
+</table>
+
 <h2>Federation</h2>
 
 <h3>Followers</h3>

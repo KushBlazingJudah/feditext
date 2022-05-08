@@ -54,6 +54,11 @@ func GetAdmin(c *fiber.Ctx) error {
 		return errhtml(c, err, "/admin")
 	}
 
+	rxps, err := DB.Regexps(c.Context())
+	if err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
 	followers := [][]string{}
 	following := [][]string{}
 
@@ -81,6 +86,7 @@ func GetAdmin(c *fiber.Ctx) error {
 		"reports":   reports,
 		"news":      news,
 		"mods":      mods,
+		"regexps":   rxps,
 		"followers": followers,
 		"following": following,
 	})
@@ -453,5 +459,45 @@ func GetAdminUnfollow(c *fiber.Ctx) error {
 		return errhtml(c, err, "/admin")
 	}
 
+	return c.Redirect("/admin")
+}
+
+func PostRegexp(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
+	}
+
+	pattern := c.FormValue("pattern")
+
+	if pattern == "" {
+		return errhtmlc(c, "Need a pattern", 400, "/admin")
+	}
+
+	if err := DB.AddRegexp(c.Context(), pattern); err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	return c.Redirect("/admin")
+}
+
+func GetRegexpDelete(c *fiber.Ctx) error {
+	// Need privileges
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return c.Redirect("/admin/login")
+	}
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return errhtmlc(c, "Invalid regexp number.", 400, "/admin")
+	}
+
+	// This fails silently if its a bad report
+	if err := DB.DeleteRegexp(c.Context(), id); err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	// Redirect back to the admin panel
 	return c.Redirect("/admin")
 }

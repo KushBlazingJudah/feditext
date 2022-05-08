@@ -183,7 +183,6 @@ func SendActivity(ctx context.Context, act Activity) error {
 			req.Host = u.Host
 
 			wg.Add(1)
-
 			go func() {
 				_, err = P.Do(req)
 				if err != nil {

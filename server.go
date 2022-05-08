@@ -115,6 +115,10 @@ func Serve() {
 		return c.Next()
 	})
 
+	// TODO: A lot of this needs to be sorted out and changed around.
+	// I had no idea how to design the HTTP Form API for this, so it just kinda
+	// happened I guess.
+
 	app.Get("/", routes.GetIndex)
 	app.Get("/captcha/:id", routes.GetCaptcha)
 	if config.PublicAudit {
@@ -142,6 +146,8 @@ func Serve() {
 	app.Post("/admin/board", routes.PostBoard)
 	app.Get("/admin/follow", routes.GetAdminFollow)
 	app.Get("/admin/unfollow", routes.GetAdminUnfollow)
+	app.Post("/admin/regexps", routes.PostRegexp)
+	app.Get("/admin/regexps/delete/:id", routes.GetRegexpDelete)
 
 	// Boards
 	app.Get("/:board", routes.GetBoardIndex)
