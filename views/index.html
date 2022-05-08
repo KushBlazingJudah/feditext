@@ -7,6 +7,8 @@ You can check out the server code
 
 <p>This server is running Feditext version <code>{{.version}}</code>.</p>
 
+<p>Read the <a href="/rules">rules</a> before posting, check out the <a href="/faq">faq</a> if you get confused.</p>
+
 {{if .privs}}
 <h2><a href="/admin">Admin area</a></h2>
 {{end}}
@@ -28,7 +30,7 @@ You can check out the server code
 	<h3>{{.Subject}} {{time .Date}}<br>Written by {{.Author}}</h3>
 
 	<blockquote>
-		{{.Content}}
+		{{br .Content}}
 	</blockquote>
 </div>
 {{end}}

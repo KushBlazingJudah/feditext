@@ -79,6 +79,11 @@ var (
 	// You should keep this off unless you are running this behind a Tor proxy,
 	// in which case you should also turn on private mode.
 	AllowOnion bool = false
+
+	// ProxyUrl is the URL representation of the proxy going out.
+	// This could be something like "socks5://127.0.0.1:9050".
+	// You should only use this if you accept Tor connections.
+	ProxyUrl string = ""
 )
 
 func init() {

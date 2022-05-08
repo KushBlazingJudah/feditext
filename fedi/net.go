@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -16,34 +15,10 @@ import (
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
-var P Proxy = NullProxy{}
-
 const streams = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
 
 var wfRegex = regexp.MustCompile(`(https?):\/\/([0-9a-z\-\.]*\.[0-9a-z]+(?::\d+)?)\/([0-9a-z]+)`)
 var webfingerCache = map[string]Actor{}
-
-type Proxy interface {
-	Request(ctx context.Context, method, url string, body io.Reader) (*http.Response, error)
-	Do(req *http.Request) (*http.Response, error)
-}
-
-type NullProxy struct {
-	client http.Client
-}
-
-func (n NullProxy) Request(ctx context.Context, method, url string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	return n.client.Do(req)
-}
-
-func (n NullProxy) Do(req *http.Request) (*http.Response, error) {
-	return n.client.Do(req)
-}
 
 type finger struct {
 	Links []struct {
@@ -72,7 +47,7 @@ func Finger(ctx context.Context, actor string) (Actor, error) {
 		return Actor{}, err
 	}
 
-	res, err := P.Do(req)
+	res, err := Proxy.Do(req)
 	if err != nil {
 		return Actor{}, err
 	}
@@ -110,7 +85,7 @@ func Finger(ctx context.Context, actor string) (Actor, error) {
 
 	req.Header.Set("Accept", streams)
 
-	res, err = P.Do(req)
+	res, err = Proxy.Do(req)
 	if err != nil {
 		return Actor{}, err
 	}
@@ -184,7 +159,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 
 			wg.Add(1)
 			go func() {
-				_, err = P.Do(req)
+				_, err = Proxy.Do(req)
 				if err != nil {
 					log.Printf("failed sending activity to %s: %v", to.ID, err)
 				}
@@ -213,7 +188,7 @@ func FetchOutbox(ctx context.Context, actorUrl string) (Outbox, error) {
 		return Outbox{}, err
 	}
 
-	res, err := P.Do(req)
+	res, err := Proxy.Do(req)
 	if err != nil {
 		return Outbox{}, err
 	}

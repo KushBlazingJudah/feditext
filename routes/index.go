@@ -45,3 +45,11 @@ func GetBanned(c *fiber.Ctx) error {
 		"reason":  reason,
 	})
 }
+
+func GetRules(c *fiber.Ctx) error {
+	return render(c, "Rules", "rules", nil)
+}
+
+func GetFAQ(c *fiber.Ctx) error {
+	return render(c, "FAQ", "faq", nil)
+}

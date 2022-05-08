@@ -41,6 +41,12 @@ func init() {
 		return template.HTML(s)
 	})
 
+	Tmpl.AddFunc("br", func(s string) template.HTML {
+		s = template.HTMLEscapeString(s)
+		s = strings.ReplaceAll(s, "\n", "<br/>")
+		return template.HTML(s)
+	})
+
 	Tmpl.AddFunc("fancyname", func(p database.Post) template.HTML {
 		var name, trip, domain string
 		name = fmt.Sprintf(`<span class="name">%s</span>`, template.HTMLEscapeString(p.Name))
@@ -58,8 +64,7 @@ func init() {
 				}
 			}
 
-			// TODO: sanitize?
-			name += fmt.Sprintf(`<a href="%s" class="external" title="%s">@%s</span>`, u.String(), u.Host, domain)
+			name += fmt.Sprintf(`<a href="%s" class="external" title="%s">@%s</span>`, template.HTMLEscapeString(u.String()), template.HTMLEscapeString(u.Host), template.HTMLEscapeString(domain))
 		}
 
 		if p.Tripcode != "" {

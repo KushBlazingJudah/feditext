@@ -152,14 +152,9 @@ func PostBoardIndex(c *fiber.Ctx) error {
 		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
-	name := c.FormValue("name", "Anonymous")
-	name = name[:util.IMin(len(name), config.NameCutoff)]
-
-	subject := c.FormValue("subject")
-	subject = subject[:util.IMin(len(subject), config.SubjectCutoff)]
-
-	content := c.FormValue("content")
-	content = content[:util.IMin(len(content), config.PostCutoff)]
+	name := util.Trim(c.FormValue("name", "Anonymous"), config.NameCutoff)
+	subject := util.Trim(c.FormValue("subject"), config.SubjectCutoff)
+	content := util.Trim(c.FormValue("content"), config.PostCutoff)
 
 	if content == "" {
 		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s", board.ID))
@@ -282,14 +277,9 @@ func PostBoardThread(c *fiber.Ctx) error {
 		return errhtmlc(c, "The thread you are posting to doesn't exist.", 400, fmt.Sprintf("/%s", board.ID))
 	}
 
-	name := c.FormValue("name", "Anonymous")
-	name = name[:util.IMin(len(name), config.NameCutoff)]
-
-	subject := c.FormValue("subject")
-	subject = subject[:util.IMin(len(subject), config.SubjectCutoff)]
-
-	content := c.FormValue("content")
-	content = content[:util.IMin(len(content), config.PostCutoff)]
+	name := util.Trim(c.FormValue("name", "Anonymous"), config.NameCutoff)
+	subject := util.Trim(c.FormValue("subject"), config.SubjectCutoff)
+	content := util.Trim(c.FormValue("content"), config.PostCutoff)
 
 	if content == "" {
 		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s/%d", board.ID, post.ID))
@@ -486,8 +476,7 @@ func PostBoardReport(c *fiber.Ctx) error {
 		return errhtmlc(c, "Post was not found.", 404, "/"+board.ID)
 	}
 
-	reason := c.FormValue("reason")
-	reason = reason[:util.IMin(len(reason), config.ReportCutoff)]
+	reason := util.Trim(c.FormValue("reason"), config.ReportCutoff)
 
 	if err := DB.FileReport(c.Context(), database.Report{
 		Source: getIP(c),

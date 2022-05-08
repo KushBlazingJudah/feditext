@@ -10,6 +10,10 @@ body {
 	font-size: 0.9em;
 }
 
+a.external, a:link.external, a:visited.external, a:active.external {
+	color: #fabd2f;
+}
+
 a, a:link, a:visited, a:active {
 	color: #b16286;
 	text-decoration: none
@@ -124,3 +128,4 @@ hr {
 .quote {
 	color: #98971a;
 }
+

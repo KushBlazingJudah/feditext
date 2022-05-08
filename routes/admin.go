@@ -105,6 +105,8 @@ func PostBoard(c *fiber.Ctx) error {
 
 	if board.ID == "" {
 		return errhtmlc(c, "No ID was specified in your request.", 400, "/admin")
+	} else if !util.IsAlnum(board.ID) {
+		return errhtmlc(c, "The board ID must be alphanumeric.", 400, "/admin")
 	}
 
 	if err := DB.SaveBoard(c.Context(), board); err != nil {
@@ -136,14 +138,14 @@ func PostAdminLogin(c *fiber.Ctx) error {
 		return c.Redirect("/admin")
 	}
 
-	user := c.FormValue("username")[:32]
+	user := util.Trim(c.FormValue("username"), 32)
 
 	// Usernames are alphanumeric
 	if !util.IsAlnum(user) {
 		return errhtmlc(c, "Invalid credentials.", 403, "/admin/login")
 	}
 
-	pass := c.FormValue("password")[:64]
+	pass := util.Trim(c.FormValue("password"), 64)
 
 	if ok, err := DB.PasswordCheck(c.Context(), user, pass); err != nil {
 		return errhtml(c, err, "/admin")
@@ -250,8 +252,8 @@ func PostModerator(c *fiber.Ctx) error {
 		return errhtmlc(c, "Unauthorized", 403, "/admin")
 	}
 
-	username := c.FormValue("username")[:32]
-	password := c.FormValue("password")[:64]
+	username := util.Trim(c.FormValue("username"), 32)
+	password := util.Trim(c.FormValue("password"), 64)
 	priv := c.FormValue("priv")
 
 	if username == "" {

@@ -1,0 +1,85 @@
+<h1>Frequently Asked Questions <a href="/">[back]</a></h1>
+
+<p>None of these were asked but it's here for the sake of completeness.</p>
+
+<h2>What is Feditext, anyway?</h2>
+
+<p>
+Feditext is a federated textboard, similar in idea to
+<a href="https://fchan.xyz">FChannel</a>.
+</p>
+
+<p>
+Users can create <b>text-only</b> posts which will be propagated to other
+instances that follow a board on this instances.
+Users on other boards that we follow will be propagated to us.
+This allows a model where no one entity owns 100% of the network; anyone is
+free to spin up an instance of their own and join the network.
+</p>
+
+<p>
+The source code is available on
+<a href="https://github.com/KushBlazingJudah/feditext">GitHub</a>.
+Contributions, complaints, and bug reports are welcome.
+</p>
+
+<h2>What can I do while posting?</h2>
+
+<p>
+Post contents are limited to {{.postmax}} characters, however in that you can
+quote and cite other people and instances.
+</p>
+
+<p>
+You can quote with a single "&gt;"; the rest of the line will be marked as a post.
+</p>
+
+<p>
+<b>Example:</b> <code>abc &gt;hello world</code> -&gt;
+abc <span class="quote">&gt;hello world</span>
+</p>
+
+<p>
+You can cite with "&gt;&gt;" and a post number, or like on FChannel, if you
+have an ActivityPub link you can cite with that too.
+</p>
+
+<p>
+<b>Example:</b> <code>&gt;&gt;22</code>,
+<code>&gt;&gt;https://fchan.xyz/prog/AF085BFA</code>
+</p>
+
+<p>
+The name field accepts any name {{.namelen}} long; this includes a marker that
+can be used as a unique identifier called a "tripcode".
+While entering your name, enter a single "#" for an <b>insecure</b> tripcode,
+enter "##" for a <b>secure</b> tripcode.
+Data after the hashes is called a "password"; do not use your actual password
+here.
+Your tripcode is generated from this password, and as such changes every time
+you change it.
+<p>
+
+<p>
+The differences between an insecure tripcode and a secure tripcode is slim; one
+is much easier to predict and is commonly used for vanity, the other is much
+harder to predict as it uses secret data on this server.
+</p>
+
+<h2>How do I view an entire thread?</h2>
+
+<p>Click the "#" on any post; it will bring you to the thread.</p>
+
+<h2>Why do the posts have sequential ID numbers?</h2>
+
+<p>
+Sequential ID numbers have not run their course, random base36 is not better.
+</p>
+
+<p>
+<i>On the ActivityPub side we actually use random hex IDs; this exists solely
+as a nod to FChannel's FAQ which has served as inspiration for most of
+this.</i>
+These hex IDs are currently hidden behind the sequential ID system; they may be
+made accessible from your side eventually.
+</p>

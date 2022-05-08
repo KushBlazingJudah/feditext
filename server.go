@@ -17,6 +17,7 @@ import (
 	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -64,6 +65,12 @@ func Startup() {
 			log.Printf("admin password: %s", pass)
 		}
 	}
+
+	// Setup Fedi proxy
+	fedi.Proxy, err = fedi.NewProxy(config.ProxyUrl)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func Close() {
@@ -74,19 +81,28 @@ func Close() {
 
 func Serve() {
 	app := fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-		PassLocalsToViews:     true,
 		AppName:               "feditext",
-		ServerHeader:          "feditext/" + config.Version,
+		DisableDefaultDate:    true,
+		DisableStartupMessage: true,
 
-		Views:       routes.Tmpl,
-		ViewsLayout: "layouts/main",
-		// TODO: Timeouts
+		Views:             routes.Tmpl,
+		ViewsLayout:       "layouts/main",
+		PassLocalsToViews: true,
+
+		// (Hopefully) sane defaults
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  30 * time.Second,
+
+		ServerHeader: "feditext/" + config.Version,
 	})
 
 	app.Static("/", "./static")
 
 	app.Use(logger.New())
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
 
 	// Authentication middleware
 	app.Use(func(c *fiber.Ctx) error {
@@ -127,6 +143,8 @@ func Serve() {
 	if !config.Private {
 		app.Get("/banned", routes.GetBanned)
 	}
+	app.Get("/rules", routes.GetRules)
+	app.Get("/faq", routes.GetFAQ)
 
 	app.Get("/.well-known/webfinger", routes.Webfinger)
 

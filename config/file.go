@@ -61,6 +61,8 @@ func Load(path string) error {
 			AllowLocal = value == "true"
 		case "onion":
 			AllowOnion = value == "true"
+		case "proxy":
+			ProxyUrl = value
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}
