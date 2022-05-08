@@ -199,52 +199,6 @@ func SendActivity(ctx context.Context, act Activity) error {
 	return nil
 }
 
-// PostOut sends a post out to federated servers.
-func PostOut(ctx context.Context, board database.Board, post database.Post) error {
-	actor := TransformBoard(board)
-	actor.NoCollapse = true
-	lactor := LinkActor(actor)
-
-	irt := Object{}
-	if post.Thread != 0 {
-		thread, err := DB.Post(ctx, board.ID, post.Thread)
-		if err != nil {
-			return err
-		}
-
-		irt.Type = "Note"
-		irt.ID = thread.APID
-	}
-
-	note, err := TransformPost(ctx, &actor, post, irt, false)
-	if err != nil {
-		return err
-	}
-
-	followers, err := DB.Followers(ctx, board.ID)
-	if err != nil {
-		return err
-	}
-
-	flo := make([]LinkObject, 0, len(followers))
-	for _, follower := range followers {
-		flo = append(flo, LinkObject{Type: "Link", ID: follower})
-	}
-
-	activity := Activity{
-		Object: &Object{
-			Context: Context,
-			Type:    "Create",
-			Actor:   &lactor,
-			To:      flo,
-		},
-
-		ObjectProp: &note,
-	}
-
-	return SendActivity(ctx, activity)
-}
-
 func FetchOutbox(ctx context.Context, actorUrl string) (Outbox, error) {
 	actor, err := Finger(ctx, actorUrl)
 	if err != nil {
@@ -317,4 +271,78 @@ func MergeOutbox(ctx context.Context, board string, ob Outbox) error {
 	}
 
 	return nil
+}
+
+func activityBase(ctx context.Context, board database.Board) (Activity, error) {
+	actor := TransformBoard(board)
+	actor.NoCollapse = true
+	lactor := LinkActor(actor)
+
+	followers, err := DB.Followers(ctx, board.ID)
+	if err != nil {
+		return Activity{}, err
+	}
+
+	flo := make([]LinkObject, 0, len(followers))
+	for _, follower := range followers {
+		flo = append(flo, LinkObject{Type: "Link", ID: follower})
+	}
+
+	return Activity{
+		Object: &Object{
+			Context: Context,
+			Actor:   &lactor,
+			To:      flo,
+		},
+	}, nil
+}
+
+// PostOut sends a post out to federated servers.
+func PostOut(ctx context.Context, board database.Board, post database.Post) error {
+	actor := TransformBoard(board)
+	act, err := activityBase(ctx, board)
+	if err != nil {
+		return err
+	}
+
+	irt := Object{}
+	if post.Thread != 0 {
+		thread, err := DB.Post(ctx, board.ID, post.Thread)
+		if err != nil {
+			return err
+		}
+
+		irt.Type = "Note"
+		irt.ID = thread.APID
+	}
+
+	note, err := TransformPost(ctx, &actor, post, irt, false)
+	if err != nil {
+		return err
+	}
+
+	act.Object.Type = "Create"
+	act.ObjectProp = &note
+
+	return SendActivity(ctx, act)
+}
+
+func PostDel(ctx context.Context, board database.Board, post database.Post) error {
+	actor := TransformBoard(board)
+	lactor := LinkActor(actor)
+
+	act, err := activityBase(ctx, board)
+	if err != nil {
+		return err
+	}
+
+	act.Object.Type = "Delete"
+	act.ObjectProp = &Object{
+		ID:         post.APID,
+		Type:       "Note",
+		Actor:      &lactor,
+		NoCollapse: true,
+	}
+
+	return SendActivity(ctx, act)
 }

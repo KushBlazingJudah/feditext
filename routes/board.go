@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/captcha"
@@ -364,6 +365,15 @@ func GetThreadDelete(c *fiber.Ctx) error {
 		return errhtml(c, err)
 	}
 
+	// Tell everyone else if it's local
+	if !strings.HasPrefix(post.Source, "http") {
+		go func() {
+			if err := fedi.PostDel(context.Background(), board, post); err != nil {
+				log.Printf("fedi.PostDel for /%s/%d: error: %s", board.ID, post.ID, err)
+			}
+		}()
+	}
+
 	// Redirect back to the board
 	return c.Redirect("/" + board.ID)
 }
@@ -405,6 +415,15 @@ func GetPostDelete(c *fiber.Ctx) error {
 		Date:   time.Now().UTC(),
 	}); err != nil {
 		return errhtml(c, err)
+	}
+
+	// Tell everyone else if it's local
+	if !strings.HasPrefix(post.Source, "http") {
+		go func() {
+			if err := fedi.PostDel(context.Background(), board, post); err != nil {
+				log.Printf("fedi.PostDel for /%s/%d: error: %s", board.ID, post.ID, err)
+			}
+		}()
 	}
 
 	// Redirect back to the thread
