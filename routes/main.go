@@ -48,7 +48,7 @@ func init() {
 	})
 
 	Tmpl.AddFunc("fancyname", func(p database.Post) template.HTML {
-		var name, trip, domain string
+		var name, trip, domain, domainFull string
 		name = fmt.Sprintf(`<span class="name">%s</span>`, template.HTMLEscapeString(p.Name))
 
 		if strings.HasPrefix(p.Source, "http") {
@@ -57,14 +57,24 @@ func init() {
 			if err != nil {
 				log.Printf("failed parsing %s as source: %s", p.Source, err)
 				domain = "(unknown)"
+				domainFull = "(unknown)"
 			} else {
+				// Check if the domain is too long and shorten it otherwise
 				domain = u.Hostname()
-				if len(domain) > 32 { // Arbitrary number
-					domain = domain[len(domain)-32:]
+				domainFull = u.Host
+				e := strings.LastIndexAny(domain, ".")
+				if e == -1 {
+					e = len(domain)
+				}
+
+				tld := domain[e:]
+
+				if e > 19 { // Arbitrary number; was 32, then 16, then 19 because 16 + len("...") = 19
+					domain = domain[:12] + "..." + domain[e-4:e] + tld
 				}
 			}
 
-			name += fmt.Sprintf(`<a href="%s" class="external" title="%s">@%s</span>`, template.HTMLEscapeString(u.String()), template.HTMLEscapeString(u.Host), template.HTMLEscapeString(domain))
+			name += fmt.Sprintf(`<a href="%s" class="external" title="%s">@%s</a>`, template.HTMLEscapeString(p.APID), template.HTMLEscapeString(domainFull), template.HTMLEscapeString(domain))
 		}
 
 		if p.Tripcode != "" {
