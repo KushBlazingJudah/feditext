@@ -392,7 +392,7 @@ func GetAdminFollow(c *fiber.Ctx) error {
 	// If we made it through all of this, import their outbox in the background.
 	go func() {
 		// Give the request a reasonable amount of time to complete.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+		ctx, cancel := context.WithTimeout(context.Background(), config.MaxReqTime)
 		defer cancel()
 
 		ob, err := fedi.FetchOutbox(ctx, target.String())

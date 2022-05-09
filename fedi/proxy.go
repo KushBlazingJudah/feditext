@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/KushBlazingJudah/feditext/config"
 )
@@ -33,7 +32,7 @@ func NewProxy(proxyUrl string) (proxy, error) {
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(u),
 		},
-		Timeout: 15 * time.Second,
+		Timeout: config.RequestTimeout,
 	}
 
 	return proxy{client: hc}, nil

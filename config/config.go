@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"os"
 	"runtime/debug"
+	"time"
 )
 
 const (
@@ -18,6 +19,9 @@ const (
 
 	// ReportCutoff is the max length for reports.
 	ReportCutoff = 240
+
+	RequestTimeout = 30 * time.Second
+	MaxReqTime     = 60 * time.Second
 )
 
 var (

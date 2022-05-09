@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
 )
 
@@ -122,7 +123,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 		}
 
 		// Reasonable amount of time for everything here to complete.
-		ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+		ctx, cancel := context.WithTimeout(ctx, config.MaxReqTime)
 		defer cancel()
 
 		actor, err := Finger(ctx, to.ID)
