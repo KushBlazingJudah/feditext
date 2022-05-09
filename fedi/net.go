@@ -115,6 +115,11 @@ func SendActivity(ctx context.Context, act Activity) error {
 		return err
 	}
 
+	if config.Debug {
+		log.Printf("sending an activity of type %s to %d different actors", act.Type, len(act.To))
+		log.Printf("marshalled json for activity: %s", string(data))
+	}
+
 	wg := sync.WaitGroup{}
 
 	for _, to := range act.To {

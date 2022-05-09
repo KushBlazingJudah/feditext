@@ -88,6 +88,9 @@ var (
 	// This could be something like "socks5://127.0.0.1:9050".
 	// You should only use this if you accept Tor connections.
 	ProxyUrl string = ""
+
+	// Debug prints out extra information on ActivityPub requests.
+	Debug bool = false
 )
 
 func init() {

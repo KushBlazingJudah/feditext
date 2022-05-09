@@ -226,7 +226,7 @@ type Object struct {
 
 	AttributedTo *LinkObject        `json:"attributedTo,omitempty"`
 	Content      string             `json:"content,omitempty"`
-	InReplyTo    []LinkObject       `json:"inReplyTo,omitempty"`
+	InReplyTo    []LinkObject       `json:"inReplyTo"` // COMPAT: FChannel doesn't like it when this is empty.
 	Name         string             `json:"name,omitempty"`
 	Published    *time.Time         `json:"published,omitempty"`
 	Replies      *OrderedCollection `json:"replies,omitempty"`

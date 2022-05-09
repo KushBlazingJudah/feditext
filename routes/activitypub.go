@@ -63,6 +63,10 @@ func errjson(c *fiber.Ctx, err error) error {
 		panic("nil err passed to errjson")
 	}
 
+	if config.Debug {
+		log.Printf("error on %s: %s", c.Path(), err)
+	}
+
 	if errors.Is(err, sql.ErrNoRows) || strings.HasPrefix(err.Error(), "no such table") {
 		e = c.Status(404).JSON(map[string]string{
 			"error": "not found",
@@ -89,6 +93,10 @@ func errjson(c *fiber.Ctx, err error) error {
 }
 
 func errjsonc(c *fiber.Ctx, code int, err string) error {
+	if config.Debug {
+		log.Printf("custom error on %s: %s", c.Path(), err)
+	}
+
 	return c.Status(code).JSON(map[string]string{
 		"error": err,
 	})
@@ -146,13 +154,7 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		return errjsonc(c, 400, "missing attributes")
 	}
 
-	// Do a quick sanity check
-	if act.ObjectProp != nil {
-		if !util.EqualDomains(act.Actor.ID, act.ObjectProp.ID) {
-			// TODO: Reject
-			return errjsonc(c, 400, "rejecting; may be spoofed")
-		}
-	}
+	log.Printf("received activity from %s: %s", c.IP(), string(c.Body()))
 
 	// Another sanity check
 	if err := fedi.CheckHeaders(c, act.Actor.ID); err != nil {
@@ -201,6 +203,14 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return errjsonc(c, 400, "missing needed attributes")
 		}
 		// TODO: Should we ignore from places that aren't marked as following?
+
+		// Do a quick sanity check
+		if act.ObjectProp != nil {
+			if !util.EqualDomains(act.Actor.ID, act.ObjectProp.ID) {
+				// TODO: Reject
+				return errjsonc(c, 400, "rejecting; may be spoofed")
+			}
+		}
 
 		// Check what board it should go to
 		// TODO: Improve upon this. It kinda sucks.

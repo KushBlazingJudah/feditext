@@ -9,10 +9,15 @@
 # It could be an onion domain, it could be an IP with a port. It just needs to
 # point here.
 fqdn foo.example.com
+
+# Name your server! Otherwise, it will default to Feditext.
+title My cool instance
+
 # Transport protocol specifies if this is a secure server or not.
 # Set this to mark it as such, and you have it running behind a reverse proxy
 # of some sort:
 #   transport https
+#
 # Where to listen. It's the usual address:port scheme.
 # Use just ":port" to listen on said port on all interfaces.
 listen 127.0.0.1:8080
@@ -24,6 +29,7 @@ listen 127.0.0.1:8080
 dbengine sqlite3
 dbarg ./db.sqlite3
 
+#
 # Privacy options
 #
 # These two settings you will want on if you run this over Tor.
@@ -33,16 +39,23 @@ dbarg ./db.sqlite3
 # on private mode even if you don't want onion sites.
 #   onion true
 #   private true
+#
 # The public audit log is off by default as it's broken in its current state
 # for most things.
 # However, you can turn it on quite easily:
 #   audit true
 
+#
 # Security options
 # 
 # Local connections are not made by default, but in a testing environment they
 # can be useful to federating to an instance on another (or the same) machine.
 #   local true
+#
 # Useful for testing, but not very much for production; generates a random
 # password for the "admin" user upon startup and writes it to the console.
+# **You will need this if you're just getting set up.**
 #   randadmin true
+#
+# Turn on extra information on ActivityPub activities:
+#   debug true

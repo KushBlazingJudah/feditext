@@ -61,6 +61,8 @@ func Load(path string) error {
 			AllowLocal = value == "true"
 		case "onion":
 			AllowOnion = value == "true"
+		case "debug":
+			Debug = value == "true"
 		case "proxy":
 			ProxyUrl = value
 		default:

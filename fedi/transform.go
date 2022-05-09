@@ -77,12 +77,20 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 	if irt.ID != "" {
 		// Trim off a lot of the fat.
 		irt = Object{
-			ID:    irt.ID,
-			Type:  irt.Type,
-			Actor: irt.Actor,
+			ID:         irt.ID,
+			Type:       irt.Type,
+			Actor:      irt.Actor,
+			NoCollapse: true, // COMPAT: See below
 		}
 
 		n.InReplyTo = append(n.InReplyTo, LinkObject(irt))
+	} else {
+		// COMPAT: FChannel will choke if we send them a post with no inReplyTo.
+		// The only time this should be true is when we make a thread.
+		// Either way, it comes at hopefully no cost.
+
+		// Create an empty Object.
+		n.InReplyTo = append(n.InReplyTo, LinkObject{NoCollapse: true})
 	}
 
 	if fetchReplies {
