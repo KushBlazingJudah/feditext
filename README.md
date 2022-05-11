@@ -59,12 +59,6 @@ there too.
 
 Feditext's goals are simple and to the point:
 
-- <=4000 SLOC in the main Go codebase according to cloc
-  - Previously it was 3,000 lines but the core engine came close to 2,000 so I
-    bumped it. I don't think I will hit 4,000 but we're on track to hit 3,750.
-  - The target is for the Golang portion of the code.
-  - FChannel was approaching 6,000 lines when I started work on it and I found it
-    hard to comprehend at times. I don't want it to be like this.
 - ~~Tons of comments~~ (lol), good documentation
   - Comments were kinda thrown out the window but it's pretty easy to figure out
     what's going on if you're even remotely proficient in SQL or Golang
