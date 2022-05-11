@@ -16,8 +16,11 @@ run: dev
 tidy:
 	go clean
 	go mod tidy
+	if command -v gofmt >/dev/null 2>&1; then gofmt -w .; fi
+	if command -v goimports >/dev/null 2>&1; then goimports -w .; fi
 
 check:
+	if command -v staticcheck >/dev/null 2>&1; then staticcheck -tags="$(TAGS)" ./...; fi
 	go test $(GOFLAGS) -cover ./...
 
 .PHONY: run tidy

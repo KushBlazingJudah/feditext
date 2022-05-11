@@ -118,14 +118,15 @@ worked on mostly until that is also complete.
 Feditext can be built easily using the included Makefile:
 
 - `build` builds a **release** build; this strips out some data that is
-  necessary for debugging.
+  necessary for debugging, but it's also several megabytes smaller.
 - `dev` builds a **developer** build; debugging information is left intact.
 - `run` runs a **developer** build.
 
 Less important targets:
 
 - `check` runs tests.
-- `tidy` tidies up everything.
+  There are none working right now, I neglected to update the database tests.
+- `tidy` tidies up everything, runs gofmt and goimports if they're there.
 
 The following variables will be useful to you:
 
@@ -134,3 +135,8 @@ The following variables will be useful to you:
   default value.
   - Always have a database in here, if you don't your build will be entirely
     useless.
+
+Once you've built Feditext, copy `doc/config.example` to `./feditext.config` and
+**read the whole thing**.
+From there, you should be good to run Feditext with a simple `./feditext` or
+`make run`.
