@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"log"
 	"math/rand"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/captcha"
@@ -26,28 +24,9 @@ var DB database.Database
 func Startup() {
 	rand.Seed(time.Now().UnixMicro())
 
-	var err error
-
 	log.Printf("Starting version %s", config.Version)
 
-	if config.DatabaseEngine == "" {
-		// Preallocate array
-		dbs := make([]string, 0, len(database.Engines))
-
-		for k := range database.Engines {
-			dbs = append(dbs, k)
-		}
-
-		log.Printf("No database engine configured.")
-		log.Printf("Available engines: %s", strings.Join(dbs, ","))
-
-		os.Exit(1)
-	}
-
-	DB, err = database.Engines[config.DatabaseEngine](config.DatabaseArg)
-	if err != nil {
-		panic(err)
-	}
+	// Assumes database is already loaded at DB
 
 	routes.DB = DB
 	captcha.DB = DB
@@ -67,6 +46,7 @@ func Startup() {
 	}
 
 	// Setup Fedi proxy
+	var err error
 	fedi.Proxy, err = fedi.NewProxy(config.ProxyUrl)
 	if err != nil {
 		panic(err)
