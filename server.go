@@ -111,6 +111,12 @@ func Serve() {
 		return c.Next()
 	})
 
+	// Set the theme local to the theme cookie
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("theme", c.Cookies("theme", "default"))
+		return c.Next()
+	})
+
 	// TODO: A lot of this needs to be sorted out and changed around.
 	// I had no idea how to design the HTTP Form API for this, so it just kinda
 	// happened I guess.

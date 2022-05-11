@@ -8,6 +8,8 @@ import (
 	"html/template"
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,6 +24,8 @@ import (
 var DB database.Database
 
 var Tmpl *html.Engine
+
+var themes []string
 
 func init() {
 	Tmpl = html.New("./views", ".html")
@@ -102,6 +106,18 @@ func init() {
 		s := t.Format("01/02/06(Mon)15:04:05")
 		return template.HTML(fmt.Sprintf(`<span data-utc="%d" class="date">%s</span>`, t.Unix(), s))
 	})
+
+	// read themes directory
+	dir, err := os.ReadDir("./static/css/themes")
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		panic(err)
+	}
+
+	for _, v := range dir {
+		if ext := filepath.Ext(v.Name()); !v.IsDir() && ext == ".css" {
+			themes = append(themes, v.Name()[:len(v.Name())-len(ext)])
+		}
+	}
 }
 
 // convenience function since html/template kinda sucks
@@ -118,17 +134,18 @@ func render(c *fiber.Ctx, title, tmpl string, f fiber.Map) error {
 	}
 
 	m := fiber.Map{
-		"boards":  boards,
-		"fqdn":    config.FQDN,
-		"name":    config.Title,
-		"title":   title,
-		"version": config.Version,
+		"boards": boards,
+		"fqdn":   config.FQDN,
+		"name":   config.Title,
+		"title":  title,
 
+		"version": config.Version,
 		"postMax": config.PostCutoff,
 		"nameMax": config.NameCutoff,
 		"subMax":  config.SubjectCutoff,
 		"repMax":  config.ReportCutoff,
 		"private": config.Private,
+		"themes":  themes,
 	}
 
 	// merge map

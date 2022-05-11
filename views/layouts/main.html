@@ -4,9 +4,30 @@
 		<title>{{.title}}</title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<link href="/css/main.css" rel="stylesheet">
+		{{if .theme}}
+		<link type="text/css" rel="stylesheet" href="/css/themes/{{.theme}}.css" title="selected theme">
+		{{end}}
+		{{range .themes}}
+		<link type="text/css" rel="alternate stylesheet" href="/css/themes/{{.}}.css">
+		{{end}}
 	</head>
 	<body>
 		{{embed}}
+
+		{{if .showpicker}}
+		<noscript>
+			<b>Javascript required here!</b>
+		</noscript>
+
+		<div style="float: right;">
+			Theme:
+			<select id="themepicker" onchange="setTheme(this.options[this.selectedIndex].value)">
+				{{ range .themes }}
+				<option value="{{.}}">{{.}}</option>
+				{{ end }}
+			</select>
+		</div>
+		<script src="/js/themes.js"></script>
+		{{end}}
 	</body>
 </html>

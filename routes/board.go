@@ -104,6 +104,8 @@ func GetBoardIndex(c *fiber.Ctx) error {
 	return render(c, board.Title, "board", fiber.Map{
 		"board":   board,
 		"threads": posts,
+
+		"showpicker": true,
 	})
 }
 
@@ -132,6 +134,8 @@ func GetBoardCatalog(c *fiber.Ctx) error {
 	return render(c, board.Title, "catalog", fiber.Map{
 		"board":   board,
 		"threads": posts,
+
+		"showpicker": true,
 	})
 }
 
@@ -243,6 +247,8 @@ func GetBoardThread(c *fiber.Ctx) error {
 
 		"nposts":  nposts,
 		"posters": posters,
+
+		"showpicker": true,
 	})
 }
 

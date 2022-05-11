@@ -89,6 +89,8 @@ func GetAdmin(c *fiber.Ctx) error {
 		"regexps":   rxps,
 		"followers": followers,
 		"following": following,
+
+		"showpicker": true,
 	})
 }
 
