@@ -1,4 +1,4 @@
-# This is an example configuration file.
+# This is an example configuration file, modify it as you see fit.
 # The format here is pretty simple, I need not explain it.
 # Tabs are not counted as spaces, do not use tabs.
 
@@ -54,7 +54,8 @@ dbarg ./db.sqlite3
 #
 # Useful for testing, but not very much for production; generates a random
 # password for the "admin" user upon startup and writes it to the console.
-# **You will need this if you're just getting set up.**
+# Alternatively, see "feditext create -help" to create a new user.
+# TL;DR: "feditext create -username admin -priv 2"
 #   randadmin true
 #
 # Turn on extra information on ActivityPub activities:

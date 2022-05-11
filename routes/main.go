@@ -29,7 +29,6 @@ var themes []string
 
 func init() {
 	Tmpl = html.New("./views", ".html")
-	Tmpl.Debug(true)
 
 	Tmpl.AddFunc("unescape", func(s string) template.HTML {
 		return template.HTML(s)

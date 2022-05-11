@@ -134,3 +134,12 @@ Once you've built Feditext, copy `doc/config.example` to `./feditext.config` and
 **read the whole thing**.
 From there, you should be good to run Feditext with a simple `./feditext` or
 `make run`.
+
+Feditext is extremely limited in what you can do from the CLI, but you can:
+
+- load different configuration files with `-config ...`
+- create a user with `create`
+  - See `./feditext create -help` for more information
+
+Or, if you just want to start it, run it with no arguments.
+
