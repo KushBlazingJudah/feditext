@@ -8,18 +8,18 @@
 		<link type="text/css" rel="stylesheet" href="/css/themes/{{.theme}}.css" title="selected theme">
 		{{end}}
 		{{range .themes}}
-		<link type="text/css" rel="alternate stylesheet" href="/css/themes/{{.}}.css">
+		<link type="text/css" rel="alternate stylesheet" href="/css/themes/{{.}}.css" title="{{.}}" disabled>
 		{{end}}
 	</head>
 	<body>
 		{{embed}}
 
 		{{if .showpicker}}
-		<noscript>
-			<b>Javascript required here!</b>
-		</noscript>
-
 		<div style="float: right;">
+			<noscript>
+				<b>Javascript required here!</b>
+			</noscript>
+
 			Theme:
 			<select id="themepicker" onchange="setTheme(this.options[this.selectedIndex].value)">
 				{{ range .themes }}
