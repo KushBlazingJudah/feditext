@@ -1,5 +1,6 @@
 *.bak
 *.config
+*.tar.gz
 .env
 /*.sqlite3
 /feditext

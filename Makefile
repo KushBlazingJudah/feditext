@@ -23,4 +23,7 @@ check:
 	if command -v staticcheck >/dev/null 2>&1; then staticcheck -tags="$(TAGS)" ./...; fi
 	go test $(GOFLAGS) -cover ./...
 
-.PHONY: run tidy
+dist: build
+	tar -c ./feditext ./views ./static | gzip -c > feditext.tar.gz
+
+.PHONY: run tidy dist

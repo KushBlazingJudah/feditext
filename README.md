@@ -115,6 +115,8 @@ Feditext can be built easily using the included Makefile:
   necessary for debugging, but it's also several megabytes smaller.
 - `dev` builds a **developer** build; debugging information is left intact.
 - `run` runs a **developer** build.
+- `dist` creates a tarball from the release build for easy deployment.
+  Created out of convenience for me.
 
 Less important targets:
 
