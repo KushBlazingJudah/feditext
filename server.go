@@ -84,6 +84,10 @@ func Serve() {
 		EnableStackTrace: true,
 	}))
 
+	if config.Pprof {
+		app.Use(pprofNew())
+	}
+
 	// Authentication middleware
 	app.Use(func(c *fiber.Ctx) error {
 		rawToken := c.Cookies("token")

@@ -65,6 +65,8 @@ func Load(path string) error {
 			Debug = value == "true"
 		case "proxy":
 			ProxyUrl = value
+		case "pprof":
+			Pprof = true
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}

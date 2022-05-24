@@ -91,6 +91,12 @@ var (
 
 	// Debug prints out extra information on ActivityPub requests.
 	Debug bool = false
+
+	// Pprof installs the pprof handler at /debug/pprof.
+	// This is publicly available **with almost no authentication.**
+	// pprof does not support authentication, so the most that can be done is
+	// putting a key in the path.
+	Pprof bool = false
 )
 
 func init() {
