@@ -275,7 +275,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 	}
 
 	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
 

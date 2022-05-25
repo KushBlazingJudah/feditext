@@ -459,6 +459,46 @@ func GetAdminFetch(c *fiber.Ctx) error {
 	return c.Redirect("/admin")
 }
 
+func GetAdminResend(c *fiber.Ctx) error {
+	// TODO: Probably doesn't work for threads and we don't check.
+
+	ok := hasPriv(c, database.ModTypeMod)
+	if !ok {
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
+	}
+
+	boardReq := strings.TrimSpace(c.Query("board"))
+	targetReq := strings.TrimSpace(c.Query("post"))
+	if boardReq == "" || targetReq == "" {
+		return errhtmlc(c, "You must specify a board and a target post.", 400, "/admin")
+	}
+
+	board, err := DB.Board(c.Context(), boardReq)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return errhtmlc(c, "That board does not exist.", 404, "/admin")
+	} else if err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	pid, err := strconv.Atoi(targetReq)
+	if err != nil {
+		return errhtmlc(c, "Bad thread number.", 404, "/admin")
+	}
+
+	post, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
+	if err != nil {
+		return errhtml(c, err) // TODO: update
+	}
+
+	go func() {
+		if err := fedi.PostOut(context.Background(), board, post); err != nil {
+			log.Printf("fedi.PostOut for /%s/%d: error: %s", board.ID, post.ID, err)
+		}
+	}()
+
+	return c.RedirectBack("/admin")
+}
+
 func GetAdminUnfollow(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {

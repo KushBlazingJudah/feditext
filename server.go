@@ -155,6 +155,7 @@ func Serve() {
 	app.Get("/admin/follow", routes.GetAdminFollow)
 	app.Get("/admin/unfollow", routes.GetAdminUnfollow)
 	app.Get("/admin/fetch", routes.GetAdminFetch)
+	app.Get("/admin/resend", routes.GetAdminResend)
 	app.Post("/admin/regexps", routes.PostRegexp)
 	app.Get("/admin/regexps/delete/:id", routes.GetRegexpDelete)
 
