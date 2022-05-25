@@ -165,10 +165,13 @@ func SendActivity(ctx context.Context, act Activity) error {
 
 			wg.Add(1)
 			go func() {
-				_, err = Proxy.Do(req)
+				res, err := Proxy.Do(req)
 				if err != nil {
 					log.Printf("failed sending activity to %s: %v", to.ID, err)
+				} else if res.StatusCode != 200 {
+					log.Printf("failed sending activity to %s: non-200 status code %d", to.ID, res.StatusCode)
 				}
+
 				wg.Done()
 			}()
 		}
