@@ -392,6 +392,7 @@ func GetAdminFollow(c *fiber.Ctx) error {
 	}
 
 	// If we made it through all of this, import their outbox in the background.
+	// TODO: database is locked almost the entire time.
 	go func() {
 		// Give the request a reasonable amount of time to complete.
 		ctx, cancel := context.WithTimeout(context.Background(), config.MaxReqTime)
@@ -399,13 +400,59 @@ func GetAdminFollow(c *fiber.Ctx) error {
 
 		ob, err := fedi.FetchOutbox(ctx, target.String())
 		if err != nil {
-			log.Printf("error fetching outbox of %s: %s", target.String(), board.ID)
+			log.Printf("error fetching outbox of %s: %s", target.String(), err)
 			return
 		}
 
 		// Don't worry about times here.
 		if err := fedi.MergeOutbox(context.Background(), board.ID, ob); err != nil {
-			log.Printf("error merging outbox of %s: %s", target.String(), board.ID)
+			log.Printf("error merging outbox of %s to %s: %s", target.String(), board.ID, err)
+		}
+	}()
+
+	return c.Redirect("/admin")
+}
+
+func GetAdminFetch(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return errhtmlc(c, "Unauthorized", 403, "/admin")
+	}
+
+	boardReq := strings.TrimSpace(c.Query("board"))
+	targetReq := strings.TrimSpace(c.Query("target"))
+	if boardReq == "" || targetReq == "" {
+		return errhtmlc(c, "You must specify a board and a target.", 400, "/admin")
+	}
+
+	board, err := DB.Board(c.Context(), boardReq)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return errhtmlc(c, "That board does not exist.", 404, "/admin")
+	} else if err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	target, err := url.Parse(targetReq)
+	if err != nil {
+		return errhtmlc(c, "The target link is invalid.", 400, "/admin")
+	}
+
+	// This will take a while, especially on slow machines, so do it in the background.
+	// TODO: database is locked almost the entire time.
+	go func() {
+		// Give the request a reasonable amount of time to complete.
+		ctx, cancel := context.WithTimeout(context.Background(), config.MaxReqTime)
+		defer cancel()
+
+		ob, err := fedi.FetchOutbox(ctx, target.String())
+		if err != nil {
+			log.Printf("error fetching outbox of %s: %s", target.String(), err)
+			return
+		}
+
+		// Don't worry about times here.
+		if err := fedi.MergeOutbox(context.Background(), board.ID, ob); err != nil {
+			log.Printf("error merging outbox of %s to %s: %s", target.String(), board.ID, err)
 		}
 	}()
 

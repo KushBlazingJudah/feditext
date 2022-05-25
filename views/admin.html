@@ -91,9 +91,9 @@
 	<input type="submit">
 </form>
 <table id="following" class="table">
-	<tr><th>Board</th><th>Following</th><th>Action</th></tr>
+	<tr><th>Board</th><th>Following</th><th>Actions</th></tr>
 	{{range .following}}
-	<tr><td>{{index . 0}}</td><td>{{index . 1}}</td><td><a href="/admin/unfollow?board={{index . 0}}&target={{index . 1}}">Unfollow</a></td></tr>
+	<tr><td>{{index . 0}}</td><td>{{index . 1}}</td><td><a href="/admin/fetch?board={{index . 0}}&target={{index . 1}}">Fetch</a> <a href="/admin/unfollow?board={{index . 0}}&target={{index . 1}}">Unfollow</a></td></tr>
 	{{end}}
 </table>
 
