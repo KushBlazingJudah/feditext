@@ -9,7 +9,7 @@ You can check out the server code
 
 <p>Read the <a href="/rules">rules</a> before posting, check out the <a href="/faq">faq</a> if you get confused.</p>
 
-{{if .privs}}
+{{if gt .privs 1}}
 <h2><a href="/admin">Admin area</a></h2>
 {{end}}
 
@@ -24,6 +24,7 @@ You can check out the server code
 	{{end}}
 </ul>
 
+{{if gt (len .news) 0}}
 <h2>News</h2>
 {{range .news}}
 <div id="news{{.ID}}" class="post">
@@ -33,4 +34,5 @@ You can check out the server code
 		{{br .Content}}
 	</blockquote>
 </div>
+{{end}}
 {{end}}

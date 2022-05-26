@@ -8,11 +8,11 @@ package feditext
 // instances of my own as edge cases will be found there.
 
 import (
-	"net/http/pprof"
-	"math/rand"
 	"encoding/base64"
 	"fmt"
 	"log"
+	"math/rand"
+	"net/http/pprof"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -50,34 +50,34 @@ func pprofNew() fiber.Handler {
 
 		// Switch to original path without stripped slashes
 		switch path {
-		case pfx+"/":
+		case pfx + "/":
 			pprofIndex(c.Context())
-		case pfx+"/cmdline":
+		case pfx + "/cmdline":
 			pprofCmdline(c.Context())
-		case pfx+"/profile":
+		case pfx + "/profile":
 			pprofProfile(c.Context())
-		case pfx+"/symbol":
+		case pfx + "/symbol":
 			pprofSymbol(c.Context())
-		case pfx+"/trace":
+		case pfx + "/trace":
 			pprofTrace(c.Context())
-		case pfx+"/allocs":
+		case pfx + "/allocs":
 			pprofAllocs(c.Context())
-		case pfx+"/block":
+		case pfx + "/block":
 			pprofBlock(c.Context())
-		case pfx+"/goroutine":
+		case pfx + "/goroutine":
 			pprofGoroutine(c.Context())
-		case pfx+"/heap":
+		case pfx + "/heap":
 			pprofHeap(c.Context())
-		case pfx+"/mutex":
+		case pfx + "/mutex":
 			pprofMutex(c.Context())
-		case pfx+"/threadcreate":
+		case pfx + "/threadcreate":
 			pprofThreadcreate(c.Context())
 		default:
 			// pprof index only works with trailing slash
 			if strings.HasSuffix(path, "/") {
 				path = strings.TrimRight(path, "/")
 			} else {
-				path = pfx+"/"
+				path = pfx + "/"
 			}
 
 			return c.Redirect(path, fiber.StatusFound)
