@@ -182,7 +182,7 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 	var rows *sql.Rows
 	var err error
 	if tail > 0 {
-		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IS :thread or (thread IS :thread AND id > :thread+(SELECT count(id) FROM posts_%s WHERE thread = :thread)-:tail)`, board, board), sql.Named("thread", thread), sql.Named("tail", tail))
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id = :thread OR id IN (SELECT id FROM posts_%s WHERE thread = :thread ORDER BY id DESC LIMIT :tail);`, board, board), sql.Named("thread", thread), sql.Named("tail", tail))
 	} else {
 		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
 	}
