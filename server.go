@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"log"
 	"math/rand"
+	"runtime/debug"
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/captcha"
@@ -14,8 +15,6 @@ import (
 	"github.com/KushBlazingJudah/feditext/fedi"
 	"github.com/KushBlazingJudah/feditext/routes"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -59,6 +58,50 @@ func Close() {
 	}
 }
 
+func logger(c *fiber.Ctx) error {
+	now := time.Now()
+
+	defer func() error { // Panic catcher
+		if err := recover(); err != nil {
+			// Something *extremely* bad happened.
+			log.Printf("%s %s %s %s @@PANIC@@ %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Path(), err)
+			debug.PrintStack()
+			return c.Status(500).SendString("An internal server error has occured.")
+		}
+		return nil
+	}()
+
+	if err := c.Next(); err != nil {
+		log.Printf("%s %s %s %s @@ERROR@@ %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Path(), err)
+	} else {
+		log.Printf("%s %s %s %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Path())
+	}
+	return nil
+}
+
+// Doesn't leave IPs.
+func loggerPrivate(c *fiber.Ctx) error {
+	now := time.Now()
+
+	defer func() error { // Panic catcher
+		if err := recover(); err != nil {
+			// Something *extremely* bad happened.
+			log.Printf("%s %s %s @@PANIC@@ %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Path(), err)
+			debug.PrintStack()
+			return c.Status(500).SendString("An internal server error has occured.")
+		}
+		return nil
+	}()
+
+	if err := c.Next(); err != nil {
+		log.Printf("%s %s %s @@ERROR@@ %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Path(), err)
+	} else {
+		log.Printf("%s %s %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Path())
+	}
+
+	return nil
+}
+
 func Serve() {
 	app := fiber.New(fiber.Config{
 		AppName:               "feditext",
@@ -77,12 +120,14 @@ func Serve() {
 		ServerHeader: "feditext/" + config.Version,
 	})
 
-	app.Static("/", "./static")
+	// Logger middleware
+	if config.Private {
+		app.Use(loggerPrivate)
+	} else {
+		app.Use(logger)
+	}
 
-	app.Use(logger.New())
-	app.Use(recover.New(recover.Config{
-		EnableStackTrace: true,
-	}))
+	app.Static("/", "./static")
 
 	if config.Pprof {
 		app.Use(pprofNew())
