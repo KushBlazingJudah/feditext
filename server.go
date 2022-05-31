@@ -64,7 +64,7 @@ func logger(c *fiber.Ctx) error {
 	defer func() error { // Panic catcher
 		if err := recover(); err != nil {
 			// Something *extremely* bad happened.
-			log.Printf("%s %s %s %s @@PANIC@@ %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Path(), err)
+			log.Printf("%s %s %s %d %s @@PANIC@@ %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Response().StatusCode(), c.Path(), err)
 			debug.PrintStack()
 			return c.Status(500).SendString("An internal server error has occured.")
 		}
@@ -72,9 +72,9 @@ func logger(c *fiber.Ctx) error {
 	}()
 
 	if err := c.Next(); err != nil {
-		log.Printf("%s %s %s %s @@ERROR@@ %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Path(), err)
+		log.Printf("%s %s %s %d %s @@ERROR@@ %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Response().StatusCode(), c.Path(), err)
 	} else {
-		log.Printf("%s %s %s %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Path())
+		log.Printf("%s %s %s %d %s", time.Since(now).Round(time.Millisecond).String(), c.IP(), c.Method(), c.Response().StatusCode(), c.Path())
 	}
 	return nil
 }
@@ -86,7 +86,7 @@ func loggerPrivate(c *fiber.Ctx) error {
 	defer func() error { // Panic catcher
 		if err := recover(); err != nil {
 			// Something *extremely* bad happened.
-			log.Printf("%s %s %s @@PANIC@@ %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Path(), err)
+			log.Printf("%s %s %d %s @@PANIC@@ %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Response().StatusCode(), c.Path(), err)
 			debug.PrintStack()
 			return c.Status(500).SendString("An internal server error has occured.")
 		}
@@ -94,9 +94,9 @@ func loggerPrivate(c *fiber.Ctx) error {
 	}()
 
 	if err := c.Next(); err != nil {
-		log.Printf("%s %s %s @@ERROR@@ %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Path(), err)
+		log.Printf("%s %s %d %s @@ERROR@@ %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Response().StatusCode(), c.Path(), err)
 	} else {
-		log.Printf("%s %s %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Path())
+		log.Printf("%s %s %d %s", time.Since(now).Round(time.Millisecond).String(), c.Method(), c.Response().StatusCode(), c.Path())
 	}
 
 	return nil
