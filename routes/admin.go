@@ -28,10 +28,30 @@ func hasPriv(c *fiber.Ctx, p database.ModType) bool {
 	return priv >= p
 }
 
+func errpriv(c *fiber.Ctx, exp database.ModType, ret ...string) error {
+	retu := ""
+	if len(ret) == 1 {
+		retu = ret[0]
+	}
+
+	var text string
+	priv, ok := c.Locals("privs").(database.ModType)
+	if !ok {
+		text = "You must be authenticated to access this page."
+	} else {
+		text = fmt.Sprintf("This page requires level %d to access. You are %d.", exp, priv)
+	}
+
+	return render(c.Status(403), "Unauthorized", "error", fiber.Map{
+		"error":  text,
+		"return": retu,
+	})
+}
+
 func GetAdmin(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403)
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	boards, err := DB.Boards(c.Context())
@@ -97,7 +117,7 @@ func GetAdmin(c *fiber.Ctx) error {
 func PostBoard(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403)
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	board := database.Board{}
@@ -149,9 +169,11 @@ func PostAdminLogin(c *fiber.Ctx) error {
 
 	pass := util.Trim(c.FormValue("password"), 64)
 
-	if ok, err := DB.PasswordCheck(c.Context(), user, pass); err != nil {
+	if ok, err := DB.PasswordCheck(c.Context(), user, pass); err != nil && errors.Is(err, sql.ErrNoRows) {
+		return errhtmlc(c, "Invalid credentials.", 403, "/admin/login")
+	} else if err != nil {
 		return errhtml(c, err, "/admin")
-	} else if !ok {
+	} else if !ok  {
 		return errhtmlc(c, "Invalid credentials.", 403, "/admin/login")
 	} else if ok {
 		priv, err := DB.Privilege(c.Context(), user)
@@ -189,7 +211,7 @@ func GetAdminResolve(c *fiber.Ctx) error {
 	// Need privileges
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return c.Redirect("/admin/login")
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	rid, err := strconv.Atoi(c.Params("report"))
@@ -209,7 +231,7 @@ func GetAdminResolve(c *fiber.Ctx) error {
 func PostAdminNews(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	subject := c.FormValue("subject", "Untitled")
@@ -233,7 +255,7 @@ func PostAdminNews(c *fiber.Ctx) error {
 func GetAdminNewsDelete(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	nid, err := strconv.Atoi(c.Params("news"))
@@ -251,7 +273,7 @@ func GetAdminNewsDelete(c *fiber.Ctx) error {
 func PostModerator(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	username := util.Trim(c.FormValue("username"), 32)
@@ -283,7 +305,7 @@ func PostModerator(c *fiber.Ctx) error {
 func GetModeratorDel(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	username := c.Params("name")
@@ -303,7 +325,7 @@ func GetModeratorDel(c *fiber.Ctx) error {
 func GetAdminBan(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	return render(c, "Ban User", "ban", fiber.Map{"ip": c.Params("ip")})
@@ -312,7 +334,7 @@ func GetAdminBan(c *fiber.Ctx) error {
 func PostAdminBan(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	source := c.Params("ip")
@@ -345,7 +367,7 @@ func PostAdminBan(c *fiber.Ctx) error {
 func GetAdminFollow(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	boardReq := strings.TrimSpace(c.Query("board"))
@@ -416,7 +438,7 @@ func GetAdminFollow(c *fiber.Ctx) error {
 func GetAdminFetch(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	boardReq := strings.TrimSpace(c.Query("board"))
@@ -464,7 +486,7 @@ func GetAdminResend(c *fiber.Ctx) error {
 
 	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	boardReq := strings.TrimSpace(c.Query("board"))
@@ -502,7 +524,7 @@ func GetAdminResend(c *fiber.Ctx) error {
 func GetAdminUnfollow(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	boardReq := strings.TrimSpace(c.Query("board"))
@@ -556,7 +578,7 @@ func GetAdminUnfollow(c *fiber.Ctx) error {
 func PostRegexp(c *fiber.Ctx) error {
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return errhtmlc(c, "Unauthorized", 403, "/admin")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	pattern := c.FormValue("pattern")
@@ -576,7 +598,7 @@ func GetRegexpDelete(c *fiber.Ctx) error {
 	// Need privileges
 	ok := hasPriv(c, database.ModTypeAdmin)
 	if !ok {
-		return c.Redirect("/admin/login")
+		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
 	id, err := strconv.Atoi(c.Params("id"))
