@@ -171,6 +171,15 @@ func Serve() {
 	// happened I guess.
 
 	app.Get("/", routes.GetIndex)
+
+	app.Get("/robots.txt", func(c *fiber.Ctx) error {
+		// HACK: Hopefully stops robots crawling /board/report links.
+		// My instance gets hit with these every day, hopefully not intentionally.
+		return c.SendString(`User-agent: *
+Disallow: /
+`)
+	})
+
 	app.Get("/captcha/:id", routes.GetCaptcha)
 	if config.PublicAudit {
 		app.Get("/audit", routes.GetAudit)
