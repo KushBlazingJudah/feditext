@@ -173,13 +173,15 @@ func PostAdminLogin(c *fiber.Ctx) error {
 		return errhtmlc(c, "Invalid credentials.", 403, "/admin/login")
 	} else if err != nil {
 		return errhtml(c, err, "/admin")
-	} else if !ok  {
+	} else if !ok {
 		return errhtmlc(c, "Invalid credentials.", 403, "/admin/login")
 	} else if ok {
 		priv, err := DB.Privilege(c.Context(), user)
 		if err != nil {
 			return errhtml(c, err, "/admin")
 		}
+
+		log.Printf("Issuing token for %s (priv: %d)", user, priv)
 
 		// Generate a token
 		exp := time.Now().UTC().Add((time.Hour * 24) * 7)
@@ -299,6 +301,8 @@ func PostModerator(c *fiber.Ctx) error {
 		return errhtml(c, err, "/admin")
 	}
 
+	log.Printf("%s created user %s (priv: %d)", c.Locals("user").(string), username, ipriv)
+
 	return c.Redirect("/admin")
 }
 
@@ -318,6 +322,8 @@ func GetModeratorDel(c *fiber.Ctx) error {
 	if err := DB.DeleteModerator(c.Context(), username); err != nil {
 		return err
 	}
+
+	log.Printf("%s deleted user %s", c.Locals("user").(string), username)
 
 	return c.Redirect("/admin")
 }
@@ -405,10 +411,14 @@ func GetAdminFollow(c *fiber.Ctx) error {
 		},
 	}
 
+	log.Printf("Sending follow request to %s for %s", target.String(), board.ID)
+
 	if err := fedi.SendActivity(c.Context(), follow); err != nil {
 		return errhtml(c, err, "/admin")
 	}
 
+	// TODO: Only do this when we receive an Accept.
+	// This should go in PostInbox.
 	if err := DB.AddFollowing(c.Context(), board.ID, target.String()); err != nil {
 		return errhtml(c, err, "/admin")
 	}
@@ -466,6 +476,8 @@ func GetAdminFetch(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(context.Background(), config.MaxReqTime)
 		defer cancel()
 
+		log.Printf("Fetching outbox of %s for %s", target.String(), board.ID)
+
 		ob, err := fedi.FetchOutbox(ctx, target.String())
 		if err != nil {
 			log.Printf("error fetching outbox of %s: %s", target.String(), err)
@@ -513,6 +525,7 @@ func GetAdminResend(c *fiber.Ctx) error {
 	}
 
 	go func() {
+		log.Printf("Force resending /%s/%d", board.ID, post.ID)
 		if err := fedi.PostOut(context.Background(), board, post); err != nil {
 			log.Printf("fedi.PostOut for /%s/%d: error: %s", board.ID, post.ID, err)
 		}
@@ -551,6 +564,7 @@ func GetAdminUnfollow(c *fiber.Ctx) error {
 
 	// I don't know why, but FChannel will remove you from the following list if you send another follow request.
 	// This really sucks, because there's an Unfollow type. Oh well.
+	// TODO: Implement Unfollow here
 	// TODO: Implement Unfollow in FChannel
 	b := fedi.LinkActor(fedi.TransformBoard(board))
 	b.NoCollapse = true // FChannel doesn't understand
@@ -568,6 +582,7 @@ func GetAdminUnfollow(c *fiber.Ctx) error {
 		},
 	}
 
+	log.Printf("Unfollowing %s for %s", target.String(), board.ID)
 	if err := fedi.SendActivity(c.Context(), follow); err != nil {
 		return errhtml(c, err, "/admin")
 	}
