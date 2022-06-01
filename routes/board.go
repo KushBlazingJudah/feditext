@@ -19,6 +19,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+var (
+	ErrInvalidID = errors.New("invalid post id")
+)
+
 type indexData struct {
 	Posts           []database.Post
 	NPosts, Posters int
@@ -49,6 +53,35 @@ func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
 	}
 
 	return boards, board, err
+}
+
+func post(c *fiber.Ctx, board database.Board, param ...string) (database.Post, error) {
+	name := "thread"
+	if len(param) > 0 {
+		name = param[0]
+	}
+
+	var post database.Post
+
+	pid, err := strconv.Atoi(c.Params(name))
+	if err != nil {
+		// Try to look it up in the database.
+		// Since externally we use the randomly generated IDs like FChannel to
+		// avoid confusion with several posts being fprog-1, FChannel correctly
+		// assumes that the post will be available at /prog/deadbeef even
+		// though it is actually /prog/420.
+		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, c.Params("thread"))
+		post, err := DB.FindAPID(c.Context(), board.ID, q)
+		if err != nil {
+			return post, ErrInvalidID
+		}
+
+		// We found the true location, redirect them to it.
+		return post, nil
+	}
+
+	post, err = DB.Post(c.Context(), board.ID, database.PostID(pid))
+	return post, err
 }
 
 func checkCaptcha(c *fiber.Ctx) bool {
@@ -200,35 +233,17 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return errhtml(c, err) // TODO: update
 	}
 
-	pid, err := strconv.Atoi(c.Params("thread"))
+	op, err := post(c, board)
 	if err != nil {
-		// Try to look it up in the database.
-		// Since externally we use the randomly generated IDs like FChannel to
-		// avoid confusion with several posts being fprog-1, FChannel correctly
-		// assumes that the post will be available at /prog/deadbeef even
-		// though it is actually /prog/420.
-		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, c.Params("thread"))
-		post, err := DB.FindAPID(c.Context(), board.ID, q)
-		if err != nil {
-			return errhtmlc(c, "Invalid thread number.", 404, fmt.Sprintf("/%s", board.ID))
-		}
-
-		// We found the true location, redirect them to it.
-		return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.ID))
-	}
-
-	// Check if this post is actually a thread.
-	op, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return errhtml(c, err, "/"+board.ID)
 	}
 
 	if op.Thread != 0 {
 		// Redirect to the true location.
-		return c.Redirect(fmt.Sprintf("/%s/%d#p%d", board.ID, op.Thread, pid))
+		return c.Redirect(fmt.Sprintf("/%s/%d#p%d", board.ID, op.Thread, op.ID))
 	}
 
-	posts, err := DB.Thread(c.Context(), board.ID, database.PostID(pid), 0)
+	posts, err := DB.Thread(c.Context(), board.ID, op.ID, 0)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return errhtmlc(c, "This thread does not exist.", 404, fmt.Sprintf("/%s", board.ID))
@@ -237,12 +252,12 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return errhtml(c, err) // TODO: update
 	}
 
-	nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, database.PostID(pid))
+	nposts, posters, err := DB.ThreadStat(c.Context(), board.ID, op.ID)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
 
-	return render(c, fmt.Sprintf("/%s/%d", board.ID, pid), "thread", fiber.Map{
+	return render(c, fmt.Sprintf("/%s/%d", board.ID, op.ID), "thread", fiber.Map{
 		"board": board,
 		"posts": posts,
 
@@ -270,14 +285,9 @@ func PostBoardThread(c *fiber.Ctx) error {
 		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s/%s", board.ID, c.Params("thread")))
 	}
 
-	tid, err := strconv.Atoi(c.Params("thread"))
+	post, err := post(c, board)
 	if err != nil {
-		return errhtmlc(c, "Bad thread number.", 404, fmt.Sprintf("/%s", board.ID))
-	}
-
-	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
-	if err != nil {
-		return errhtml(c, err) // TODO: update
+		return errhtml(c, err, "/"+board.ID)
 	}
 
 	if post.Thread != 0 {
@@ -301,7 +311,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 
 	// Reusing the post variable
 	post = database.Post{
-		Thread:   database.PostID(tid),
+		Thread:   post.ID,
 		Name:     name,
 		Tripcode: trip,
 		Raw:      content,

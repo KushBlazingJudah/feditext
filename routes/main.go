@@ -189,19 +189,22 @@ func errhtml(c *fiber.Ctx, err error, ret ...string) error {
 
 	if errors.Is(err, sql.ErrNoRows) || strings.HasPrefix(err.Error(), "no such table") {
 		status = 404
-		text = "not found"
+		text = "Not found."
 	} else if errors.Is(err, database.ErrPostContents) {
 		status = 400
-		text = "invalid post contents"
+		text = "Your post contents are invalid. Is your post zero characters long?"
 	} else if errors.Is(err, database.ErrPostRejected) {
 		status = 400
-		text = "post was rejected"
+		text = "Your post was rejected!"
+	} else if errors.Is(err, ErrInvalidID) {
+		status = 404
+		text = "Invalid post ID."
 	} else {
 		// TODO: More filters.
 		// TODO: RSA verification error
 		// TODO: JSON
 		log.Printf("uncaught error on %s: %s", c.Path(), err)
-		text = "an internal server error has occurred"
+		text = "An internal server error has occurred."
 	}
 
 	return render(c.Status(status), "Error", "error", fiber.Map{
