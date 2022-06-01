@@ -52,9 +52,10 @@ func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
 }
 
 func checkCaptcha(c *fiber.Ctx) bool {
+	// If you're logged in, we won't worry about the captcha.
 	if ok := hasPriv(c, database.ModTypeJanitor); !ok {
-		capID := c.FormValue("captcha")
-		sol := c.FormValue("solution")
+		capID := c.FormValue("captchaCode")
+		sol := c.FormValue("captcha")
 		if len(capID) != captcha.CaptchaIDLen || len(sol) != captcha.CaptchaLen {
 			return false
 		}
@@ -158,7 +159,7 @@ func PostBoardIndex(c *fiber.Ctx) error {
 
 	name := util.Trim(c.FormValue("name", "Anonymous"), config.NameCutoff)
 	subject := util.Trim(c.FormValue("subject"), config.SubjectCutoff)
-	content := util.Trim(c.FormValue("content"), config.PostCutoff)
+	content := util.Trim(c.FormValue("comment"), config.PostCutoff)
 
 	if content == "" {
 		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s", board.ID))
@@ -285,7 +286,7 @@ func PostBoardThread(c *fiber.Ctx) error {
 
 	name := util.Trim(c.FormValue("name", "Anonymous"), config.NameCutoff)
 	subject := util.Trim(c.FormValue("subject"), config.SubjectCutoff)
-	content := util.Trim(c.FormValue("content"), config.PostCutoff)
+	content := util.Trim(c.FormValue("comment"), config.PostCutoff)
 
 	if content == "" {
 		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s/%d", board.ID, post.ID))

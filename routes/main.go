@@ -94,7 +94,7 @@ func init() {
 			return template.HTML("<b>unable to retrieve captcha; please refresh</b>")
 		}
 
-		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="solution" id="solution" maxlength="%d" placeholder="Captcha solution"><input type="hidden" name="captcha" id="captcha" value="%s">`, name, captcha.CaptchaLen, name))
+		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="captcha" id="captcha" maxlength="%d" placeholder="Captcha solution"><input type="hidden" name="captchaCode" id="captchaCode" value="%s">`, name, captcha.CaptchaLen, name))
 	})
 
 	Tmpl.AddFunc("time", func(t time.Time) template.HTML {
