@@ -296,9 +296,8 @@ func PostBoardThread(c *fiber.Ctx) error {
 	name, trip = crypto.DoTrip(name)
 
 	bumpdate := time.Now().UTC()
-	if c.FormValue("sage") == "on" {
-		bumpdate = time.Time{}
-	}
+	// TODO: Sage
+	// Previously it was here but I ripped it out because it was horribly broken
 
 	// Reusing the post variable
 	post = database.Post{

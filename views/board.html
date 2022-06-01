@@ -46,7 +46,7 @@
 {{$posters := .Posters}}
 {{range .Posts}}
 <div id="p{{.ID}}" class="post">
-	<h3>{{if eq .ID $thread}}[{{$nposts}}:{{$posters}}] {{end}}<a href="/{{$board.ID}}/{{$thread}}/#p{{.ID}}">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}}{{if .Bumpdate.IsZero}} sage{{end}} <a href="/{{$board.ID}}/report/{{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}}{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}{{end}}</h3>
+	<h3>{{if eq .ID $thread}}[{{$nposts}}:{{$posters}}] {{end}}<a href="/{{$board.ID}}/{{$thread}}/#p{{.ID}}">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}} <a href="/{{$board.ID}}/report/{{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}}{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}{{end}}</h3>
 	<blockquote class="content">
 		{{unescape .Content}}
 	</blockquote>
