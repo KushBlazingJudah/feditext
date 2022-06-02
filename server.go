@@ -180,7 +180,8 @@ Disallow: /
 `)
 	})
 
-	app.Get("/captcha/:id", routes.GetCaptcha)
+	app.Get("/captcha/:id", routes.GetCaptchaID)
+	app.Get("/captcha", routes.GetCaptcha)
 	if config.PublicAudit {
 		app.Get("/audit", routes.GetAudit)
 	}
