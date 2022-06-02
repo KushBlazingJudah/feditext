@@ -1,0 +1,8 @@
+*.bak
+*.sqlite3
+*.tar.gz
+/.dockerignore
+/Dockerfile
+/doc
+/feditext.config
+/pem
