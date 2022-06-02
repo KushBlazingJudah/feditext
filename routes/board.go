@@ -448,7 +448,7 @@ func GetBoardReport(c *fiber.Ctx) error {
 		return err
 	}
 
-	pid, err := strconv.Atoi(c.Params("post"))
+	pid, err := strconv.Atoi(c.Query("post"))
 	if err != nil {
 		return errhtmlc(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
 	}
@@ -481,7 +481,7 @@ func PostBoardReport(c *fiber.Ctx) error {
 		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s/%s", board.ID, c.Params("thread")))
 	}
 
-	pid, err := strconv.Atoi(c.Params("post"))
+	pid, err := strconv.Atoi(c.Query("post"))
 	if err != nil {
 		return errhtmlc(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
 	}

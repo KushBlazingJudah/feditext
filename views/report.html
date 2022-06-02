@@ -8,7 +8,7 @@ taken upon{{end}}.</p>
 <p>Please ensure that you are absolutely certain that this post breaks
 <a href="/rules">the rules</a>.</p>
 
-<form action="/{{.board.ID}}/report/{{.post.ID}}" method="post">
+<form action="/{{.board.ID}}/report?post={{.post.ID}}" method="post">
 	<textarea name="reason" id="reason" rows="8" cols="40" maxlength="{{.repMax}}" placeholder="Report reason"></textarea>
 	{{if .privs}}
 	<p>Logged in, no captcha.</p>

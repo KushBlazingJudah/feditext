@@ -225,8 +225,8 @@ Disallow: /
 
 	app.Get("/:board/catalog", routes.GetBoardCatalog)
 	app.Get("/:board/delete/:post", routes.GetPostDelete)
-	app.Get("/:board/report/:post", routes.GetBoardReport)
-	app.Post("/:board/report/:post", routes.PostBoardReport)
+	app.Get("/:board/report", routes.GetBoardReport)
+	app.Post("/:board/report", routes.PostBoardReport)
 
 	app.Get("/:board/:thread/delete", routes.GetThreadDelete)
 
