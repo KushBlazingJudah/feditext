@@ -207,10 +207,14 @@ func errhtml(c *fiber.Ctx, err error, ret ...string) error {
 		text = "An internal server error has occurred."
 	}
 
-	return render(c.Status(status), "Error", "error", fiber.Map{
+	if err := render(c.Status(status), "Error", "error", fiber.Map{
 		"error":  text,
 		"return": retu,
-	})
+	}); err != nil {
+		return err
+	}
+
+	return err
 }
 
 func errhtmlc(c *fiber.Ctx, msg string, status int, ret ...string) error {
@@ -223,10 +227,14 @@ func errhtmlc(c *fiber.Ctx, msg string, status int, ret ...string) error {
 		return err
 	}
 
-	return render(c, "Error", "error", fiber.Map{
+	if err := render(c, "Error", "error", fiber.Map{
 		"error":  msg,
 		"return": retu,
-	})
+	}); err != nil {
+		return err
+	}
+
+	return fmt.Errorf("errhtmlc: %s", msg)
 }
 
 func getIP(c *fiber.Ctx) string {

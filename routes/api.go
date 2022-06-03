@@ -35,7 +35,7 @@ func GetCaptcha(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(map[string]string{
-		"code": name,
+		"code":  name,
 		"image": base64.StdEncoding.EncodeToString(img),
 	})
 }

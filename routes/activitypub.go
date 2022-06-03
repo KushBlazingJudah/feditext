@@ -57,8 +57,6 @@ func jsonresp(c *fiber.Ctx, data any) error {
 }
 
 func errjson(c *fiber.Ctx, err error) error {
-	var e error
-
 	if err == nil {
 		panic("nil err passed to errjson")
 	}
@@ -68,15 +66,15 @@ func errjson(c *fiber.Ctx, err error) error {
 	}
 
 	if errors.Is(err, sql.ErrNoRows) || strings.HasPrefix(err.Error(), "no such table") {
-		e = c.Status(404).JSON(map[string]string{
+		_ = c.Status(404).JSON(map[string]string{
 			"error": "not found",
 		})
 	} else if errors.Is(err, database.ErrPostContents) {
-		e = c.Status(400).JSON(map[string]string{
+		_ = c.Status(400).JSON(map[string]string{
 			"error": "invalid post contents",
 		})
 	} else if errors.Is(err, database.ErrPostRejected) {
-		e = c.Status(400).JSON(map[string]string{
+		_ = c.Status(400).JSON(map[string]string{
 			"error": "post was rejected",
 		})
 	} else {
@@ -84,12 +82,12 @@ func errjson(c *fiber.Ctx, err error) error {
 		// TODO: RSA verification error
 		// TODO: JSON
 		log.Printf("uncaught error on %s: %s", c.Path(), err)
-		e = c.Status(500).JSON(map[string]string{
+		_ = c.Status(500).JSON(map[string]string{
 			"error": "an internal server error has occurred",
 		})
 	}
 
-	return e
+	return err
 }
 
 func errjsonc(c *fiber.Ctx, code int, err string) error {
@@ -97,9 +95,11 @@ func errjsonc(c *fiber.Ctx, code int, err string) error {
 		log.Printf("custom error on %s: %s", c.Path(), err)
 	}
 
-	return c.Status(code).JSON(map[string]string{
+	_ = c.Status(code).JSON(map[string]string{
 		"error": err,
 	})
+
+	return fmt.Errorf("errjsonc: %s", err)
 }
 
 func Webfinger(c *fiber.Ctx) error {
