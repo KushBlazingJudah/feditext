@@ -199,7 +199,7 @@ func PostAdminLogin(c *fiber.Ctx) error {
 			Name:     "token",
 			Value:    token,
 			Expires:  exp,
-			Secure:   true,
+			Secure:   config.TransportProtocol == "https",
 			SameSite: "Strict",
 			HTTPOnly: true,
 		})
