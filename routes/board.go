@@ -216,108 +216,6 @@ func GetBoardThread(c *fiber.Ctx) error {
 	})
 }
 
-func GetThreadDelete(c *fiber.Ctx) error {
-	// Need privileges
-	ok := hasPriv(c, database.ModTypeJanitor)
-	if !ok {
-		return c.Redirect("/admin/login")
-	}
-
-	_, board, err := board(c)
-	if err != nil {
-		return errhtml(c, err) // TODO: update
-	}
-
-	tid, err := strconv.Atoi(c.Params("thread"))
-	if err != nil {
-		return errhtmlc(c, "Bad thread number.", 400, fmt.Sprintf("/%s", board.ID))
-	}
-
-	post, err := DB.Post(c.Context(), board.ID, database.PostID(tid))
-	if err != nil {
-		return errhtmlc(c, "The thread you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
-	}
-
-	if post.Thread != 0 {
-		return errhtmlc(c, "The thread you are looking for is actually a post.", 404, fmt.Sprintf("/%s/%d", board.ID, post.Thread))
-	}
-
-	if err := DB.DeleteThread(c.Context(), board.ID, post.ID, database.ModerationAction{
-		Author: c.Locals("username").(string),
-		Type:   database.ModActionDelete,
-		Board:  board.ID,
-		Post:   post.ID,
-		Reason: "TODO",
-		Date:   time.Now().UTC(),
-	}); err != nil {
-		return errhtml(c, err)
-	}
-
-	// Tell everyone else if it's local
-	if post.IsLocal() {
-		go func() {
-			if err := fedi.PostDel(context.Background(), board, post); err != nil {
-				log.Printf("fedi.PostDel for /%s/%d: error: %s", board.ID, post.ID, err)
-			}
-		}()
-	}
-
-	// Redirect back to the board
-	return c.Redirect("/" + board.ID)
-}
-
-func GetPostDelete(c *fiber.Ctx) error {
-	// Need privileges
-	ok := hasPriv(c, database.ModTypeJanitor)
-	if !ok {
-		return c.Redirect("/admin/login")
-	}
-
-	_, board, err := board(c)
-	if err != nil {
-		return errhtml(c, err) // TODO: update
-	}
-
-	pid, err := strconv.Atoi(c.Params("post"))
-	if err != nil {
-		return errhtmlc(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
-	}
-
-	// Check if it's a valid post
-	post, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
-	if err != nil {
-		return errhtmlc(c, "The post you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
-	}
-
-	if post.Thread == 0 {
-		// It's a thread
-		return errhtmlc(c, "The post you are looking for is actually a thread.", 400, fmt.Sprintf("/%s", board.ID))
-	}
-
-	if err := DB.DeletePost(c.Context(), board.ID, post.ID, database.ModerationAction{
-		Author: c.Locals("username").(string),
-		Type:   database.ModActionDelete,
-		Board:  board.ID,
-		Post:   post.ID,
-		Reason: "TODO",
-		Date:   time.Now().UTC(),
-	}); err != nil {
-		return errhtml(c, err)
-	}
-
-	// Tell everyone else if it's local
-	if post.IsLocal() {
-		go func() {
-			if err := fedi.PostDel(context.Background(), board, post); err != nil {
-				log.Printf("fedi.PostDel for /%s/%d: error: %s", board.ID, post.ID, err)
-			}
-		}()
-	}
-
-	// Redirect back to the thread
-	return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.Thread))
-}
-
 func GetBoardReport(c *fiber.Ctx) error {
 	_, board, err := board(c)
 	if err != nil {
@@ -388,4 +286,76 @@ func PostBoardReport(c *fiber.Ctx) error {
 
 	// Redirect back to the index
 	return c.Redirect("/" + board.ID)
+}
+
+func GetDelete(c *fiber.Ctx) error {
+	// Need privileges
+	ok := hasPriv(c, database.ModTypeJanitor)
+	if !ok {
+		return c.Redirect("/admin/login")
+	}
+
+	boardReq := strings.TrimSpace(c.Query("board"))
+	postReq := strings.TrimSpace(c.Query("post"))
+
+	board, err := DB.Board(c.Context(), boardReq)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return errhtmlc(c, "That board does not exist.", 404, "/admin")
+	} else if err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	pid, err := strconv.Atoi(postReq)
+	if err != nil {
+		return errhtmlc(c, "Bad post number.", 400, fmt.Sprintf("/%s", board.ID))
+	}
+
+	// Check if it's a valid post
+	post, err := DB.Post(c.Context(), board.ID, database.PostID(pid))
+	if err != nil {
+		return errhtmlc(c, "The post you are looking for doesn't exist.", 404, fmt.Sprintf("/%s", board.ID))
+	}
+
+	hasConfirmed := strings.TrimSpace(c.Query("confirm", "")) == "1"
+	if hasConfirmed {
+		if post.Thread == 0 {
+			if err := DB.DeleteThread(c.Context(), board.ID, post.ID, database.ModerationAction{
+				Author: c.Locals("username").(string),
+				Type:   database.ModActionDelete,
+				Board:  board.ID,
+				Post:   post.ID,
+				Reason: "TODO",
+				Date:   time.Now().UTC(),
+			}); err != nil {
+				return errhtml(c, err)
+			}
+		} else {
+			if err := DB.DeletePost(c.Context(), board.ID, post.ID, database.ModerationAction{
+				Author: c.Locals("username").(string),
+				Type:   database.ModActionDelete,
+				Board:  board.ID,
+				Post:   post.ID,
+				Reason: "TODO",
+				Date:   time.Now().UTC(),
+			}); err != nil {
+				return errhtml(c, err)
+			}
+		}
+
+		// Tell everyone else if it's local
+		if post.IsLocal() {
+			go func() {
+				if err := fedi.PostDel(context.Background(), board, post); err != nil {
+					log.Printf("fedi.PostDel for /%s/%d: error: %s", board.ID, post.ID, err)
+				}
+			}()
+		}
+
+		return c.Redirect("/" + board.ID)
+	}
+
+	return render(c, fmt.Sprintf("Delete Post /%s/%d", board.ID, pid), "delete", fiber.Map{
+		"board": board,
+		"post":  post,
+	})
 }

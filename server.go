@@ -211,6 +211,7 @@ Disallow: /
 	app.Get("/admin/unfollow", routes.GetAdminUnfollow)
 	app.Get("/admin/fetch", routes.GetAdminFetch)
 	app.Get("/admin/resend", routes.GetAdminResend)
+	app.Get("/admin/delete", routes.GetDelete)
 	app.Post("/admin/regexps", routes.PostRegexp)
 	app.Get("/admin/regexps/delete/:id", routes.GetRegexpDelete)
 
@@ -225,11 +226,8 @@ Disallow: /
 	app.Get("/:board/following", routes.GetBoardFollowing)
 
 	app.Get("/:board/catalog", routes.GetBoardCatalog)
-	app.Get("/:board/delete/:post", routes.GetPostDelete)
 	app.Get("/:board/report", routes.GetBoardReport)
 	app.Post("/:board/report", routes.PostBoardReport)
-
-	app.Get("/:board/:thread/delete", routes.GetThreadDelete)
 
 	app.Get("/:board/:thread", routes.GetBoardThread)
 

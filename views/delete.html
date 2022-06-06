@@ -1,0 +1,23 @@
+<h1>Delete Post {{.post.ID}}</h1>
+
+<p><b>You are about to do something destructive.</b></p>
+
+<p>
+{{if eq .post.Thread 0}}
+This is a thread.
+{{if .post.IsLocal}}
+<b>All posts on this thread will be deleted.</b>
+{{end}}
+{{end}}
+
+{{if .post.IsLocal}}
+This delete <b>will be reflected on other instances that follow us</b>.
+{{else}}
+This delete is <b>local</b> to us, and will not be reflected onto other instances.
+This post may be imported again if you manually fetch the outbox that this post belongs to.
+{{end}}
+</p>
+
+<p>Are you absolutely certain you want to delete this post?</p>
+
+<p>[<a href="/{{.board.ID}}/{{.post.ID}}">No</a>] [<a href="/admin/delete?board={{.board.ID}}&post={{.post.ID}}&confirm=1">Yes</a>]<p>
