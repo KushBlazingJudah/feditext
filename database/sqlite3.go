@@ -886,6 +886,48 @@ func (db *SqliteDatabase) PasswordCheck(ctx context.Context, username string, pa
 	return check([]byte(password), salt, hash), nil
 }
 
+func (db *SqliteDatabase) RecentPosts(ctx context.Context, board string, limit int, local bool) ([]Post, error) {
+	var rows *sql.Rows
+	var err error
+
+	if local {
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE source NOT LIKE "http%%" ORDER BY date DESC LIMIT ?`, board), limit)
+	} else {
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s ORDER BY date DESC LIMIT ?`, board), limit)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []Post{}
+
+	for rows.Next() {
+		post := Post{}
+		var ttime int64
+		var btime *int64 // Will most likely be nil
+
+		if err := rows.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+			return posts, err
+		}
+
+		post.Date = time.Unix(ttime, 0).UTC()
+		if btime != nil {
+			post.Bumpdate = time.Unix(*btime, 0).UTC()
+		}
+
+		posts = append(posts, post)
+	}
+
+	// Say no rows if we get nothing back
+	err = rows.Err()
+	if err == nil && len(posts) == 0 {
+		err = sql.ErrNoRows
+	}
+
+	return posts, err
+}
+
 // Close closes the database. This should only be called upon exit.
 func (db *SqliteDatabase) Close() error {
 	return db.conn.Close()

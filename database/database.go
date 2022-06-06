@@ -261,6 +261,9 @@ type Database interface {
 	// PasswordCheck checks a moderator's password.
 	PasswordCheck(ctx context.Context, username string, password string) (bool, error)
 
+	// RecentPosts fetches the newest posts made on a board, and optionally, only posts made on this instance.
+	RecentPosts(ctx context.Context, board string, limit int, local bool) ([]Post, error)
+
 	// Close closes the database. This should only be called upon exit.
 	Close() error
 }

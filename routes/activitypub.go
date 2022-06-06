@@ -132,10 +132,11 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return errjson(c, err)
 		}
 	} else if act.Type == "Create" {
+		// TODO: Redo this.
+
 		if act.Object == nil || act.To == nil || act.ObjectProp == nil {
 			return errjsonc(c, 400, "missing needed attributes")
 		}
-		// TODO: Should we ignore from places that aren't marked as following?
 
 		// Do a quick sanity check
 		if act.ObjectProp != nil {
@@ -179,10 +180,11 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			post.ID = 0
 		}
 	} else if act.Type == "Delete" {
+		// TODO: Redo this.
+
 		if act.Object == nil || act.Actor == nil || act.To == nil || act.ObjectProp == nil || act.ObjectProp.ID == "" {
 			return errjsonc(c, 400, "missing needed attributes")
 		}
-		// TODO: Should we ignore from places that aren't marked as following?
 
 		// Check what board it should go to
 		// TODO: Improve upon this. It kinda sucks.
@@ -261,6 +263,25 @@ func GetBoardOutbox(c *fiber.Ctx) error {
 		return errjson(c, err)
 	}
 
+	// Check if we don't need to do anything.
+	if hdr, ok := c.GetReqHeaders()["If-Modified-Since"]; ok {
+		t, err := time.Parse(time.RFC1123, hdr)
+		if err != nil {
+			return errjson(c, err)
+		}
+
+		// Get the last thing posted
+		p, err := DB.RecentPosts(c.Context(), board.ID, 1, false)
+		if err != nil {
+			return errjson(c, err)
+		}
+
+		if p[0].Date.Before(t.UTC()) {
+			// Nothing to do.
+			return c.SendStatus(304)
+		}
+	}
+
 	c.Response().Header.Add("Content-Type", streams)
 
 	outbox, err := fedi.GenerateOutbox(c.Context(), board)
@@ -298,6 +319,18 @@ func GetBoardNote(c *fiber.Ctx) error {
 		post, err = DB.Post(c.Context(), board.ID, database.PostID(pid))
 		if err != nil {
 			return errjson(c, err)
+		}
+	}
+
+	// Check if we don't need to do anything.
+	if hdr, ok := c.GetReqHeaders()["If-Modified-Since"]; ok {
+		t, err := time.Parse(time.RFC1123, hdr)
+		if err != nil {
+			return errjson(c, err)
+		}
+
+		if post.Date.Before(t) {
+			return c.SendStatus(304)
 		}
 	}
 
