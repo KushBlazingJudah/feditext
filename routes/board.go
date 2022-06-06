@@ -12,7 +12,6 @@ import (
 
 	"github.com/KushBlazingJudah/feditext/captcha"
 	"github.com/KushBlazingJudah/feditext/config"
-	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/fedi"
 	"github.com/KushBlazingJudah/feditext/util"
@@ -55,29 +54,28 @@ func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
 	return boards, board, err
 }
 
-func post(c *fiber.Ctx, board database.Board, param ...string) (database.Post, error) {
-	name := "thread"
-	if len(param) > 0 {
-		name = param[0]
+func resolvePost(c *fiber.Ctx, board database.Board, match string) (database.Post, error) {
+	var post database.Post
+	var err error
+
+	if strings.HasPrefix(match, "http") {
+		// This is an ActivityPub ID we're looking for.
+		// Since there's nothing to fall back on, just fail if it does fail.
+
+		post, err = DB.FindAPID(c.Context(), board.ID, match)
+		return post, err
 	}
 
-	var post database.Post
-
-	pid, err := strconv.Atoi(c.Params(name))
+	pid, err := strconv.Atoi(match) // TODO: SOME HEX IDS *ARE* VALID.
 	if err != nil {
 		// Try to look it up in the database.
 		// Since externally we use the randomly generated IDs like FChannel to
 		// avoid confusion with several posts being fprog-1, FChannel correctly
 		// assumes that the post will be available at /prog/deadbeef even
 		// though it is actually /prog/420.
-		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, c.Params("thread"))
-		post, err := DB.FindAPID(c.Context(), board.ID, q)
-		if err != nil {
-			return post, ErrInvalidID
-		}
-
-		// We found the true location, redirect them to it.
-		return post, nil
+		q := fmt.Sprintf("%s://%s/%s/%s", config.TransportProtocol, config.FQDN, board.ID, match)
+		post, err = DB.FindAPID(c.Context(), board.ID, q)
+		return post, err
 	}
 
 	post, err = DB.Post(c.Context(), board.ID, database.PostID(pid))
@@ -173,56 +171,6 @@ func GetBoardCatalog(c *fiber.Ctx) error {
 	})
 }
 
-func PostBoardIndex(c *fiber.Ctx) error {
-	_, board, err := board(c)
-	if err != nil {
-		return errhtml(c, err) // TODO: update
-	}
-
-	// Check ban status
-	if ok, err := redirBanned(c); err != nil || !ok {
-		// User was redirected already
-		return err
-	}
-
-	// Check captcha
-	if ok := checkCaptcha(c); !ok {
-		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s", board.ID))
-	}
-
-	name := util.Trim(c.FormValue("name", "Anonymous"), config.NameCutoff)
-	subject := util.Trim(c.FormValue("subject"), config.SubjectCutoff)
-	content := util.Trim(c.FormValue("comment"), config.PostCutoff)
-
-	if content == "" {
-		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s", board.ID))
-	}
-
-	var trip string
-	name, trip = crypto.DoTrip(name)
-
-	post := database.Post{
-		Name:     name,
-		Tripcode: trip,
-		Raw:      content,
-		Subject:  subject,
-		Source:   getIP(c),
-	}
-
-	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
-		return errhtml(c, err) // TODO: update
-	}
-
-	go func() {
-		if err := fedi.PostOut(context.Background(), board, post); err != nil {
-			log.Printf("fedi.PostOut for /%s/%d: error: %s", board.ID, post.ID, err)
-		}
-	}()
-
-	// Redirect to the newly created thread
-	return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.ID))
-}
-
 func GetBoardThread(c *fiber.Ctx) error {
 	if isStreams(c) {
 		return GetBoardNote(c)
@@ -233,7 +181,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return errhtml(c, err) // TODO: update
 	}
 
-	op, err := post(c, board)
+	op, err := resolvePost(c, board, c.Params("thread"))
 	if err != nil {
 		return errhtml(c, err, "/"+board.ID)
 	}
@@ -266,72 +214,6 @@ func GetBoardThread(c *fiber.Ctx) error {
 
 		"showpicker": true,
 	})
-}
-
-func PostBoardThread(c *fiber.Ctx) error {
-	_, board, err := board(c)
-	if err != nil {
-		return errhtml(c, err) // TODO: update
-	}
-
-	// Check ban status
-	if ok, err := redirBanned(c); err != nil || !ok {
-		// User was redirected already
-		return err
-	}
-
-	// Check captcha
-	if ok := checkCaptcha(c); !ok {
-		return errhtmlc(c, "Bad captcha response.", 400, fmt.Sprintf("/%s/%s", board.ID, c.Params("thread")))
-	}
-
-	post, err := post(c, board)
-	if err != nil {
-		return errhtml(c, err, "/"+board.ID)
-	}
-
-	if post.Thread != 0 {
-		return errhtmlc(c, "The thread you are posting to doesn't exist.", 400, fmt.Sprintf("/%s", board.ID))
-	}
-
-	name := util.Trim(c.FormValue("name", "Anonymous"), config.NameCutoff)
-	subject := util.Trim(c.FormValue("subject"), config.SubjectCutoff)
-	content := util.Trim(c.FormValue("comment"), config.PostCutoff)
-
-	if content == "" {
-		return errhtmlc(c, "Invalid post contents.", 400, fmt.Sprintf("/%s/%d", board.ID, post.ID))
-	}
-
-	var trip string
-	name, trip = crypto.DoTrip(name)
-
-	bumpdate := time.Now().UTC()
-	// TODO: Sage
-	// Previously it was here but I ripped it out because it was horribly broken
-
-	// Reusing the post variable
-	post = database.Post{
-		Thread:   post.ID,
-		Name:     name,
-		Tripcode: trip,
-		Raw:      content,
-		Bumpdate: bumpdate,
-		Subject:  subject,
-		Source:   getIP(c),
-	}
-
-	if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
-		return errhtml(c, err, c.Path())
-	}
-
-	go func() {
-		if err := fedi.PostOut(context.Background(), board, post); err != nil {
-			log.Printf("fedi.PostOut for /%s/%d: error: %s", board.ID, post.ID, err)
-		}
-	}()
-
-	// Redirect back to the thread
-	return c.Redirect("")
 }
 
 func GetThreadDelete(c *fiber.Ctx) error {

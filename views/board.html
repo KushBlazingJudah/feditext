@@ -16,7 +16,7 @@
 <p><a href="/{{.board.ID}}/catalog">[Catalog]</a></p>
 
 <h2>Create a new thread</h2>
-<form action="/{{.board.ID}}" method="post">
+<form action="/post" method="post">
 	<table id="postForm">
 		<tr>
 			<td><label for="name">Name:</label></td>
@@ -36,6 +36,9 @@
 			<td>{{ captcha }}</td>
 		</tr>
 		{{end}}
+
+		<input id="boardName" name="boardName" type="hidden" value="{{.board.ID}}">
+		<input id="returnTo" name="returnTo" type="hidden" value="/{{.board.ID}}">
 	</table>
 </form>
 

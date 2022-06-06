@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -155,6 +156,35 @@ func render(c *fiber.Ctx, title, tmpl string, f fiber.Map) error {
 	return c.Render(tmpl, m)
 }
 
+func isStreams(c *fiber.Ctx) bool {
+	// Hack, but it works
+	str, ok := c.GetReqHeaders()["Accept"]
+	if !ok {
+		return false
+	}
+
+	return streamsRegex.MatchString(str)
+}
+
+// (*fiber.Ctx).JSON doesn't let me not escape HTML.
+// I also didn't look.
+func jsonresp(c *fiber.Ctx, data any) error {
+	c.Response().Header.Add("Content-Type", streams)
+
+	encoder := json.NewEncoder(c)
+	encoder.SetEscapeHTML(false)
+
+	return encoder.Encode(data)
+}
+
+func getIP(c *fiber.Ctx) string {
+	if config.Private {
+		return "127.0.0.1"
+	}
+
+	return c.IP()
+}
+
 func redirBanned(c *fiber.Ctx) (bool, error) {
 	// Skip if logged in, or private mode is on
 	// We can't ban people in private mode
@@ -168,6 +198,12 @@ func redirBanned(c *fiber.Ctx) (bool, error) {
 	}
 
 	if !ok {
+		if isStreams(c) {
+			return false, c.Status(403).JSON(map[string]string{
+				"error": "banned",
+				// TODO: expiration date
+			})
+		}
 		return false, c.Redirect("/banned")
 	}
 
@@ -237,10 +273,48 @@ func errhtmlc(c *fiber.Ctx, msg string, status int, ret ...string) error {
 	return fmt.Errorf("errhtmlc: %s", msg)
 }
 
-func getIP(c *fiber.Ctx) string {
-	if config.Private {
-		return "127.0.0.1"
+func errjson(c *fiber.Ctx, err error) error {
+	if err == nil {
+		panic("nil err passed to errjson")
 	}
 
-	return c.IP()
+	if config.Debug {
+		log.Printf("error on %s: %s", c.Path(), err)
+	}
+
+	if errors.Is(err, sql.ErrNoRows) || strings.HasPrefix(err.Error(), "no such table") {
+		_ = c.Status(404).JSON(map[string]string{
+			"error": "not found",
+		})
+	} else if errors.Is(err, database.ErrPostContents) {
+		_ = c.Status(400).JSON(map[string]string{
+			"error": "invalid post contents",
+		})
+	} else if errors.Is(err, database.ErrPostRejected) {
+		_ = c.Status(400).JSON(map[string]string{
+			"error": "post was rejected",
+		})
+	} else {
+		// TODO: More filters.
+		// TODO: RSA verification error
+		// TODO: JSON
+		log.Printf("uncaught error on %s: %s", c.Path(), err)
+		_ = c.Status(500).JSON(map[string]string{
+			"error": "an internal server error has occurred",
+		})
+	}
+
+	return err
+}
+
+func errjsonc(c *fiber.Ctx, code int, err string) error {
+	if config.Debug {
+		log.Printf("custom error on %s: %s", c.Path(), err)
+	}
+
+	_ = c.Status(code).JSON(map[string]string{
+		"error": err,
+	})
+
+	return fmt.Errorf("errjsonc: %s", err)
 }

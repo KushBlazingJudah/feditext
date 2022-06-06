@@ -214,9 +214,9 @@ Disallow: /
 	app.Post("/admin/regexps", routes.PostRegexp)
 	app.Get("/admin/regexps/delete/:id", routes.GetRegexpDelete)
 
-	// Boards
+	app.Post("/post", routes.Post)
+
 	app.Get("/:board", routes.GetBoardIndex)
-	app.Post("/:board", routes.PostBoardIndex)
 
 	// ActivityPub stuff
 	app.Get("/:board/outbox", routes.GetBoardOutbox)
@@ -232,7 +232,6 @@ Disallow: /
 	app.Get("/:board/:thread/delete", routes.GetThreadDelete)
 
 	app.Get("/:board/:thread", routes.GetBoardThread)
-	app.Post("/:board/:thread", routes.PostBoardThread)
 
 	app.Listen(config.ListenAddress)
 }
