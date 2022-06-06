@@ -637,7 +637,8 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	// Random hex number for now
 	if post.APID == "" {
 		// TODO: This really sucks. Really. However, it does work well enough. 16^8 possible different IDs.
-		post.APID = fmt.Sprintf("%s://%s/%s/%08X", config.TransportProtocol, config.FQDN, board, rand.Intn(math.MaxInt32))
+		// This sucks even more to avoid a bug.
+		post.APID = fmt.Sprintf("%s://%s/%s/%c%07X", config.TransportProtocol, config.FQDN, board, []byte("ABCDEF")[rand.Intn(6)], rand.Intn(math.MaxInt32) & 0xfffffff)
 	}
 
 	// Format the post from raw unless we don't need to
