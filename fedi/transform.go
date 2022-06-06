@@ -3,7 +3,6 @@ package fedi
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
@@ -53,7 +52,7 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 	}
 
 	a := &LinkActor{Object: &Object{Type: "Group", ID: actor.ID}}
-	if strings.HasPrefix(p.Source, "http") {
+	if !p.IsLocal() {
 		a.ID = p.Source
 	}
 

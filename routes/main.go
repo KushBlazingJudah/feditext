@@ -55,7 +55,7 @@ func init() {
 		var name, trip, domain, domainFull string
 		name = fmt.Sprintf(`<span class="name">%s</span>`, template.HTMLEscapeString(p.Name))
 
-		if strings.HasPrefix(p.Source, "http") {
+		if !p.IsLocal() {
 			// Treat as "external"
 			u, err := url.Parse(p.Source)
 			if err != nil {

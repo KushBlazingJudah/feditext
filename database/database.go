@@ -265,6 +265,11 @@ type Database interface {
 	Close() error
 }
 
+// IsLocal checks if a post was made from this instance or not.
+func (p Post) IsLocal() bool {
+	return !strings.HasPrefix(p.Source, "http")
+}
+
 // hash creates a hash of a password with a salt.
 func hash(password []byte) ([]byte, []byte) {
 	salt := make([]byte, saltLength)
@@ -296,7 +301,7 @@ func formatPost(ctx context.Context, d Database, board string, p *Post) error {
 
 	// Database functionality in here isn't implemented greatly but it'll work more or less
 	// Don't bother with local cites from external sources
-	if p.Source[:4] != "http" {
+	if p.IsLocal() {
 		s = citeRegex.ReplaceAllStringFunc(s, func(s string) string {
 			s = s[len("&gt;&gt;"):] // Very cool. I didn't want my captures anyway.
 			id, err := strconv.Atoi(s)

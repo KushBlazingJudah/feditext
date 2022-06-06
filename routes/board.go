@@ -254,7 +254,7 @@ func GetThreadDelete(c *fiber.Ctx) error {
 	}
 
 	// Tell everyone else if it's local
-	if !strings.HasPrefix(post.Source, "http") {
+	if post.IsLocal() {
 		go func() {
 			if err := fedi.PostDel(context.Background(), board, post); err != nil {
 				log.Printf("fedi.PostDel for /%s/%d: error: %s", board.ID, post.ID, err)
@@ -306,7 +306,7 @@ func GetPostDelete(c *fiber.Ctx) error {
 	}
 
 	// Tell everyone else if it's local
-	if !strings.HasPrefix(post.Source, "http") {
+	if post.IsLocal() {
 		go func() {
 			if err := fedi.PostDel(context.Background(), board, post); err != nil {
 				log.Printf("fedi.PostDel for /%s/%d: error: %s", board.ID, post.ID, err)

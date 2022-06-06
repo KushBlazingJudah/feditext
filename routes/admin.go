@@ -524,6 +524,10 @@ func GetAdminResend(c *fiber.Ctx) error {
 		return errhtml(c, err) // TODO: update
 	}
 
+	if !post.IsLocal() {
+		return errhtmlc(c, "This post is not owned by this instance, and cannot be resent.", 400, "/admin")
+	}
+
 	go func() {
 		log.Printf("Force resending /%s/%d", board.ID, post.ID)
 		if err := fedi.PostOut(context.Background(), board, post); err != nil {
