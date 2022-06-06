@@ -30,6 +30,10 @@ a:hover.cite {color: #fb4934;}
 .tripcode {color: #117743; font-weight: 400;}
 .quote {color: #789922;}
 
+.postopts { display: none; }
+input[id*="postoptsexp-"] { display: none; }
+input[id*="postoptsexp-"]:checked ~ .postopts { display: inline; }
+
 #boardheader {
 	width: 100%;
 	text-align: center;
@@ -49,9 +53,27 @@ input[type="text"] {
 	border-collapse: collapse;
 }
 
-#postForm {margin: auto;}
+.floating { position: fixed; }
 
-#postForm tr > td:first-child {
+#postForm {
+	min-width: min-content;
+	width: 50%;
+	max-width: 100%;
+	margin: auto;
+}
+#postForm #pfheader { display: none; width: 100%; }
+#pfheader #pfclose { float: right; }
+
+#postForm.floating {
+	border: 2px solid #b7c5d9;
+	background-color: #d6daf0;
+	width: min-content;
+}
+#postForm.floating #pfheader { cursor: move; display: block; }
+#postForm.floating #pfopen { display: none; }
+#postForm.floating td:first-child { display: none; }
+
+#postForm td:first-child {
 	background-color: #98e;
 	color: #000;
 	padding-left: 0.5em;

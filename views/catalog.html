@@ -14,11 +14,16 @@
 <p><a href="/{{.board.ID}}">[Index]</a></p>
 
 <h2>Create a new thread</h2>
-<form action="/post" method="post">
-	<table id="postForm">
+<form action="/post" method="post" id="postForm">
+	<div id="pfheader">
+		<span id="pftitle">Create a new thread</span>
+		<a href="#" id="pfclose">[X]</a>
+	</div>
+
+	<table>
 		<tr>
 			<td><label for="name">Name:</label></td>
-			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"><input type="submit" value="Post"></td>
+			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"><input type="submit" value="Post"> <a href="#" id="pfopen">[detach]</a></td>
 		</tr>
 		<tr>
 			<td><label for="subject">Subject:</label></td>
@@ -63,3 +68,5 @@
 	{{end}}
 	{{end}}
 </table>
+
+<script src="/src/form.js"></script>

@@ -18,11 +18,16 @@
 <p><a href="/{{.board.ID}}">[Index]</a> <a href="/{{.board.ID}}/catalog">[Catalog]</a></p>
 
 <h2>Create a new post</h2>
-<form action="/post" method="post">
-	<table id="postForm">
+<form action="/post" id="postForm" method="post">
+	<div id="pfheader">
+		<span id="pftitle">Replying to thread {{$thread}}</span>
+		<a href="#" id="pfclose">[X]</a>
+	</div>
+
+	<table>
 		<tr>
 			<td><label for="name">Name:</label></td>
-			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"><input type="submit" value="Post"></td>
+			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"><input type="submit" value="Post"> <a href="#" id="pfopen">[detach]</a></td>
 		</tr>
 		<tr>
 			<td><label for="subject">Subject:</label></td>
@@ -49,9 +54,11 @@
 <p>{{.nposts}} post{{if gt .nposts 1}}s{{end}}, {{.posters}} poster{{if gt .posters 1}}s{{end}}.</p>
 {{range .posts}}
 <div id="p{{.ID}}" class="post">
-	<h3><a href="#p{{.ID}}">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}} <a href="/{{$board.ID}}/report?post={{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}}{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}{{if and (ne .Thread .ID) .IsLocal }} <a href="/admin/resend?board={{$board.ID}}&post={{.ID}}">[->]</a>{{end}}{{end}}</h3>
+	<h3><a href="#p{{.ID}}">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}} <input type="checkbox" id="postoptsexp-{{.ID}}"><label for="postoptsexp-{{.ID}}">+</label><div class="postopts"> <a href="/{{$board.ID}}/report?post={{.ID}}">[report]</a>{{if $privs}} {{if ne .ID $thread}}<a href="/{{$board.ID}}/delete/{{.ID}}">[delete]</a>{{else}}<a href="/{{$board.ID}}/{{.ID}}/delete">[delete]</a>{{end}}{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}{{if and (ne .Thread .ID) .IsLocal }} <a href="/admin/resend?board={{$board.ID}}&post={{.ID}}">[->]</a>{{end}}{{end}}</div></h3>
 	<blockquote class="content">
 		{{unescape .Content}}
 	</blockquote>
 </div>
 {{end}}
+
+<script src="/js/form.js"></script>
