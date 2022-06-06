@@ -294,6 +294,10 @@ func errjson(c *fiber.Ctx, err error) error {
 		_ = c.Status(400).JSON(map[string]string{
 			"error": "post was rejected",
 		})
+	} else if _, ok := err.(*time.ParseError); ok {
+		_ = c.Status(400).JSON(map[string]string{
+			"error": "invalid time",
+		})
 	} else {
 		// TODO: More filters.
 		// TODO: RSA verification error
