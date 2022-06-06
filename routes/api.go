@@ -160,6 +160,10 @@ func Post(c *fiber.Ctx) error {
 
 	// Redirect to the newly created thread if not a bot, and noko
 	if !isBot && strings.HasPrefix(options, "noko") {
+		if inReplyTo != "" { // Not a thread
+			return c.Redirect(fmt.Sprintf("/%s/%d#p%d", board.ID, post.Thread, post.ID))
+		}
+
 		return c.Redirect(fmt.Sprintf("/%s/%d", board.ID, post.ID))
 	} else if !isBot {
 		return c.Redirect(fmt.Sprintf("/%s", board.ID))
