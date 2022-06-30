@@ -72,7 +72,7 @@ Feditext's goals are simple and to the point:
   - Public moderation log. It's a little broken right now but it's there.
     Can also be turned off.
 - Implemented in a simple and good fashion where possible.
-  - FChannel has 88+ database functions, we have 39 and they're all contained in
+  - FChannel has 88+ database functions, we have 42 and they're all contained in
     the database package.
   - We use Golang contexts in numerous places.
 
