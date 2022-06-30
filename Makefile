@@ -16,7 +16,7 @@ run: dev
 tidy:
 	go clean
 	go mod tidy
-	if command -v gofmt >/dev/null 2>&1; then gofmt -w .; fi
+	go fmt ./...
 	if command -v goimports >/dev/null 2>&1; then goimports -w .; fi
 
 check:

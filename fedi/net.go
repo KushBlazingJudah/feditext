@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -106,6 +108,11 @@ func Finger(ctx context.Context, actor string) (Actor, error) {
 }
 
 func SendActivity(ctx context.Context, act Activity) error {
+	if len(act.To) == 0 {
+		// There's nothing to do
+		return nil
+	}
+
 	if act.Actor == nil || act.Actor.PublicKey == nil {
 		return fmt.Errorf("invalid activity; missing actor or public key")
 	}
@@ -168,8 +175,18 @@ func SendActivity(ctx context.Context, act Activity) error {
 				res, err := Proxy.Do(req)
 				if err != nil {
 					log.Printf("failed sending activity to %s: %v", to.ID, err)
-				} else if res.StatusCode != 200 {
+				}
+				defer res.Body.Close()
+
+				if res.StatusCode != 200 {
 					log.Printf("failed sending activity to %s: non-200 status code %d", to.ID, res.StatusCode)
+
+					if config.Debug {
+						// Write to stderr
+						fmt.Fprintf(os.Stderr, "Response body (at most 4096 bytes) for failure on %s for %s follows", act.ID, to.ID)
+						io.Copy(os.Stderr, io.LimitReader(res.Body, 4096))
+						fmt.Fprint(os.Stderr, "\n")
+					}
 				}
 
 				wg.Done()
@@ -247,6 +264,10 @@ func MergeOutbox(ctx context.Context, board string, ob Outbox) error {
 				// Most likely fatal if it isn't.
 				if err := DB.SavePost(ctx, board, &post); err != nil {
 					return err
+				}
+
+				if config.Debug {
+					log.Printf("added %s to %s", post.APID, board)
 				}
 			}
 
