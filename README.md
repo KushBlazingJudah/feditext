@@ -1,4 +1,4 @@
-# feditext
+# ![logo](logo.png) feditext
 
 A textboard for ~~the fediverse~~ FChannel and itself.
 
