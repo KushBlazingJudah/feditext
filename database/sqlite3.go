@@ -65,10 +65,11 @@ type SqliteDatabase struct {
 
 func init() {
 	Engines["sqlite3"] = func(arg string) (Database, error) {
-		db, err := sql.Open("sqlite3", arg)
+		db, err := sql.Open("sqlite3", arg+"?cache=shared")
 		if err != nil {
 			return nil, err
 		}
+		db.SetMaxOpenConns(1)
 
 		// Run initial schema
 		_, err = db.Exec(sqliteSchema)
