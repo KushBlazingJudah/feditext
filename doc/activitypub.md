@@ -99,3 +99,6 @@ You can ignore pretty much every attribute in here asides from a few basic ones:
     FChannel's schema of `>>activitypub id`.
 - `replies` (OrderedCollection)
 - `inReplyTo` (list of Notes)
+
+On incoming messages (activities), the `option` (list of strings) field shows up
+and so far contains only one thing of value: `sage`.

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/util"
 )
 
 func (n Object) AsPost(ctx context.Context, board string) (database.Post, error) {
@@ -22,9 +23,15 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 		published = *n.Published
 	}
 
-	updated := time.Now().UTC()
-	if n.Updated != nil && !n.Updated.IsZero() {
+	var updated time.Time
+	if util.Has("sage", n.Options) {
+		// TODO: This can be used in threads, however the database methods
+		// (which should ignore this value on new threads) save us here.
+		updated = time.Time{}
+	} else if (n.Updated != nil && !n.Updated.IsZero()) {
 		updated = *n.Updated
+	} else {
+		updated = time.Now().UTC()
 	}
 
 	name := ""

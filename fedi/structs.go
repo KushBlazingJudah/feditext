@@ -237,6 +237,7 @@ type Object struct {
 	// Extended attributes for other types
 	Tripcode string     `json:"tripcode,omitempty"`
 	Subject  string     `json:"subject,omitempty"`
+	Options  []string   `json:"option,omitempty"` // Should be plural but it's not
 	Actor    *LinkActor `json:"actor,omitempty"`
 
 	// Hack to prevent collapsing objects because FChannel can't read them
