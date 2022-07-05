@@ -176,12 +176,16 @@ func SendActivity(ctx context.Context, act Activity) error {
 				if err != nil {
 					log.Printf("failed sending activity to %s: %v", to.ID, err)
 				}
-				defer res.Body.Close()
+
+				if res.Body != nil {
+					// Can be nil in some cases
+					defer res.Body.Close()
+				}
 
 				if res.StatusCode != 200 {
 					log.Printf("failed sending activity to %s: non-200 status code %d", to.ID, res.StatusCode)
 
-					if config.Debug {
+					if config.Debug && res.Body != nil {
 						// Write to stderr
 						fmt.Fprintf(os.Stderr, "Response body (at most 4096 bytes) for failure on %s for %s follows", act.ID, to.ID)
 						io.Copy(os.Stderr, io.LimitReader(res.Body, 4096))
