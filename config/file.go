@@ -55,8 +55,8 @@ func Load(path string) error {
 			TransportProtocol = value
 		case "private":
 			Private = value == "true"
-		case "publicaudit":
-			PublicAudit = value == "true"
+		//case "publicaudit":
+		//	PublicAudit = value == "true"
 		case "local":
 			AllowLocal = value == "true"
 		case "onion":
