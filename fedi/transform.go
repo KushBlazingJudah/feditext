@@ -56,6 +56,11 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 		a.ID = p.Source
 	}
 
+	bd := &p.Bumpdate
+	if bd.IsZero() {
+		bd = nil
+	}
+
 	n := Object{
 		ID:           p.APID,
 		Type:         "Note",
@@ -63,14 +68,12 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 		Content:      p.Raw, // Don't send already formatted posts
 
 		Published: &p.Date,
+		Updated:   bd,
 
 		Replies:  nil,
 		Actor:    a,
 		Tripcode: p.Tripcode,
 		Name:     p.Subject, // don't worry I don't understand either
-
-		// TODO: We don't bother with Updated as it is used as a sage marker for posts.
-		// FChannel doesn't even seem to use it all that much except for threads?
 	}
 
 	if irt.ID != "" {
