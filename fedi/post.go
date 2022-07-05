@@ -28,7 +28,7 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 		// TODO: This can be used in threads, however the database methods
 		// (which should ignore this value on new threads) save us here.
 		updated = time.Time{}
-	} else if (n.Updated != nil && !n.Updated.IsZero()) {
+	} else if n.Updated != nil && !n.Updated.IsZero() {
 		updated = *n.Updated
 	} else {
 		updated = time.Now().UTC()

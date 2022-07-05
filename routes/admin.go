@@ -395,20 +395,11 @@ func GetAdminFollow(c *fiber.Ctx) error {
 	}
 
 	// Tell them that we want to follow them.
-	b := fedi.LinkActor(fedi.TransformBoard(board))
-	b.NoCollapse = true // FChannel doesn't understand
-	follow := fedi.Activity{
-		Object: &fedi.Object{
-			Context: fedi.Context,
-			Type:    "Follow",
-			Actor:   &b,
-			To:      []fedi.LinkObject{{Type: "Link", ID: target.String()}},
-		},
-
-		ObjectProp: &fedi.Object{
-			Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: target.String()}},
-			NoCollapse: true,
-		},
+	follow, err := fedi.GenerateFollow(c.Context(), board, target.String())
+	if err != nil {
+		// This will never happen (for now) but is there to have a consistent
+		// schema for Generate functions
+		return errhtml(c, err, "/admin")
 	}
 
 	log.Printf("Sending follow request to %s for %s", target.String(), board.ID)
@@ -418,7 +409,7 @@ func GetAdminFollow(c *fiber.Ctx) error {
 	}
 
 	// TODO: Only do this when we receive an Accept.
-	// This should go in PostInbox.
+	// This should go in PostInbox, however FChannel doesn't send one.
 	if err := DB.AddFollowing(c.Context(), board.ID, target.String()); err != nil {
 		return errhtml(c, err, "/admin")
 	}
@@ -567,23 +558,11 @@ func GetAdminUnfollow(c *fiber.Ctx) error {
 	}
 
 	// I don't know why, but FChannel will remove you from the following list if you send another follow request.
-	// This really sucks, because there's an Unfollow type. Oh well.
-	// TODO: Implement Unfollow here
+	// This really sucks, because there's an Undo type which can be used to undo Follows. Oh well.
 	// TODO: Implement Unfollow in FChannel
-	b := fedi.LinkActor(fedi.TransformBoard(board))
-	b.NoCollapse = true // FChannel doesn't understand
-	follow := fedi.Activity{
-		Object: &fedi.Object{
-			Context: fedi.Context,
-			Type:    "Follow",
-			Actor:   &b,
-			To:      []fedi.LinkObject{{Type: "Link", ID: target.String()}},
-		},
-
-		ObjectProp: &fedi.Object{
-			Actor:      &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: target.String()}},
-			NoCollapse: true,
-		},
+	follow, err := fedi.GenerateUnfollow(c.Context(), board, target.String())
+	if err != nil {
+		return errhtml(c, err, "/admin")
 	}
 
 	log.Printf("Unfollowing %s for %s", target.String(), board.ID)

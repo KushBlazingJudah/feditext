@@ -105,27 +105,15 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return errjson(c, err)
 		}
 
-		// FChannel doesn't send back an Accept, it just is what it is
-		if err := DB.AddFollowing(c.Context(), board.ID, act.Actor.ID); err != nil {
-			return errjson(c, err)
-		}
-
 		log.Printf("Accepted follow from %s to board %s", act.Actor.ID, board.ID)
 
-		b := fedi.LinkActor(fedi.TransformBoard(board))
-		b.NoCollapse = true // FChannel doesn't understand
-		accept := fedi.Activity{
-			Object: &fedi.Object{
-				Context: fedi.Context,
-				Type:    "Accept",
-				Actor:   &b,
-				To:      []fedi.LinkObject{{Type: "Link", ID: act.Actor.ID}},
-			},
-
-			ObjectProp: &fedi.Object{
-				Actor: &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
-				Type:  "Follow",
-			},
+		obj := &fedi.Object{
+			Actor: &fedi.LinkActor{Object: &fedi.Object{Type: "Group", ID: act.Actor.ID}},
+			Type:  "Follow",
+		}
+		accept, err := fedi.GenerateAccept(c.Context(), board, act.Actor.ID, obj)
+		if err != nil {
+			return errjson(c, err)
 		}
 
 		if err := fedi.SendActivity(c.Context(), accept); err != nil {

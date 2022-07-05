@@ -60,3 +60,63 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 	ob.TotalItems = len(ob.OrderedItems)
 	return ob, nil
 }
+
+func GenerateFollow(ctx context.Context, board database.Board, to string) (Activity, error) {
+	b := LinkActor(TransformBoard(board))
+	b.NoCollapse = true // FChannel doesn't understand
+	follow := Activity{
+		Object: &Object{
+			Context: Context,
+			Type:    "Follow",
+			Actor:   &b,
+			To:      []LinkObject{{Type: "Link", ID: to}},
+		},
+
+		ObjectProp: &Object{
+			Actor:      &LinkActor{Object: &Object{Type: "Group", ID: to}},
+			NoCollapse: true,
+		},
+	}
+
+	return follow, nil
+}
+
+func GenerateUnfollow(ctx context.Context, board database.Board, to string) (Activity, error) {
+	b := LinkActor(TransformBoard(board))
+	b.NoCollapse = true // FChannel doesn't understand
+	c := b
+	c.NoCollapse = false // need it to collapse though
+	unfollow := Activity{
+		Object: &Object{
+			Context: Context,
+			Type:    "Undo",
+			Actor:   &b,
+			To:      []LinkObject{{Type: "Link", ID: to}},
+		},
+
+		ObjectProp: &Object{
+			Type:  "Follow",
+			Actor: &c,
+			To:    []LinkObject{{Type: "Link", ID: to}},
+		},
+	}
+
+	return unfollow, nil
+}
+
+func GenerateAccept(ctx context.Context, board database.Board, to string, obj *Object) (Activity, error) {
+	b := LinkActor(TransformBoard(board))
+	b.NoCollapse = true // FChannel doesn't understand
+	accept := Activity{
+		Object: &Object{
+			Context: Context,
+			Type:    "Accept",
+			Actor:   &b,
+			To:      []LinkObject{{Type: "Link", ID: to}},
+		},
+
+		ObjectProp: obj,
+	}
+
+	return accept, nil
+}

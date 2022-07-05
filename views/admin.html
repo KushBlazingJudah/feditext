@@ -67,6 +67,11 @@
 	<input type="text" name="pattern" id="pattern" value="" placeholder="Pattern">
 	<input type="submit">
 </form>
+<p>
+	These filters reject posts that match these regexps.
+	They are standard regexps, but use <a href="https://pkg.go.dev/regexp/syntax">Go's syntax</a>.
+	You can make your entire filter case insensitive by prefixing it with <code>(?i)</code>.
+</p>
 <table id="filters" class="table">
 	<tr><th>Pattern</th><th>Action</th></tr>
 	{{range .regexps}}
