@@ -268,7 +268,8 @@ func MergeOutbox(ctx context.Context, board string, ob Outbox) error {
 				// We're probably safe to save it into the database.
 				// Most likely fatal if it isn't.
 				if err := DB.SavePost(ctx, board, &post); err != nil {
-					return err
+					log.Printf("unable to save %s: %s", post.APID, err)
+					continue
 				}
 
 				if config.Debug {
