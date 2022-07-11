@@ -54,7 +54,7 @@
 <p>{{.nposts}} post{{if gt .nposts 1}}s{{end}}, {{.posters}} poster{{if gt .posters 1}}s{{end}}.</p>
 {{range .posts}}
 <div id="p{{.ID}}" class="post">
-	<h3><a href="#p{{.ID}}">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}} <input type="checkbox" id="postoptsexp-{{.ID}}"><label for="postoptsexp-{{.ID}}">+</label><div class="postopts"> <a href="/{{$board.ID}}/report?post={{.ID}}">[report]</a>{{if $privs}} <a href="/admin/delete?board={{$board.ID}}&post={{.ID}}">[delete]</a>{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}{{if and (ne .Thread .ID) .IsLocal }} <a href="/admin/resend?board={{$board.ID}}&post={{.ID}}">[->]</a>{{end}}{{end}}</div></h3>
+	<h3><a href="#p{{.ID}}" onclick="return quote('{{.ID}}')">#{{.ID}}</a> {{fancyname .}} <span class="subject">{{.Subject}}</span> {{time .Date}} <input type="checkbox" id="postoptsexp-{{.ID}}"><label for="postoptsexp-{{.ID}}">+</label><div class="postopts"> <a href="/{{$board.ID}}/report?post={{.ID}}">[report]</a>{{if $privs}} <a href="/admin/delete?board={{$board.ID}}&post={{.ID}}">[delete]</a>{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}{{if and (ne .Thread .ID) .IsLocal }} <a href="/admin/resend?board={{$board.ID}}&post={{.ID}}">[->]</a>{{end}}{{end}}</div></h3>
 	<blockquote class="content">
 		{{unescape .Content}}
 	</blockquote>

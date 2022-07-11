@@ -3,6 +3,18 @@ function clamp(min, x, max) {
 	return Math.max(min, Math.min(x, max))
 }
 
+// used when clicking on an ID. adds a post's numeric ID to the reply box and
+// pops it up if it isn't already floating
+window.quote = (id) => {
+	let tb = document.getElementById("comment");
+	tb.value += `>>${id}\n`;
+	if(!tb.form.classList.contains("floating")) {
+		tb.form.classList.add("floating");
+	}
+	tb.focus();
+	return false; // prevents default action
+};
+
 document.addEventListener("DOMContentLoaded", ()=>{
 	let header = document.getElementById("pfheader");
 	let close = document.getElementById("pfclose");
