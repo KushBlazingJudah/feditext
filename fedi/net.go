@@ -171,7 +171,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 			req.Host = u.Host
 
 			wg.Add(1)
-			go func() {
+			go func(to LinkObject) {
 				res, err := Proxy.Do(req)
 				if err != nil {
 					log.Printf("failed sending activity to %s: %v", to.ID, err)
@@ -194,7 +194,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 				}
 
 				wg.Done()
-			}()
+			}(to)
 		}
 	}
 
@@ -250,8 +250,9 @@ func MergeOutbox(ctx context.Context, board string, ob Outbox) error {
 		if post, err := DB.FindAPID(ctx, board, op.APID); err != nil {
 			// We (probably) don't.
 			if err := DB.SavePost(ctx, board, &op); err != nil {
-				// Abandon hope.
-				return err
+				// Log it to the console.
+				log.Printf("unable to import %s: %s", op.APID, err)
+				continue
 			}
 		} else {
 			// We do have it in the database so we can ignore the first one.
