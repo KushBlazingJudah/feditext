@@ -45,6 +45,11 @@ func SecureTrip(pass string) string {
 	// I don't know what I was thinking.
 	// Anyways.
 
+	// Special case for moderator trip
+	if pass == "mod" {
+		return "mod"
+	}
+
 	buf := make([]byte, len(pass)+len(config.TripSecret))
 	copy(buf, pass)
 	copy(buf[len(pass):], config.TripSecret)

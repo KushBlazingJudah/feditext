@@ -34,3 +34,9 @@ Outside of the `/admin` page, you can also:
 - force a post to be sent again to other instances
 - ban a user if the instance is not in private mode
 - post without a captcha
+
+You can also openly identify yourself as the admin or moderator by using the
+secure tripcode `mod`, i.e. put your name field to `##mod`.
+This will set your tripcode to `#Admin` or `#Mod`, whichever you happen to be,
+and your trip will have a different color on only your instance to further drive
+home the point you're actually who you say you are.

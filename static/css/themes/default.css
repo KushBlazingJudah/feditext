@@ -28,6 +28,7 @@ a:hover.cite {color: #fb4934;}
 .name {color: #117743; font-weight: 700;}
 .date {color: #000; font-weight: initial;}
 .tripcode {color: #117743; font-weight: 400;}
+.capcode {color: purple; font-weight: bold;}
 .quote {color: #789922;}
 
 h1,h2,h3,h4,h5,h6 {color: #af0a0f; margin-bottom: 0.1em;}

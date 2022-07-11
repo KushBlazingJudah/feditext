@@ -82,7 +82,12 @@ func init() {
 		}
 
 		if p.Tripcode != "" {
-			trip = fmt.Sprintf(`<span class="tripcode">%s</span>`, template.HTMLEscapeString(p.Tripcode)) // TODO: Clip
+			tripClass := ""
+			if p.IsLocal() && p.Tripcode[0] == '#' { // '#' only used by capcodes
+				tripClass = " capcode"
+			}
+
+			trip = fmt.Sprintf(`<span class="tripcode%s">%s</span>`, tripClass, template.HTMLEscapeString(p.Tripcode)) // TODO: Clip
 		}
 
 		return template.HTML(name + trip)

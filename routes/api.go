@@ -108,6 +108,24 @@ func Post(c *fiber.Ctx) error {
 	var trip string
 	name, trip = crypto.DoTrip(name)
 
+	// Allow moderators to use a special secure tripcode, "mod".
+	// If this is not being posted by a moderator, it will be silently discarded.
+	if trip == "mod" {
+		// Check if this is a moderator.
+		if hasPriv(c, database.ModTypeMod) {
+			// Use the special tripcode.
+			if hasPriv(c, database.ModTypeAdmin) {
+				trip = "#Admin"
+			} else {
+				trip = "#Mod"
+			}
+		} else {
+			// Can't use the special tripcode here.
+			// Silently toss it away.
+			trip = ""
+		}
+	}
+
 	post := database.Post{
 		Bumpdate: time.Now().UTC(), // TODO: sage
 		Name:     name,
