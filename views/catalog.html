@@ -1,10 +1,4 @@
 {{$board := .board}}
-<ul id="boardlist">
-	<li><a href="/">index</a></li>
-	{{range .boards}}
-	<li><a href="/{{.ID}}">/{{.ID}}/</a></li>
-	{{end}}
-</ul>
 
 <div id="boardheader">
 	<h1>/{{.board.ID}}/ - {{.board.Title}}</h1>

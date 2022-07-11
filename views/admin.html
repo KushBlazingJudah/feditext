@@ -1,12 +1,5 @@
 {{$private := .private}}
 
-<ul id="boardlist">
-	<li><a href="/">index</a></li>
-	{{range .boards}}
-	<li><a href="/{{.ID}}">/{{.ID}}/</a></li>
-	{{end}}
-</ul>
-
 <h1>Admin view <a href="/">[back]</a></h1>
 
 <h2>Boards</h2>
