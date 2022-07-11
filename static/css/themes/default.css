@@ -30,30 +30,14 @@ a:hover.cite {color: #fb4934;}
 .tripcode {color: #117743; font-weight: 400;}
 .quote {color: #789922;}
 
-.postopts { display: none; }
-input[id*="postoptsexp-"] { display: none; }
-input[id*="postoptsexp-"]:checked ~ .postopts { display: inline; }
-
-#boardheader {
-	width: 100%;
-	text-align: center;
-}
-
 h1,h2,h3,h4,h5,h6 {color: #af0a0f; margin-bottom: 0.1em;}
 hr {border: 1px solid #b7c5d9;}
 
-input[type="text"] {
-	-webkit-appearance: none;
-	-webkit-border-radius: 0;
-}
-
-.table {width: 100%; text-align: center; background-color: #e0e5f6;}
+.table {background-color: #e0e5f6;}
 .table, .table td, .table tr, .table th {
 	border: 1px solid #928374;
 	border-collapse: collapse;
 }
-
-.floating { position: fixed; }
 
 #postForm {
 	min-width: min-content;
@@ -67,11 +51,7 @@ input[type="text"] {
 #postForm.floating {
 	border: 2px solid #b7c5d9;
 	background-color: #d6daf0;
-	width: min-content;
 }
-#postForm.floating #pfheader { cursor: move; display: block; }
-#postForm.floating #pfopen { display: none; }
-#postForm.floating td:first-child { display: none; }
 
 #postForm td:first-child {
 	background-color: #98e;
@@ -90,6 +70,3 @@ input[type="text"] {
 	-webkit-box-sizing:border-box;
 	-moz-box-sizing: border-box;
 }
-
-#boardlist {padding: 0; margin: 0;}
-#boardlist li {display: inline; list-style-type: none;}

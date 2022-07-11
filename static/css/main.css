@@ -1,0 +1,36 @@
+/* This file contains CSS that would otherwise exist within every theme file. */
+
+a.cite.invalid { text-decoration: line-through; }
+
+#pfopen { float: right; }
+
+.postopts { display: none; }
+input[id*="postoptsexp-"] { display: none; }
+input[id*="postoptsexp-"]:checked ~ .postopts { display: inline; }
+
+#boardheader {
+	width: 100%;
+	text-align: center;
+}
+
+input[type="text"] {
+	-webkit-appearance: none;
+	-webkit-border-radius: 0;
+}
+
+.table {width: 100%; text-align: center;}
+.floating { position: fixed; }
+
+#postForm #pfheader { display: none; width: 100%; }
+#pfheader #pfclose { float: right; }
+
+#postForm.floating { width: min-content; }
+#postForm.floating #pfheader { cursor: move; display: block; }
+#postForm.floating #pfopen { display: none; }
+#postForm.floating td:first-child { display: none; }
+
+#postForm input[type="text"]:focus,
+#postForm textarea:focus {outline: none;}
+
+#boardlist {padding: 0; margin: 0;}
+#boardlist li {display: inline; list-style-type: none;}
