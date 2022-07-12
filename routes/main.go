@@ -28,12 +28,70 @@ var Tmpl *html.Engine
 
 var themes []string
 
+func tmplfancyname(p database.Post) template.HTML {
+	var name, trip, domain, domainFull string
+	name = fmt.Sprintf(`<span class="name">%s</span>`, template.HTMLEscapeString(p.Name))
+
+	if !p.IsLocal() {
+		// Treat as "external"
+		u, err := url.Parse(p.Source)
+		if err != nil {
+			log.Printf("failed parsing %s as source: %s", p.Source, err)
+			domain = "(unknown)"
+			domainFull = "(unknown)"
+		} else {
+			// Check if the domain is too long and shorten it otherwise
+			domain = u.Hostname()
+			domainFull = u.Host
+			e := strings.LastIndexAny(domain, ".")
+			if e == -1 {
+				e = len(domain)
+			}
+
+			tld := domain[e:]
+
+			if e > 19 { // Arbitrary number; was 32, then 16, then 19 because 16 + len("...") = 19
+				domain = domain[:12] + "..." + domain[e-4:e] + tld
+			}
+		}
+
+		name += fmt.Sprintf(`<a href="%s" class="external" title="%s">@%s</a>`, template.HTMLEscapeString(p.APID), template.HTMLEscapeString(domainFull), template.HTMLEscapeString(domain))
+	}
+
+	if p.Tripcode != "" {
+		tripClass := ""
+		if p.IsLocal() && p.Tripcode[0] == '#' { // '#' only used by capcodes
+			tripClass = " capcode"
+		}
+
+		trip = fmt.Sprintf(`<span class="tripcode%s">%s</span>`, tripClass, template.HTMLEscapeString(p.Tripcode)) // TODO: Clip
+	}
+
+	return template.HTML(name + trip)
+}
+
+func tmplunescape(s string) template.HTML {
+	return template.HTML(s)
+}
+
+func tmpltime(t time.Time) template.HTML {
+	if t.IsZero() {
+		return template.HTML("")
+	}
+
+	s := t.Format("01/02/06(Mon)15:04:05")
+	return template.HTML(fmt.Sprintf(`<span data-utc="%d" class="date">%s</span>`, t.Unix(), s))
+}
+
 func init() {
 	Tmpl = html.New("./views", ".html")
+	postTmpl := template.Must(template.New("post").Funcs(template.FuncMap{
+			"fancyname": tmplfancyname,
+			"unescape": tmplunescape,
+			"time": tmpltime,
+		}).ParseFiles("./views/partials/post.html"))
 
-	Tmpl.AddFunc("unescape", func(s string) template.HTML {
-		return template.HTML(s)
-	})
+	Tmpl.AddFunc("unescape", tmplunescape)
 
 	Tmpl.AddFunc("summarize", func(s string) template.HTML {
 		s = strings.ReplaceAll(s, "\n", " ")
@@ -51,47 +109,7 @@ func init() {
 		return template.HTML(s)
 	})
 
-	Tmpl.AddFunc("fancyname", func(p database.Post) template.HTML {
-		var name, trip, domain, domainFull string
-		name = fmt.Sprintf(`<span class="name">%s</span>`, template.HTMLEscapeString(p.Name))
-
-		if !p.IsLocal() {
-			// Treat as "external"
-			u, err := url.Parse(p.Source)
-			if err != nil {
-				log.Printf("failed parsing %s as source: %s", p.Source, err)
-				domain = "(unknown)"
-				domainFull = "(unknown)"
-			} else {
-				// Check if the domain is too long and shorten it otherwise
-				domain = u.Hostname()
-				domainFull = u.Host
-				e := strings.LastIndexAny(domain, ".")
-				if e == -1 {
-					e = len(domain)
-				}
-
-				tld := domain[e:]
-
-				if e > 19 { // Arbitrary number; was 32, then 16, then 19 because 16 + len("...") = 19
-					domain = domain[:12] + "..." + domain[e-4:e] + tld
-				}
-			}
-
-			name += fmt.Sprintf(`<a href="%s" class="external" title="%s">@%s</a>`, template.HTMLEscapeString(p.APID), template.HTMLEscapeString(domainFull), template.HTMLEscapeString(domain))
-		}
-
-		if p.Tripcode != "" {
-			tripClass := ""
-			if p.IsLocal() && p.Tripcode[0] == '#' { // '#' only used by capcodes
-				tripClass = " capcode"
-			}
-
-			trip = fmt.Sprintf(`<span class="tripcode%s">%s</span>`, tripClass, template.HTMLEscapeString(p.Tripcode)) // TODO: Clip
-		}
-
-		return template.HTML(name + trip)
-	})
+	Tmpl.AddFunc("fancyname", tmplfancyname)
 
 	Tmpl.AddFunc("captcha", func() template.HTML {
 		name, err := captcha.Fetch(context.TODO())
@@ -103,13 +121,15 @@ func init() {
 		return template.HTML(fmt.Sprintf(`<img src="/captcha/%s"></img><br><input type="text" name="captcha" id="captcha" maxlength="%d" placeholder="Captcha solution"><input type="hidden" name="captchaCode" id="captchaCode" value="%s">`, name, captcha.CaptchaLen, name))
 	})
 
-	Tmpl.AddFunc("time", func(t time.Time) template.HTML {
-		if t.IsZero() {
-			return template.HTML("")
-		}
+	Tmpl.AddFunc("time", tmpltime)
 
-		s := t.Format("01/02/06(Mon)15:04:05")
-		return template.HTML(fmt.Sprintf(`<span data-utc="%d" class="date">%s</span>`, t.Unix(), s))
+	Tmpl.AddFunc("post", func(data ...any) template.HTML {
+		b := strings.Builder{}
+		if err := postTmpl.ExecuteTemplate(&b, "post.html", data); err != nil {
+			fmt.Println(b.String())
+			panic(err)
+		}
+		return template.HTML(b.String())
 	})
 
 	// read themes directory

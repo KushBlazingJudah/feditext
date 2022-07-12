@@ -1,0 +1,28 @@
+{{$board := (index . 1)}}
+{{$privs := (index . 2)}}
+{{$private := (index . 3)}}
+{{$nposts := (index . 4)}}
+{{$posters := (index . 5)}}
+{{with (index . 0)}}
+<div id="p{{.ID}}" class="post">
+	<h3>
+		{{if and (eq .Thread .ID) (ne $nposts 0)}}[{{$nposts}}:{{$posters}}] {{end}}
+		<a href="/{{$board.ID}}/{{if eq .Thread 0}}{{.ID}}{{else}}{{.Thread}}{{end}}/#p{{.ID}}">#{{.ID}}</a>
+		{{fancyname .}}
+		<span class="subject">{{.Subject}}</span>
+		{{time .Date}}
+		<input type="checkbox" id="postoptsexp-{{.ID}}"><label for="postoptsexp-{{.ID}}">+</label>
+		<div class="postopts">
+			<a href="/{{$board.ID}}/report?post={{.ID}}">[report]</a>
+			{{if $privs}}
+				<a href="/admin/delete?board={{$board.ID}}&post={{.ID}}">[delete]</a>
+				{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}
+				{{if and (ne .Thread .ID) .IsLocal }} <a href="/admin/resend?board={{$board.ID}}&post={{.ID}}">[->]</a>{{end}}
+			{{end}}
+		</div>
+	</h3>
+	<blockquote class="content">
+		{{unescape .Content}}
+	</blockquote>
+</div>
+{{end}}
