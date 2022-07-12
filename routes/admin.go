@@ -414,24 +414,27 @@ func GetAdminFollow(c *fiber.Ctx) error {
 		return errhtml(c, err, "/admin")
 	}
 
-	// If we made it through all of this, import their outbox in the background.
-	// TODO: database is locked almost the entire time.
-	go func() {
-		// Give the request a reasonable amount of time to complete.
-		ctx, cancel := context.WithTimeout(context.Background(), config.MaxReqTime)
-		defer cancel()
+	if strings.TrimSpace(c.Query("fetch")) == "1" {
+		// If we made it through all of this, import their outbox in the background.
+		log.Printf("Fetching outbox of %s for %s", target.String(), board.ID)
 
-		ob, err := fedi.FetchOutbox(ctx, target.String())
-		if err != nil {
-			log.Printf("error fetching outbox of %s: %s", target.String(), err)
-			return
-		}
+		go func() {
+			// Give the request a reasonable amount of time to complete.
+			ctx, cancel := context.WithTimeout(context.Background(), config.MaxReqTime)
+			defer cancel()
 
-		// Don't worry about times here.
-		if err := fedi.MergeOutbox(context.Background(), board.ID, ob); err != nil {
-			log.Printf("error merging outbox of %s to %s: %s", target.String(), board.ID, err)
-		}
-	}()
+			ob, err := fedi.FetchOutbox(ctx, target.String())
+			if err != nil {
+				log.Printf("error fetching outbox of %s: %s", target.String(), err)
+				return
+			}
+
+			// Don't worry about times here.
+			if err := fedi.MergeOutbox(context.Background(), board.ID, ob); err != nil {
+				log.Printf("error merging outbox of %s to %s: %s", target.String(), board.ID, err)
+			}
+		}()
+	}
 
 	return c.Redirect("/admin")
 }

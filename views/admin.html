@@ -86,6 +86,8 @@
 <form action="/admin/follow" method="get">
 	<input type="text" name="board" id="board" value="" placeholder="Board">
 	<input type="text" name="target" id="target" value="" placeholder="Target">
+	<input type="checkbox" name="fetch" id="fetch" value=1 checked>
+	<label for="fetch">Fetch outbox</label>
 	<input type="submit">
 </form>
 <table id="following" class="table">
