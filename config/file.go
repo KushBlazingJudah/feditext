@@ -67,6 +67,21 @@ func Load(path string) error {
 			ProxyUrl = value
 		case "pprof":
 			Pprof = true
+		case "unstable":
+			// You should not set any options here.
+			// These are features implemented but currently unusable, or half baked.
+			// Nothing here is to ever be mentioned in the config file, if you
+			// find yourself here you should know what you're doing anyway.
+
+			toks := strings.Split(strings.ToLower(value), ",")
+			for _, tok := range toks {
+				switch tok {
+				case "unfollow":
+					// Uses Undo Follow activities instead of toggling with Follow.
+					// COMPAT: FChannel nor we support it yet.
+					UnstableUnfollow = true
+				}
+			}
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}

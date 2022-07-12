@@ -97,6 +97,13 @@ var (
 	// pprof does not support authentication, so the most that can be done is
 	// putting a key in the path.
 	Pprof bool = false
+
+	// UnstableUnfollow uses Undo activities instead of sending another Follow,
+	// which as of writing FChannel will use to toggle you on and off the
+	// followers list.
+	// Undo Follow is not implemented in FChannel, nor here (yet).
+	// **Only set if you know what you're doing.**
+	UnstableUnfollow bool = false
 )
 
 func init() {

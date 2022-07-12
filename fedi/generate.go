@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/KushBlazingJudah/feditext/database"
+	"github.com/KushBlazingJudah/feditext/config"
 )
 
 func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
@@ -82,6 +83,12 @@ func GenerateFollow(ctx context.Context, board database.Board, to string) (Activ
 }
 
 func GenerateUnfollow(ctx context.Context, board database.Board, to string) (Activity, error) {
+	// The rest of this function uses an Undo Follow, however FChannel
+	// currently only supports toggling on and off with Follow.
+	if !config.UnstableUnfollow {
+		return GenerateFollow(ctx, board, to)
+	}
+
 	b := LinkActor(TransformBoard(board))
 	b.NoCollapse = true // FChannel doesn't understand
 	c := b
