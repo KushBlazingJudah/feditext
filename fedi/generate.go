@@ -33,7 +33,7 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 			return ob, err
 		}
 
-		posts, err := DB.Thread(ctx, board.ID, thread.ID, 0)
+		posts, err := DB.Thread(ctx, board.ID, thread.ID, 0, false)
 		if err != nil {
 			return ob, err
 		}

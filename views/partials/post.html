@@ -20,6 +20,11 @@
 				{{if and (ne .Thread .ID) .IsLocal }} <a href="/admin/resend?board={{$board.ID}}&post={{.ID}}">[->]</a>{{end}}
 			{{end}}
 		</div>
+		<div class="backlinks">
+			{{range .Replies}}
+			<a href="{{if eq $nposts 0}}#p{{.ID}}{{else}}/{{$board.ID}}/{{.Thread}}#p{{.ID}}{{end}}" class="backlink">&gt;&gt;{{.ID}}</a>
+			{{end}}
+		</div>
 	</h3>
 	<blockquote class="content">
 		{{unescape .Content}}

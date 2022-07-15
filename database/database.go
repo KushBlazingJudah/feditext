@@ -77,6 +77,9 @@ type Post struct {
 
 	Source string
 	APID   string // ActivityPub ID
+
+	// Replies is a slice that is optionally filled upon requesting a post.
+	Replies []Post
 }
 
 // ModerationAction records any moderation action taken.
@@ -147,7 +150,7 @@ type Database interface {
 	Threads(ctx context.Context, board string) ([]Post, error)
 
 	// Thread fetches all posts on a thread.
-	Thread(ctx context.Context, board string, thread PostID, tail int) ([]Post, error)
+	Thread(ctx context.Context, board string, thread PostID, tail int, replies bool) ([]Post, error)
 
 	// ThreadStat returns the number of posts and unique posters in any given thread.
 	ThreadStat(ctx context.Context, board string, thread PostID) (int, int, error)
@@ -344,6 +347,7 @@ func formatPost(board string, p *Post, repmap map[string]string, fn func(match s
 			repl = fmt.Sprintf(`<a href="#p%d" class="cite">&gt;&gt;%d</a>`, ref.ID, ref.ID)
 		} else if ref.Thread == 0 && p.Thread == ref.ID {
 			// OP
+			reps = append(reps, ref.ID)
 			repl = fmt.Sprintf(`<a href="/%s/%d#p%d" class="cite">&gt;&gt;%d (OP)</a>`, board, ref.ID, ref.ID, ref.ID)
 		} else {
 			// Cross-cite

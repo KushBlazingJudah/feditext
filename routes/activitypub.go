@@ -333,7 +333,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 			return errjson(c, err)
 		}
 
-		posts, err := DB.Thread(c.Context(), board.ID, post.ID, 0)
+		posts, err := DB.Thread(c.Context(), board.ID, post.ID, 0, false)
 		if err != nil {
 			return errjson(c, err)
 		}

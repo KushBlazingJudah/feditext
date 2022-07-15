@@ -20,6 +20,8 @@ input[type="text"] {
 
 .table {width: 100%; text-align: center;}
 .floating { position: fixed; }
+.backlinks {display: inline;}
+.backlink {font-weight: initial; font-size: 0.8em;}
 
 #postForm #pfheader { display: none; width: 100%; }
 #pfheader #pfclose { float: right; }

@@ -120,7 +120,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 	posts := []indexData{}
 
 	for _, thread := range threads {
-		t, err := DB.Thread(c.Context(), board.ID, thread.ID, 5)
+		t, err := DB.Thread(c.Context(), board.ID, thread.ID, 5, true)
 		if err != nil {
 			return errhtml(c, err) // TODO: update
 		}
@@ -191,7 +191,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/%s/%d#p%d", board.ID, op.Thread, op.ID))
 	}
 
-	posts, err := DB.Thread(c.Context(), board.ID, op.ID, 0)
+	posts, err := DB.Thread(c.Context(), board.ID, op.ID, 0, true)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return errhtmlc(c, "This thread does not exist.", 404, fmt.Sprintf("/%s", board.ID))
