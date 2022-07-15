@@ -14,14 +14,18 @@ const (
 	// SubjectCutoff is the max length for subjects.
 	SubjectCutoff = 64
 
-	// PostCutoff is the max length for posts.
-	PostCutoff = 4000
-
 	// ReportCutoff is the max length for reports.
 	ReportCutoff = 240
 
 	RequestTimeout = 30 * time.Second
 	MaxReqTime     = 60 * time.Second
+)
+
+var (
+	// PostCutoff is the max length for posts.
+	// This used to be a constant but is now a variable because of unstable
+	// textlimit.
+	PostCutoff = 2000
 )
 
 var (

@@ -80,6 +80,12 @@ func Load(path string) error {
 					// Uses Undo Follow activities instead of toggling with Follow.
 					// COMPAT: FChannel nor we support it yet.
 					UnstableUnfollow = true
+				case "textlimit":
+					// COMPAT: FChannel silently rejects posts with text lengths greater than 2000.
+					// This unstable option moves it back to the original 4000
+					// limit, however as of writing you will be unable to send
+					// posts longer than 2000 chars with FChannel instances.
+					PostCutoff = 4000
 				}
 			}
 		default:
