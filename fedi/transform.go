@@ -57,7 +57,8 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 	}
 
 	bd := &p.Bumpdate
-	if bd.IsZero() {
+	if bd.IsZero() || bd.Unix() == 0 || bd.Unix() == 1 {
+		// Unix time is because we used to record 0/1 for bumpdate.
 		bd = nil
 	}
 
@@ -111,6 +112,16 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 				// We throw away the error value as it will always be nil if we don't touch the database.
 				// This is true when we tell it to ignore replies.
 				rep, _ := TransformPost(ctx, actor, reply, n, false)
+
+				// Also kill some other properties we don't care about.
+				// They can stay there, but to save CPU cycles...
+				// Ideally, I'd toss away Content too and just get by with
+				// LinkObjects but pretty sure FChannel needs the struct.
+				// Pretty sure it does anyway.
+				rep.InReplyTo = nil
+				rep.Updated = nil
+				rep.Published = nil
+
 				n.Replies.OrderedItems = append(n.Replies.OrderedItems, LinkObject(rep))
 			}
 		}

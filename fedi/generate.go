@@ -38,7 +38,7 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 			return ob, err
 		}
 
-		if l := len(posts) - 1; l > 0 { // -1 for OP
+		if l := len(posts); l > 1 { // -1 for OP
 			n.Replies = &OrderedCollection{
 				Object:       &Object{Type: "OrderedCollection"},
 				TotalItems:   l,

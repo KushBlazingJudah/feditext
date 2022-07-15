@@ -696,18 +696,17 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 	}
 
 	// Format the post from raw unless we don't need to
+	var err error
+	var reps []PostID
 	if post.Content == "" {
 		repmap := findReplies(post)
-		reps, err := formatPost(board, post, repmap, db.findPost(ctx, tx, board))
+		reps, err = formatPost(board, post, repmap, db.findPost(ctx, tx, board))
 		if err != nil {
 			return err
 		}
 
-		for _, v := range reps {
-			if err := db.addReplyTx(ctx, tx, board, post.ID, v); err != nil {
-				return err
-			}
-		}
+		// We cannot do anything with the replies yet because we don't know the post's ID.
+		// And in order to record the reply, we need the post's ID.
 	}
 
 	// This is used to prevent passing an absurdly large amount of arguments.
@@ -755,6 +754,16 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 		id, err := r.LastInsertId()
 		post.ID = PostID(id)
 
+		// Don't mark a thread as replying to a post.
+		if post.Thread != 0 {
+			// Now, we can place in our replies, long after they were deferred.
+			for _, v := range reps {
+				if err := db.addReplyTx(ctx, tx, board, post.ID, v); err != nil {
+					return err
+				}
+			}
+		}
+
 		return err
 	}
 
@@ -762,7 +771,7 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 	// We don't update all values of these posts, mostly only the ones that
 	// the user controls.
 	args = append(args, sql.Named("id", post.ID))
-	_, err := tx.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET name =
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET name =
 		:name, tripcode = :tripcode, subject = :subject, raw = :raw, content = :content WHERE id = :id`,
 		board), args...)
 	return err
