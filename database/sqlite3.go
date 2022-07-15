@@ -10,6 +10,7 @@ import (
 	"log"
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -251,9 +252,50 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 	return post, err
 }
 
+// postTx fetches a single post from a thread.
+// Keep in sync with Post.
+func (db *SqliteDatabase) postTx(ctx context.Context, tx *sql.Tx, board string, id PostID) (Post, error) {
+	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id = ?`, board), id)
+	post := Post{ID: id}
+
+	var ttime int64
+	var btime *int64
+
+	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID)
+	if err != nil {
+		return post, err
+	}
+
+	post.Date = time.Unix(ttime, 0).UTC()
+	if btime != nil {
+		post.Bumpdate = time.Unix(*btime, 0).UTC()
+	}
+
+	return post, err
+}
+
 // FindAPID finds a post given its ActivityPub ID.
 func (db *SqliteDatabase) FindAPID(ctx context.Context, board string, apid string) (Post, error) {
 	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate FROM posts_%s WHERE apid = ?`, board), apid)
+	post := Post{APID: apid}
+
+	var ttime int64
+	var btime *int64
+
+	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime)
+	post.Date = time.Unix(ttime, 0).UTC()
+
+	if btime != nil {
+		post.Bumpdate = time.Unix(*btime, 0).UTC()
+	}
+
+	return post, err
+}
+
+// findAPIDTx finds a post given its ActivityPub ID.
+// Keep in sync with FindAPID.
+func (db *SqliteDatabase) findAPIDTx(ctx context.Context, tx *sql.Tx, board string, apid string) (Post, error) {
+	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate FROM posts_%s WHERE apid = ?`, board), apid)
 	post := Post{APID: apid}
 
 	var ttime int64
@@ -614,10 +656,21 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 	return err
 }
 
-// SavePost saves a post to the database.
+func (db *SqliteDatabase) findPost(ctx context.Context, tx *sql.Tx, board string) func(match string) (Post, error) {
+	return func(match string) (Post, error) {
+		if match[0] == 'h' { // AP
+			return db.findAPIDTx(ctx, tx, board, match)
+		}
+
+		id, _ := strconv.Atoi(match) // Won't fail
+		return db.postTx(ctx, tx, board, PostID(id))
+	}
+}
+
+// SavePostTx saves a post to the database, in a transaction.
 // If Post.ID is 0, one will be generated. If not, it will update an existing post.
 // If Post.Thread is 0, it is considered a thread.
-func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post) error {
+func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board string, post *Post) error {
 	if post.Date.IsZero() {
 		post.Date = time.Now().UTC()
 	}
@@ -644,8 +697,16 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 
 	// Format the post from raw unless we don't need to
 	if post.Content == "" {
-		if err := formatPost(ctx, db, board, post); err != nil {
+		repmap := findReplies(post)
+		reps, err := formatPost(board, post, repmap, db.findPost(ctx, tx, board))
+		if err != nil {
 			return err
+		}
+
+		for _, v := range reps {
+			if err := db.addReplyTx(ctx, tx, board, post.ID, v); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -674,7 +735,7 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 
 			if !post.Bumpdate.IsZero() { // Bump if above zero
 				args = append(args, sql.Named("bumpdate", 1)) // Marker for bump
-				if _, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET
+				if _, err := tx.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET
 				bumpdate = ? WHERE id = ?`, board), post.Date.Unix(), post.Thread); err != nil {
 					return err
 				}
@@ -683,7 +744,7 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 			}
 		}
 
-		r, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
+		r, err := tx.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
 			posts_%s(thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid) VALUES (
 			:thread, :name, :tripcode, :subject, :date, :raw, :content, :source, :bumpdate, :apid)`,
 			board), args...)
@@ -701,10 +762,27 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 	// We don't update all values of these posts, mostly only the ones that
 	// the user controls.
 	args = append(args, sql.Named("id", post.ID))
-	_, err := db.conn.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET name =
+	_, err := tx.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET name =
 		:name, tripcode = :tripcode, subject = :subject, raw = :raw, content = :content WHERE id = :id`,
 		board), args...)
 	return err
+}
+
+// SavePost saves a post to the database.
+// If Post.ID is 0, one will be generated. If not, it will update an existing post.
+// If Post.Thread is 0, it is considered a thread.
+func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post) error {
+	tx, err := db.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := db.SavePostTx(ctx, tx, board, post); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // SaveModerator updates data about a moderator, or creates a new one.
@@ -812,6 +890,13 @@ func (db *SqliteDatabase) Solve(ctx context.Context, id, solution string) (bool,
 // AddReply links two posts together as a reply.
 func (db *SqliteDatabase) AddReply(ctx context.Context, board string, from, to PostID) error {
 	_, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT OR IGNORE INTO replies_%s(source, target) VALUES(?, ?)`, board), from, to)
+	return err
+}
+
+// addReplyTx links two posts together as a reply.
+// Keep in sync with AddReply.
+func (db *SqliteDatabase) addReplyTx(ctx context.Context, tx *sql.Tx, board string, from, to PostID) error {
+	_, err := tx.ExecContext(ctx, fmt.Sprintf(`INSERT OR IGNORE INTO replies_%s(source, target) VALUES(?, ?)`, board), from, to)
 	return err
 }
 
