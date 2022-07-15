@@ -126,7 +126,7 @@ func (db *SqliteDatabase) Board(ctx context.Context, id string) (Board, error) {
 
 // Boards returns a list of all boards.
 func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
-	rows, err := db.conn.QueryContext(ctx, "SELECT id, title, description FROM boards")
+	rows, err := db.conn.QueryContext(ctx, "SELECT id, title, description FROM boards ORDER BY id")
 	if err != nil {
 		return nil, err
 	}

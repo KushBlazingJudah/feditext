@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/config"
+	"github.com/KushBlazingJudah/feditext/database"
 )
 
 func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {

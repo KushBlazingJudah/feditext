@@ -19,6 +19,7 @@
 			{{range .boards}}
 			<li><a href="/{{.ID}}">/{{.ID}}/</a></li>
 			{{end}}
+			{{if .privs}}<li style="float:right;"><a href="/admin">admin</a></li>{{end}}
 		</ul>
 		{{end}}
 

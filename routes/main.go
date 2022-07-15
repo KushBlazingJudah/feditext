@@ -86,10 +86,10 @@ func tmpltime(t time.Time) template.HTML {
 func init() {
 	Tmpl = html.New("./views", ".html")
 	postTmpl := template.Must(template.New("post").Funcs(template.FuncMap{
-			"fancyname": tmplfancyname,
-			"unescape": tmplunescape,
-			"time": tmpltime,
-		}).ParseFiles("./views/partials/post.html"))
+		"fancyname": tmplfancyname,
+		"unescape":  tmplunescape,
+		"time":      tmpltime,
+	}).ParseFiles("./views/partials/post.html"))
 
 	Tmpl.AddFunc("unescape", tmplunescape)
 

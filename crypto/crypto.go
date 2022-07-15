@@ -19,15 +19,15 @@ func JwtKeyfunc(t *jwt.Token) (interface{}, error) {
 }
 
 func DoTrip(name string) (string, string) {
+	if name == "" {
+		name = "Anonymous"
+	}
+
 	toks := strings.SplitN(name, "#", 2)
 
-	if len(toks) > 0 {
-		// Prevent empty names
-
-		toks[0] = strings.TrimSpace(toks[0])
-		if len(toks[0]) == 0 {
-			toks[0] = "Anonymous"
-		}
+	toks[0] = strings.TrimSpace(toks[0])
+	if len(toks[0]) == 0 {
+		toks[0] = "Anonymous"
 	}
 
 	if len(toks) == 1 {
