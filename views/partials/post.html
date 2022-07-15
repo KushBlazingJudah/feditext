@@ -7,7 +7,7 @@
 <div id="p{{.ID}}" class="post">
 	<h3>
 		{{if and (eq .Thread .ID) (ne $nposts 0)}}[{{$nposts}}:{{$posters}}] {{end}}
-		<a href="/{{$board.ID}}/{{if eq .Thread 0}}{{.ID}}{{else}}{{.Thread}}{{end}}/#p{{.ID}}">#{{.ID}}</a>
+		<a href="/{{$board.ID}}/{{if eq .Thread 0}}{{.ID}}{{else}}{{.Thread}}{{end}}/#p{{.ID}}" {{if eq $nposts 0}}onclick="return quote('{{.ID}}')"{{end}}>#{{.ID}}</a>
 		{{fancyname .}}
 		<span class="subject">{{.Subject}}</span>
 		{{time .Date}}
