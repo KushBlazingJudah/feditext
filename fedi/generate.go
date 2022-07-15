@@ -32,6 +32,7 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 		if err != nil {
 			return ob, err
 		}
+		n.InReplyTo = nil
 
 		posts, err := DB.Thread(ctx, board.ID, thread.ID, 0, false)
 		if err != nil {

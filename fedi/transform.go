@@ -97,6 +97,12 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 
 		if len(reps) > 0 {
 			for _, reply := range reps {
+				// Toss if this is already in InReplyTo
+				for _, v := range n.InReplyTo {
+					if v.ID == reply.APID {
+						goto next
+					}
+				}
 				// We throw away the error value as it will always be nil if we don't touch the database.
 				// This is true when we tell it to ignore replies.
 				rep, _ := TransformPost(ctx, actor, reply, n, false, false)
@@ -112,6 +118,7 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 				rep.Published = nil
 
 				n.InReplyTo = append(n.InReplyTo, LinkObject(rep))
+				next:
 			}
 		}
 	}

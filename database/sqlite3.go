@@ -767,27 +767,11 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 		sql.Named("subject", post.Subject),
 		sql.Named("thread", post.Thread),
 		sql.Named("tripcode", post.Tripcode),
+		sql.Named("bumpdate", post.Date.Unix()),
 	}
 
 	if post.ID == 0 {
 		// We are creating a new post.
-		if post.Thread == 0 {
-			// Set bumpdate.
-			args = append(args, sql.Named("bumpdate", post.Date.Unix()))
-			post.Bumpdate = post.Date
-		} else {
-			// Bump the thread.
-
-			if !post.Bumpdate.IsZero() { // Bump if above zero
-				args = append(args, sql.Named("bumpdate", 1)) // Marker for bump
-				if _, err := tx.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET
-				bumpdate = ? WHERE id = ?`, board), post.Date.Unix(), post.Thread); err != nil {
-					return err
-				}
-			} else {
-				args = append(args, sql.Named("bumpdate", nil)) // Marker for sage
-			}
-		}
 
 		r, err := tx.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
 			posts_%s(thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid) VALUES (

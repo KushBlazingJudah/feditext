@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"sync"
 	"time"
+	"path/filepath"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
@@ -324,6 +325,28 @@ func PostOut(ctx context.Context, board database.Board, post database.Post) erro
 
 		irt.Type = "Note"
 		irt.ID = thread.APID
+
+		// TODO: This is not a great way to figure out the actor of an object.
+		// Does it work? Sure does! But only guaranteed to work between
+		// Feditext and FChannel.
+		// Add the actor of the thread into To.
+		if u, err := url.Parse(thread.APID); err == nil {
+			// Intentionally ignoring failures
+			u.Path = filepath.Dir(u.Path)
+			s := u.String()
+
+			// Don't if it's already there
+			ok := true
+			for _, v := range act.To {
+				if v.ID == s {
+					ok = false
+					break
+				}
+			}
+			if ok {
+				act.To = append(act.To, LinkObject{Type: "Link", ID: u.String()})
+			}
+		}
 	}
 
 	note, err := TransformPost(ctx, &actor, post, irt, false, true) // Won't ever have replies
