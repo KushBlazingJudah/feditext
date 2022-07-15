@@ -326,7 +326,7 @@ func PostOut(ctx context.Context, board database.Board, post database.Post) erro
 		irt.ID = thread.APID
 	}
 
-	note, err := TransformPost(ctx, &actor, post, irt, false)
+	note, err := TransformPost(ctx, &actor, post, irt, false, true) // Won't ever have replies
 	if err != nil {
 		return err
 	}

@@ -328,7 +328,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 		// It's a thread
 		// Fetch the replies and send
 
-		op, err := fedi.TransformPost(c.Context(), &actor, post, fedi.Object{}, false)
+		op, err := fedi.TransformPost(c.Context(), &actor, post, fedi.Object{}, false, false)
 		if err != nil {
 			return errjson(c, err)
 		}
@@ -346,7 +346,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 			}
 
 			for _, post := range posts[1:] {
-				p, err := fedi.TransformPost(c.Context(), &actor, post, op, true)
+				p, err := fedi.TransformPost(c.Context(), &actor, post, op, true, true)
 				if err != nil {
 					return errjson(c, err)
 				}
@@ -369,9 +369,9 @@ func GetBoardNote(c *fiber.Ctx) error {
 	}
 
 	// Not accessing DB so err doesn't matter
-	nthread, _ := fedi.TransformPost(c.Context(), &actor, thread, fedi.Object{}, false)
+	nthread, _ := fedi.TransformPost(c.Context(), &actor, thread, fedi.Object{}, false, false)
 
-	op, err := fedi.TransformPost(c.Context(), &actor, post, nthread, true)
+	op, err := fedi.TransformPost(c.Context(), &actor, post, nthread, true, true)
 	if err != nil {
 		return errjson(c, err)
 	}

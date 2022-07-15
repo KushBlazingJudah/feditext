@@ -28,7 +28,7 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 			continue // external, don't put in outbox
 		}
 
-		n, err := TransformPost(ctx, &actor, thread, Object{}, false)
+		n, err := TransformPost(ctx, &actor, thread, Object{}, false, false)
 		if err != nil {
 			return ob, err
 		}
@@ -46,7 +46,7 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 			}
 
 			for _, post := range posts[1:] { // Skip OP
-				nn, err := TransformPost(ctx, &actor, post, n, true)
+				nn, err := TransformPost(ctx, &actor, post, n, true, true)
 				if err != nil {
 					return ob, err
 				}

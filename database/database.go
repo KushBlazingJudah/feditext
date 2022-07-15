@@ -183,7 +183,7 @@ type Database interface {
 	Captcha(ctx context.Context, id string) ([]byte, string, error)
 
 	// Replies returns a list of replies to a post.
-	Replies(ctx context.Context, board string, id PostID) ([]Post, error)
+	Replies(ctx context.Context, board string, id PostID, reverse bool) ([]Post, error)
 
 	// Following returns a list of Actors a board is following.
 	Following(ctx context.Context, board string) ([]string, error)
@@ -337,8 +337,9 @@ func formatPost(board string, p *Post, repmap map[string]string, fn func(match s
 
 		// Rewrite the raw representation since it gets served through ActivityPub.
 		// This is only necessary if this is an ID cite.
-		if target[0] == 'h' { // h(ttp)... AP cite
-			p.Raw = strings.ReplaceAll(p.Raw, match, ref.APID)
+		// I don't expect anything to understand numeric cites.
+		if target[0] != 'h' { // h(ttp)... AP cite
+			p.Raw = strings.ReplaceAll(p.Raw, match, ">>"+ref.APID)
 		}
 
 		if ref.Thread == p.Thread {

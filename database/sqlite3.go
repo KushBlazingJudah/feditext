@@ -495,8 +495,14 @@ func (db *SqliteDatabase) repliesTx(ctx context.Context, tx *sql.Tx, board strin
 }
 
 // Replies returns a list of IDs to a post.
-func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
+func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID, reverse bool) ([]Post, error) {
+	var rows *sql.Rows
+	var err error
+	if reverse {
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IN (SELECT target FROM replies_%s WHERE source = ?)`, board, board), id)
+	} else {
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
+	}
 	if err != nil {
 		return nil, err
 	}

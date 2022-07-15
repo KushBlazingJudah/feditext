@@ -43,7 +43,7 @@ func TransformBoard(board database.Board) Actor {
 }
 
 // TransformPost converts our native post structure to ActivityPub's Note.
-func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Object, fetchReplies bool) (Object, error) {
+func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Object, fetchReplies bool, fetchInReplyTo bool) (Object, error) {
 	// This part is (database.Post).AsPost backwards
 	var attTo *LinkObject
 	if p.Name != "" && p.Name != "Anonymous" {
@@ -83,11 +83,40 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 			ID:         irt.ID,
 			Type:       irt.Type,
 			Actor:      irt.Actor,
-			NoCollapse: true, // COMPAT: See below
+			NoCollapse: true, // COMPAT: See a bit further below
 		}
 
 		n.InReplyTo = append(n.InReplyTo, LinkObject(irt))
-	} else {
+	}
+
+	if fetchInReplyTo {
+		reps, err := DB.Replies(ctx, actor.Name, p.ID, true)
+		if err != nil {
+			return n, err
+		}
+
+		if len(reps) > 0 {
+			for _, reply := range reps {
+				// We throw away the error value as it will always be nil if we don't touch the database.
+				// This is true when we tell it to ignore replies.
+				rep, _ := TransformPost(ctx, actor, reply, n, false, false)
+
+				// Also kill some other properties we don't care about.
+				// They can stay there, but to save CPU cycles...
+				// Ideally, I'd toss away Content too and just get by with
+				// LinkObjects but pretty sure FChannel needs the struct.
+				// Pretty sure it does anyway.
+				rep.InReplyTo = nil
+				rep.Replies = nil
+				rep.Updated = nil
+				rep.Published = nil
+
+				n.InReplyTo = append(n.InReplyTo, LinkObject(rep))
+			}
+		}
+	}
+
+	if len(n.InReplyTo) == 0 {
 		// COMPAT: FChannel will choke if we send them a post with no inReplyTo.
 		// The only time this should be true is when we make a thread.
 		// Either way, it comes at hopefully no cost.
@@ -97,9 +126,16 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 	}
 
 	if fetchReplies {
-		reps, err := DB.Replies(ctx, actor.Name, p.ID)
-		if err != nil {
-			return n, err
+		var reps []database.Post
+		var err error = nil
+		if len(p.Replies) > 0 {
+			// Replies have already been passed to us.
+			reps = p.Replies
+		} else {
+			reps, err = DB.Replies(ctx, actor.Name, p.ID, false)
+			if err != nil {
+				return n, err
+			}
 		}
 
 		if len(reps) > 0 {
@@ -111,7 +147,7 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 			for _, reply := range reps {
 				// We throw away the error value as it will always be nil if we don't touch the database.
 				// This is true when we tell it to ignore replies.
-				rep, _ := TransformPost(ctx, actor, reply, n, false)
+				rep, _ := TransformPost(ctx, actor, reply, n, false, false)
 
 				// Also kill some other properties we don't care about.
 				// They can stay there, but to save CPU cycles...
@@ -119,6 +155,7 @@ func TransformPost(ctx context.Context, actor *Actor, p database.Post, irt Objec
 				// LinkObjects but pretty sure FChannel needs the struct.
 				// Pretty sure it does anyway.
 				rep.InReplyTo = nil
+				rep.Replies = nil
 				rep.Updated = nil
 				rep.Published = nil
 
