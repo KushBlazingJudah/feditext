@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
-	"path/filepath"
 
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
@@ -176,6 +176,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 				res, err := Proxy.Do(req)
 				if err != nil {
 					log.Printf("failed sending activity to %s: %v", to.ID, err)
+					return
 				}
 
 				if res.Body != nil {
