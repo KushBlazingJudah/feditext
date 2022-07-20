@@ -792,6 +792,17 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 					return err
 				}
 			}
+
+			if !post.Sage {
+				// I used to use post.Date but you could send posts to the
+				// bottom of the board that way with a specially crafted
+				// activity.
+				if _, err := tx.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET bumpdate = ? WHERE id = ?`, board), time.Now().UTC().Unix(), post.Thread); err != nil {
+					return err
+				}
+			} else {
+				args = append(args, sql.Named("bumpdate", nil)) // Marker for sage
+			}
 		}
 
 		return err

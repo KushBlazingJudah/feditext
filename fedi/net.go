@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
@@ -189,7 +188,7 @@ func SendActivity(ctx context.Context, act Activity) error {
 
 					if config.Debug && res.Body != nil {
 						// Write to stderr
-						fmt.Fprintf(os.Stderr, "Response body (at most 4096 bytes) for failure on %s for %s follows", act.ID, to.ID)
+						fmt.Fprintf(os.Stderr, "Response body (at most 4096 bytes) for failure on %s for %s follows", act.Object.ID, to.ID)
 						io.Copy(os.Stderr, io.LimitReader(res.Body, 4096))
 						fmt.Fprint(os.Stderr, "\n")
 					}
@@ -327,25 +326,18 @@ func PostOut(ctx context.Context, board database.Board, post database.Post) erro
 		irt.Type = "Note"
 		irt.ID = thread.APID
 
-		// TODO: This is not a great way to figure out the actor of an object.
-		// Does it work? Sure does! But only guaranteed to work between
-		// Feditext and FChannel.
-		// Add the actor of the thread into To.
-		if u, err := url.Parse(thread.APID); err == nil {
-			// Intentionally ignoring failures
-			u.Path = filepath.Dir(u.Path)
-			s := u.String()
-
-			// Don't if it's already there
+		// Add the actor of the thread into To, if it's not already there
+		// thread.Source is the Actor for posts that aren't local to us.
+		if !thread.IsLocal() {
 			ok := true
 			for _, v := range act.To {
-				if v.ID == s {
+				if v.ID == thread.Source {
 					ok = false
 					break
 				}
 			}
 			if ok {
-				act.To = append(act.To, LinkObject{Type: "Link", ID: u.String()})
+				act.To = append(act.To, LinkObject{Type: "Link", ID: thread.Source})
 			}
 		}
 	}

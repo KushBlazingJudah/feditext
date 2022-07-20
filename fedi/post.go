@@ -24,11 +24,14 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 	}
 
 	var updated time.Time
+	saged := false
 	if util.Has("sage", n.Options) {
 		// TODO: This can be used in threads, however the database methods
 		// (which should ignore this value on new threads) save us here.
-		updated = time.Time{}
-	} else if n.Updated != nil && !n.Updated.IsZero() {
+		saged = true
+	}
+
+	if n.Updated != nil && !n.Updated.IsZero() {
 		updated = *n.Updated
 	} else {
 		updated = time.Now().UTC()
@@ -87,8 +90,6 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 		return database.Post{}, fmt.Errorf("no suitable thread in the database to reply to, ignoring")
 	}
 
-	// TODO: Sanitize
-
 	return database.Post{
 		// Thread and ID aren't really possible to fill out, nor should we care.
 		// These two just serve as unique identifiers on the database end.
@@ -105,6 +106,7 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 		Raw:      n.Content,
 		Source:   actor,
 		APID:     n.ID,
+		Sage:     saged,
 	}, nil
 }
 

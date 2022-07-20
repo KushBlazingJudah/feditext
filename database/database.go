@@ -80,6 +80,10 @@ type Post struct {
 
 	// Replies is a slice that is optionally filled upon requesting a post.
 	Replies []Post
+
+	// Sage is a marker for incoming posts (i.e. never used when retriving
+	// data) and if true, will not bump the thread to the top of the catalog.
+	Sage bool
 }
 
 // ModerationAction records any moderation action taken.
