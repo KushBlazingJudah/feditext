@@ -5,6 +5,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -14,50 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"database/sql"
-
-	_ "embed"
-
 	"github.com/KushBlazingJudah/feditext/config"
 	_ "github.com/mattn/go-sqlite3"
 
 	"math/rand"
 )
-
-//go:embed schema.sqlite3
-var sqliteSchema string
-
-const sqliteNewBoard = `CREATE TABLE IF NOT EXISTS posts_%s(
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	thread INTEGER,
-
-	name TEXT,
-	tripcode TEXT,
-	subject TEXT,
-
-	date INTEGER,
-	bumpdate INTEGER,
-
-	raw TEXT,
-	content TEXT,
-
-	source TEXT,
-	apid TEXT,
-
-	UNIQUE(apid)
-);
-
-CREATE TABLE IF NOT EXISTS replies_%s(
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-	source INTEGER,
-	target INTEGER,
-
-	FOREIGN KEY(source) REFERENCES posts_%s(id),
-	FOREIGN KEY(target) REFERENCES posts_%s(id),
-	UNIQUE(source,target)
-);
-`
 
 type SqliteDatabase struct {
 	conn    *sql.DB
@@ -73,10 +35,9 @@ func init() {
 		db.SetMaxOpenConns(1)
 
 		// Run initial schema
-		_, err = db.Exec(sqliteSchema)
-		if err != nil {
+		if err := sqliteUpgrade(db); err != nil {
 			db.Close()
-			return nil, err
+			return nil, fmt.Errorf("upgrade database: %w", err)
 		}
 
 		sdb := &SqliteDatabase{conn: db, regexps: make(map[int]*regexp.Regexp)}
@@ -697,8 +658,7 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 	}
 
 	// Create posts table
-	// Hack sprintf statement, go away
-	_, err = db.conn.ExecContext(ctx, fmt.Sprintf(sqliteNewBoard, board.ID, board.ID, board.ID, board.ID))
+	_, err = db.conn.ExecContext(ctx, strings.ReplaceAll(sqliteNewBoard, "{board}", board.ID))
 	return err
 }
 
@@ -800,8 +760,6 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 				if _, err := tx.ExecContext(ctx, fmt.Sprintf(`UPDATE posts_%s SET bumpdate = ? WHERE id = ?`, board), time.Now().UTC().Unix(), post.Thread); err != nil {
 					return err
 				}
-			} else {
-				args = append(args, sql.Named("bumpdate", nil)) // Marker for sage
 			}
 		}
 
