@@ -113,7 +113,7 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 // TODO: specify sort. We assume that we're just going to sort by latest bumped threads.
 // This is true in 99% of cases but not always.
 func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
+	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
 	if err != nil {
 		return nil, err
 	}
@@ -125,14 +125,16 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, er
 		post := Post{}
 		var ttime int64
 		var btime int64 // Should never be nil
+		flags := 0
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID, &flags); err != nil {
 			return posts, err
 		}
 
 		post.Date = time.Unix(ttime, 0).UTC()
 		post.Bumpdate = time.Unix(btime, 0).UTC()
 		post.Thread = post.ID
+		post.readFlags(flags)
 
 		posts = append(posts, post)
 	}
@@ -150,9 +152,9 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 
 	var rows *sql.Rows
 	if tail > 0 {
-		rows, err = tx.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id = :thread OR id IN (SELECT id FROM posts_%s WHERE thread = :thread ORDER BY id DESC LIMIT :tail);`, board, board), sql.Named("thread", thread), sql.Named("tail", tail))
+		rows, err = tx.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id = :thread OR id IN (SELECT id FROM posts_%s WHERE thread = :thread ORDER BY id DESC LIMIT :tail);`, board, board), sql.Named("thread", thread), sql.Named("tail", tail))
 	} else {
-		rows, err = tx.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
+		rows, err = tx.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE thread IS ? OR id IS ? ORDER BY id ASC`, board), thread, thread)
 	}
 	if err != nil {
 		return nil, err
@@ -165,8 +167,9 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		post := Post{Thread: thread}
 		var ttime int64
 		var btime *int64 // Will most likely be nil
+		flags := 0
 
-		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+		if err := rows.Scan(&post.ID, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID, &flags); err != nil {
 			return posts, err
 		}
 
@@ -174,6 +177,7 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 		if btime != nil {
 			post.Bumpdate = time.Unix(*btime, 0).UTC()
 		}
+		post.readFlags(flags)
 
 		if replies {
 			post.Replies, err = db.repliesTx(ctx, tx, board, post.ID)
@@ -208,13 +212,14 @@ func (db *SqliteDatabase) ThreadStat(ctx context.Context, board string, thread P
 
 // Post fetches a single post from a thread.
 func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Post, error) {
-	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id = ?`, board), id)
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
 	var ttime int64
 	var btime *int64
+	flags := 0
 
-	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID)
+	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID, &flags)
 	if err != nil {
 		return post, err
 	}
@@ -223,6 +228,7 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 	if btime != nil {
 		post.Bumpdate = time.Unix(*btime, 0).UTC()
 	}
+	post.readFlags(flags)
 
 	return post, err
 }
@@ -230,13 +236,14 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 // postTx fetches a single post from a thread.
 // Keep in sync with Post.
 func (db *SqliteDatabase) postTx(ctx context.Context, tx *sql.Tx, board string, id PostID) (Post, error) {
-	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id = ?`, board), id)
+	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
 	var ttime int64
 	var btime *int64
+	flags := 0
 
-	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID)
+	err := row.Scan(&post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID, &flags)
 	if err != nil {
 		return post, err
 	}
@@ -245,24 +252,30 @@ func (db *SqliteDatabase) postTx(ctx context.Context, tx *sql.Tx, board string, 
 	if btime != nil {
 		post.Bumpdate = time.Unix(*btime, 0).UTC()
 	}
+	post.readFlags(flags)
 
 	return post, err
 }
 
 // FindAPID finds a post given its ActivityPub ID.
 func (db *SqliteDatabase) FindAPID(ctx context.Context, board string, apid string) (Post, error) {
-	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate FROM posts_%s WHERE apid = ?`, board), apid)
+	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, flags FROM posts_%s WHERE apid = ?`, board), apid)
 	post := Post{APID: apid}
 
 	var ttime int64
 	var btime *int64
+	flags := 0
 
-	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime)
+	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &flags)
+	if err != nil {
+		return post, err
+	}
+
 	post.Date = time.Unix(ttime, 0).UTC()
-
 	if btime != nil {
 		post.Bumpdate = time.Unix(*btime, 0).UTC()
 	}
+	post.readFlags(flags)
 
 	return post, err
 }
@@ -270,18 +283,23 @@ func (db *SqliteDatabase) FindAPID(ctx context.Context, board string, apid strin
 // findAPIDTx finds a post given its ActivityPub ID.
 // Keep in sync with FindAPID.
 func (db *SqliteDatabase) findAPIDTx(ctx context.Context, tx *sql.Tx, board string, apid string) (Post, error) {
-	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate FROM posts_%s WHERE apid = ?`, board), apid)
+	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, flags FROM posts_%s WHERE apid = ?`, board), apid)
 	post := Post{APID: apid}
 
 	var ttime int64
 	var btime *int64
+	flags := 0
 
-	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime)
+	err := row.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &flags)
+	if err != nil {
+		return post, err
+	}
+
 	post.Date = time.Unix(ttime, 0).UTC()
-
 	if btime != nil {
 		post.Bumpdate = time.Unix(*btime, 0).UTC()
 	}
+	post.readFlags(flags)
 
 	return post, err
 }
@@ -429,7 +447,7 @@ func (db *SqliteDatabase) Captcha(ctx context.Context, id string) ([]byte, strin
 
 // repliesTx returns a list of IDs to a post.
 func (db *SqliteDatabase) repliesTx(ctx context.Context, tx *sql.Tx, board string, id PostID) ([]Post, error) {
-	rows, err := tx.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
+	rows, err := tx.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
 	if err != nil {
 		return nil, err
 	}
@@ -441,13 +459,15 @@ func (db *SqliteDatabase) repliesTx(ctx context.Context, tx *sql.Tx, board strin
 		post := Post{}
 		var ttime int64
 		var btime int64 // Should never be nil
+		flags := 0
 
-		if err := rows.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+		if err := rows.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID, &flags); err != nil {
 			return posts, err
 		}
 
 		post.Date = time.Unix(ttime, 0).UTC()
 		post.Bumpdate = time.Unix(btime, 0).UTC()
+		post.readFlags(flags)
 
 		posts = append(posts, post)
 	}
@@ -460,9 +480,9 @@ func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID, 
 	var rows *sql.Rows
 	var err error
 	if reverse {
-		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IN (SELECT target FROM replies_%s WHERE source = ?)`, board, board), id)
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id IN (SELECT target FROM replies_%s WHERE source = ?)`, board, board), id)
 	} else {
-		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
 	}
 	if err != nil {
 		return nil, err
@@ -475,13 +495,15 @@ func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID, 
 		post := Post{}
 		var ttime int64
 		var btime int64 // Should never be nil
+		flags := 0
 
-		if err := rows.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+		if err := rows.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID, &flags); err != nil {
 			return posts, err
 		}
 
 		post.Date = time.Unix(ttime, 0).UTC()
 		post.Bumpdate = time.Unix(btime, 0).UTC()
+		post.readFlags(flags)
 
 		posts = append(posts, post)
 	}
@@ -728,14 +750,15 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 		sql.Named("thread", post.Thread),
 		sql.Named("tripcode", post.Tripcode),
 		sql.Named("bumpdate", post.Date.Unix()),
+		sql.Named("flags", post.flags()),
 	}
 
 	if post.ID == 0 {
 		// We are creating a new post.
 
 		r, err := tx.ExecContext(ctx, fmt.Sprintf(`INSERT INTO
-			posts_%s(thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid) VALUES (
-			:thread, :name, :tripcode, :subject, :date, :raw, :content, :source, :bumpdate, :apid)`,
+			posts_%s(thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags) VALUES (
+				:thread, :name, :tripcode, :subject, :date, :raw, :content, :source, :bumpdate, :apid, :flags)`,
 			board), args...)
 		if err != nil {
 			return err
@@ -985,9 +1008,9 @@ func (db *SqliteDatabase) RecentPosts(ctx context.Context, board string, limit i
 	var err error
 
 	if local {
-		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s WHERE source NOT LIKE "http%%" ORDER BY date DESC LIMIT ?`, board), limit)
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE source NOT LIKE "http%%" ORDER BY date DESC LIMIT ?`, board), limit)
 	} else {
-		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid FROM posts_%s ORDER BY date DESC LIMIT ?`, board), limit)
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s ORDER BY date DESC LIMIT ?`, board), limit)
 	}
 	if err != nil {
 		return nil, err
@@ -1000,8 +1023,9 @@ func (db *SqliteDatabase) RecentPosts(ctx context.Context, board string, limit i
 		post := Post{}
 		var ttime int64
 		var btime *int64 // Will most likely be nil
+		flags := 0
 
-		if err := rows.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID); err != nil {
+		if err := rows.Scan(&post.ID, &post.Thread, &post.Name, &post.Tripcode, &post.Subject, &ttime, &post.Raw, &post.Content, &post.Source, &btime, &post.APID, &flags); err != nil {
 			return posts, err
 		}
 
@@ -1009,6 +1033,7 @@ func (db *SqliteDatabase) RecentPosts(ctx context.Context, board string, limit i
 		if btime != nil {
 			post.Bumpdate = time.Unix(*btime, 0).UTC()
 		}
+		post.readFlags(flags)
 
 		posts = append(posts, post)
 	}

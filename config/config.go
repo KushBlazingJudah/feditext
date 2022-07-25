@@ -2,6 +2,7 @@ package config
 
 import (
 	"crypto/rand"
+	"fmt"
 	"os"
 	"runtime/debug"
 	"time"
@@ -19,6 +20,10 @@ const (
 
 	RequestTimeout = 30 * time.Second
 	MaxReqTime     = 60 * time.Second
+
+	Major = 0
+	Minor = 0
+	Patch = 0
 )
 
 var (
@@ -177,5 +182,5 @@ func init() {
 		}
 	}
 
-	Version = commit + dirty
+	Version = fmt.Sprintf("v%d.%d.%d-%s%s", Major, Minor, Patch, commit, dirty)
 }

@@ -47,6 +47,11 @@ const (
 	saltLength = 16
 )
 
+const (
+	flagSage = 1 << iota
+	flagSJIS
+)
+
 var (
 	ErrPostContents = errors.New("invalid post contents")
 	ErrPostRejected = errors.New("post was rejected")
@@ -84,6 +89,10 @@ type Post struct {
 	// Sage is a marker for incoming posts (i.e. never used when retriving
 	// data) and if true, will not bump the thread to the top of the catalog.
 	Sage bool
+
+	// SJIS is true when the post is considered to be SJIS art.
+	// The "sjis" class will be added to the post's content if this is true.
+	SJIS bool
 }
 
 // ModerationAction records any moderation action taken.
@@ -277,6 +286,24 @@ type Database interface {
 // IsLocal checks if a post was made from this instance or not.
 func (p Post) IsLocal() bool {
 	return !strings.HasPrefix(p.Source, "http")
+}
+
+// flags returns the bitfield represention of various flags.
+func (p Post) flags() int {
+	o := 0
+	if p.Sage {
+		o |= flagSage
+	}
+	if p.SJIS {
+		o |= flagSJIS
+	}
+	return o
+}
+
+// readFlags reads the bitfield represention of flags, and sets the appropriate options.
+func (p *Post) readFlags(f int) {
+	p.Sage = f&flagSage > 0
+	p.SJIS = f&flagSJIS > 0
 }
 
 // hash creates a hash of a password with a salt.

@@ -133,6 +133,7 @@ func Post(c *fiber.Ctx) error {
 		Source:   getIP(c),
 		Subject:  subject,
 		Tripcode: trip,
+		SJIS:     util.IsJapanese(content),
 	}
 
 	// If inReplyTo is specified, grab the thread ID if it's there.

@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/KushBlazingJudah/feditext/util"
 )
 
 const sqliteSchema = `
@@ -130,6 +132,8 @@ CREATE TABLE posts_{board}(
 	source TEXT,
 	apid TEXT,
 
+	flags INTEGER,
+
 	UNIQUE(apid)
 );
 
@@ -190,6 +194,82 @@ var sqliteUpgrades = []func(*sql.Tx) error{
 		_, err := tx.Exec(sqliteSchema)
 		return err
 	},
+	func(tx *sql.Tx) error { // Flags bitfield
+		// Be *extremely* careful here, you cannot simply defer rows.Close() here.
+
+		rows, err := tx.Query(`select id from boards`)
+		if err != nil {
+			return err
+		}
+
+		// Collect a list of boards.
+		boards := []string{}
+		for rows.Next() {
+			board := ""
+			if err := rows.Scan(&board); err != nil {
+				rows.Close()
+				return err
+			}
+			boards = append(boards, board)
+		}
+		rows.Close()
+
+		// Modify tables for each board.
+		for _, board := range boards {
+			// Add the flags field
+			if _, err := tx.Exec(fmt.Sprintf("ALTER TABLE posts_%s ADD COLUMN flags NUMERIC NOT NULL DEFAULT 0", board)); err != nil {
+				return err
+			}
+
+			// Update the posts
+			rows, err = tx.Query(fmt.Sprintf("SELECT id, date, bumpdate, raw FROM posts_%s", board))
+			if err != nil {
+				return err
+			}
+
+			stmts := []string{}
+			for rows.Next() {
+				var id int
+				var date int
+				var bd int
+				var raw string
+				if err := rows.Scan(&id, &date, &bd, &raw); err != nil {
+					rows.Close()
+					return err
+				}
+
+				flags := 0
+				if bd == 0 {
+					// I have no idea what I was thinking then
+					flags |= flagSage
+				}
+
+				if bd == 0 || bd == 1 {
+					// Fix this
+					stmts = append(stmts, fmt.Sprintf("UPDATE posts_%s SET bumpdate = %d WHERE id = %d", board, date, id))
+				}
+
+				if util.IsJapanese(raw) {
+					flags |= flagSJIS
+				}
+
+				if flags != 0 {
+					stmts = append(stmts, fmt.Sprintf("UPDATE posts_%s SET flags = %d WHERE id = %d", board, flags, id))
+				}
+			}
+			rows.Close()
+
+			// We now must run all of our statements
+			for _, stmt := range stmts {
+				if _, err := tx.Exec(stmt); err != nil {
+					return err
+				}
+			}
+		}
+
+		// We should be fine if we made it here.
+		return nil
+	},
 }
 
 // sqliteUpgrade upgrades the SQLite3 database to the latest schema version.
@@ -231,12 +311,12 @@ func sqliteUpgrade(db *sql.DB) error {
 	}
 
 	// Upgrade to the latest
-	for i, fn := range sqliteUpgrades[ver:] {
-		ver = i
+	for _, fn := range sqliteUpgrades[ver:] {
 		if err := fn(tx); err != nil {
 			return err
 		}
 	}
+	ver = len(sqliteUpgrades)
 
 done:
 	// Set user_version and exit
