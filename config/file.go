@@ -94,6 +94,10 @@ func Load(path string) error {
 					// Uses Undo Follow activities instead of toggling with Follow.
 					// COMPAT: FChannel nor we support it yet.
 					UnstableUnfollow = true
+				case "tor2web":
+					// Allows tor2web clients to access Feditext.
+					// They are otherwise immediately denied access.
+					NoT2W = false
 				case "textlimit":
 					log.Printf("textlimit is no longer an unstable option.", tok)
 					log.Printf("The default is now 4000, however you can change this with the \"textlimit\" setting, which accepts any positive number.", tok)

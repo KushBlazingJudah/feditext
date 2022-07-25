@@ -107,6 +107,12 @@ var (
 	// putting a key in the path.
 	Pprof bool = false
 
+	// NoT2W disallows any tor2web proxy identifying as such with the
+	// "X-tor2web" header from accessing Feditext.
+	// Every request will be immediately denied with a message telling users to
+	// download the Tor Browser Bundle.
+	NoT2W bool = true
+
 	// UnstableUnfollow uses Undo activities instead of sending another Follow,
 	// which as of writing FChannel will use to toggle you on and off the
 	// followers list.

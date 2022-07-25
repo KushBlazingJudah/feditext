@@ -120,6 +120,31 @@ func Serve() {
 		ServerHeader: "feditext/" + config.Version,
 	})
 
+	// Ignore Tor2Web if configured to (by default, yes)
+	// If anyone cares (nobody does), I don't like Tor2Web at all.
+	// I would go into detail but eh.
+	if config.NoT2W {
+		app.Use(func (c *fiber.Ctx) error {
+			if c.Get("X-tor2web") != "" {
+				return c.Status(403).SendString("Tor2Web proxies are not allowed to access this server. Please use the Tor Browser, available for free at https://www.torproject.org/download/.")
+			}
+			return c.Next()
+		})
+	}
+
+	// XXX: If for whatever reason you decide to implement Google Analytics
+	// (your changes won't be upstreamed), remove this handler.
+	// This exists solely to disallow bad Tor2Web proxies that hide the fact
+	// that they are tor2web yet send along their GA cookie.
+	// This is another one of the reasons why I hate them.
+	// Nobody should use them.
+	app.Use(func (c *fiber.Ctx) error {
+		if c.Cookies("_ga") != "" {
+			return c.Status(403).SendString("Feditext doesn't have Google Analytics enabled yet you sent a cookie belonging to them along with your request.\nIf you're accessing this from a tor2web proxy, there's a reason for you to stop now.\nPlease use the Tor Browser, available for free at https://www.torproject.org/download/.")
+		}
+		return c.Next()
+	})
+
 	// Logger middleware
 	if config.Private {
 		app.Use(loggerPrivate)
