@@ -132,7 +132,7 @@ CREATE TABLE posts_{board}(
 	source TEXT,
 	apid TEXT,
 
-	flags INTEGER,
+	flags INTEGER NOT NULL DEFAULT 0,
 
 	UNIQUE(apid)
 );
@@ -217,7 +217,7 @@ var sqliteUpgrades = []func(*sql.Tx) error{
 		// Modify tables for each board.
 		for _, board := range boards {
 			// Add the flags field
-			if _, err := tx.Exec(fmt.Sprintf("ALTER TABLE posts_%s ADD COLUMN flags NUMERIC NOT NULL DEFAULT 0", board)); err != nil {
+			if _, err := tx.Exec(fmt.Sprintf("ALTER TABLE posts_%s ADD COLUMN flags INTEGER NOT NULL DEFAULT 0", board)); err != nil {
 				return err
 			}
 
