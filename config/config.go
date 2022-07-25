@@ -30,7 +30,7 @@ var (
 	// PostCutoff is the max length for posts.
 	// This used to be a constant but is now a variable because of unstable
 	// textlimit.
-	PostCutoff = 2000
+	PostCutoff = 4000
 )
 
 var (

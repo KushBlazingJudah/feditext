@@ -2,7 +2,7 @@ package config
 
 import (
 	"bufio"
-	"fmt"
+	"strconv"
 	"log"
 	"os"
 	"strings"
@@ -50,7 +50,7 @@ func Load(path string) error {
 		case "transport":
 			value = strings.ToLower(value)
 			if value != "http" && value != "https" {
-				panic(fmt.Errorf("config: transport: expected http or https, got %s", value))
+				log.Fatalf("Error: transport expects http or https for a value. (Current value: \"%s\")", value)
 			}
 			TransportProtocol = value
 		case "private":
@@ -67,6 +67,20 @@ func Load(path string) error {
 			ProxyUrl = value
 		case "pprof":
 			Pprof = true
+		case "textlimit":
+			var err error
+			PostCutoff, err = strconv.Atoi(value)
+			if err != nil {
+				log.Fatalf("Error parsing textlimit: %s", err)
+				// Exited here
+			}
+
+			if PostCutoff <= 0 {
+				log.Fatalf("Error: textlimit is set to a negative number or zero. Please set it to a number *above* zero.")
+			}
+			if PostCutoff > 4000 {
+				log.Printf("Warning: textlimit is set to over 4000; you may experience problems federating with long posts.")
+			}
 		case "unstable":
 			// You should not set any options here.
 			// These are features implemented but currently unusable, or half baked.
@@ -81,11 +95,17 @@ func Load(path string) error {
 					// COMPAT: FChannel nor we support it yet.
 					UnstableUnfollow = true
 				case "textlimit":
-					// COMPAT: FChannel silently rejects posts with text lengths greater than 2000.
-					// This unstable option moves it back to the original 4000
-					// limit, however as of writing you will be unable to send
-					// posts longer than 2000 chars with FChannel instances.
-					PostCutoff = 4000
+					log.Printf("textlimit is no longer an unstable option.", tok)
+					log.Printf("The default is now 4000, however you can change this with the \"textlimit\" setting, which accepts any positive number.", tok)
+					/*
+						// COMPAT: FChannel silently rejects posts with text lengths greater than 2000.
+						// This unstable option moves it back to the original 4000
+						// limit, however as of writing you will be unable to send
+						// posts longer than 2000 chars with FChannel instances.
+						PostCutoff = 4000
+					*/
+				default:
+					log.Printf("Unknown unstable option \"%s\"", tok)
 				}
 			}
 		default:
