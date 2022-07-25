@@ -26,7 +26,7 @@
 			{{end}}
 		</div>
 	</h3>
-	<blockquote class="content">
+	<blockquote class="content{{if .SJIS}} sjis{{end}}">
 		{{unescape .Content}}
 	</blockquote>
 </div>
