@@ -235,20 +235,26 @@ func redirBanned(c *fiber.Ctx) (bool, error) {
 	return true, nil
 }
 
-func errhtml(c *fiber.Ctx, err error, ret ...string) error {
+func errhtml(c *fiber.Ctx, _err error, ret ...string) error {
 	retu := ""
 	if len(ret) == 1 {
 		retu = ret[0]
 	}
 
-	if err == nil {
+	if _err == nil {
 		panic("nil err passed to errjson")
 	}
 
 	text := "An unknown error has occurred."
 	status := 500
 
-	if errors.Is(err, sql.ErrNoRows) || strings.HasPrefix(err.Error(), "no such table") {
+	// Attempt to unwrap the error
+	err := errors.Unwrap(_err)
+	if err == nil {
+		err = _err
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
 		status = 404
 		text = "Not found."
 	} else if errors.Is(err, database.ErrPostContents) {
@@ -266,6 +272,11 @@ func errhtml(c *fiber.Ctx, err error, ret ...string) error {
 		// TODO: JSON
 		log.Printf("uncaught error on %s: %s", c.Path(), err)
 		text = "An internal server error has occurred."
+	}
+
+	if c.Locals("privs") != nil {
+		// Logged in, send them the actual error message
+		text = _err.Error()
 	}
 
 	if err := render(c.Status(status), "Error", "error", fiber.Map{

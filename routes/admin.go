@@ -102,13 +102,57 @@ func GetAdmin(c *fiber.Ctx) error {
 		}
 	}
 
-	return render(c, "Admin Area", "admin/admin", fiber.Map{
+	return render(c, "Admin Area", "admin/index", fiber.Map{
 		"reports":   reports,
 		"news":      news,
 		"mods":      mods,
 		"regexps":   rxps,
 		"followers": followers,
 		"following": following,
+
+		"showpicker": true,
+	})
+}
+
+func GetAdminBoard(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeMod)
+	if !ok {
+		return errpriv(c, database.ModTypeMod, "/")
+	}
+
+	board, err := DB.Board(c.Context(), c.Params("board"))
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return errhtmlc(c, "That board does not exist.", 404, "/admin")
+	} else if err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	reports, err := DB.BoardReports(c.Context(), board.ID, false)
+	if err != nil {
+		return errhtml(c, fmt.Errorf("error fetching reports: %w", err), "/admin")
+	}
+
+	posts, err := DB.RecentPosts(c.Context(), board.ID, 10, false)
+	if err != nil {
+		return errhtml(c, fmt.Errorf("error fetching recent posts: %w", err), "/admin")
+	}
+
+	followers, err := DB.Followers(c.Context(), board.ID)
+	if err != nil {
+		return errhtml(c, fmt.Errorf("error fetching followers: %w", err), "/admin")
+	}
+
+	following, err := DB.Following(c.Context(), board.ID)
+	if err != nil {
+		return errhtml(c, fmt.Errorf("error fetching following: %w", err), "/admin")
+	}
+
+	return render(c, "Admin Area", "admin/board", fiber.Map{
+		"reports":   reports,
+		"followers": followers,
+		"following": following,
+		"board":     board,
+		"posts":     posts,
 
 		"showpicker": true,
 	})

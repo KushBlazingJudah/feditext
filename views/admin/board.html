@@ -1,0 +1,52 @@
+{{$board := .board}}
+{{$privs := .privs}}
+{{$private := .private}}
+
+<h1>Manage board {{$board.ID}} <a href="/admin">[back]</a></h1>
+
+<h2>Federation</h2>
+
+<h3>Followers</h3>
+<table id="followers" class="table">
+	<tr><th>Follower</th></tr>
+	{{range .followers}}
+	<tr><td>{{.}}</td></tr>
+	{{end}}
+</table>
+
+<h3>Following</h3>
+<form action="/admin/follow" method="get">
+	<input type="text" name="board" id="board" value="{{$board.ID}}" placeholder="Board" hidden>
+	<input type="text" name="target" id="target" value="" placeholder="Target">
+	<input type="checkbox" name="fetch" id="fetch" value=1 checked>
+	<label for="fetch">Fetch outbox</label>
+	<input type="submit">
+</form>
+<table id="following" class="table">
+	<tr><th>Following</th><th>Actions</th></tr>
+	{{range .following}}
+	<tr><td>{{.}}</td><td><a href="/admin/fetch?board={{$board.ID}}&target={{.}}">Fetch</a> <a href="/admin/unfollow?board={{$board.ID}}&target={{.}}">Unfollow</a></td></tr>
+	{{end}}
+</table>
+
+<h2>Reports</h3>
+<table id="reports" class="table">
+	<tr>{{if not $private}}<th>Source</th>{{end}}<th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>
+	{{range .reports}}
+	<tr>
+		{{if not $private}}<td><code>{{.Source}}</code><a href="/admin/ban/{{.Source}}">[Ban]</a></td>{{end}}
+		<td>{{time .Date}}</td>
+		<td><a href="/{{$board.ID}}/{{.Post}}">#{{.Post}}</a></td>
+		<td><p>{{.Reason}}</p></td>
+		<td><a href="/admin/resolve/{{.ID}}">Mark done</a></td>
+	</tr>
+	{{end}}
+</table>
+
+<h2>Recent posts</h2>
+<p>Showing the last {{len .posts}} posts.</p>
+<div id="posts">
+{{range .posts}}
+{{post . $board $privs $private 0 0}}
+{{end}}
+</div>

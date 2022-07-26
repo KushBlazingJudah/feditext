@@ -45,7 +45,7 @@ func init() {
 		// Fetch regexps and compile them
 		regexps, err := sdb.Regexps(context.Background())
 		if err != nil {
-			return sdb, err
+			return sdb, fmt.Errorf("compiling regexps: %w")
 		}
 
 		for _, rexp := range regexps {
@@ -331,6 +331,36 @@ func (db *SqliteDatabase) Reports(ctx context.Context, inclResolved bool) ([]Rep
 		var ttime int64
 
 		if err := rows.Scan(&report.ID, &report.Source, &ttime, &report.Board, &report.Post, &report.Reason, &report.Resolved); err != nil {
+			return reports, err
+		}
+
+		report.Date = time.Unix(ttime, 0).UTC()
+		reports = append(reports, report)
+	}
+
+	return reports, rows.Err()
+}
+
+// BoardReports returns a list of reports specific to a board.
+func (db *SqliteDatabase) BoardReports(ctx context.Context, board string, inclResolved bool) ([]Report, error) {
+	query := `SELECT id, source, date, post, reason, resolved FROM reports WHERE board = ?`
+	if !inclResolved {
+		query += ` AND resolved IS 0`
+	}
+
+	rows, err := db.conn.QueryContext(ctx, query, board)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	reports := []Report{}
+
+	for rows.Next() {
+		report := Report{Board: board}
+		var ttime int64
+
+		if err := rows.Scan(&report.ID, &report.Source, &ttime, &report.Post, &report.Reason, &report.Resolved); err != nil {
 			return reports, err
 		}
 
@@ -1038,13 +1068,7 @@ func (db *SqliteDatabase) RecentPosts(ctx context.Context, board string, limit i
 		posts = append(posts, post)
 	}
 
-	// Say no rows if we get nothing back
-	err = rows.Err()
-	if err == nil && len(posts) == 0 {
-		err = sql.ErrNoRows
-	}
-
-	return posts, err
+	return posts, rows.Err()
 }
 
 // Close closes the database. This should only be called upon exit.

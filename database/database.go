@@ -180,6 +180,9 @@ type Database interface {
 	// Reports returns a list of reports.
 	Reports(ctx context.Context, withResolved bool) ([]Report, error)
 
+	// BoardReports returns a list of reports specific to one board.
+	BoardReports(ctx context.Context, board string, withResolved bool) ([]Report, error)
+
 	// Audits returns a list of moderator actions.
 	Audits(ctx context.Context) ([]ModerationAction, error)
 

@@ -2,9 +2,9 @@ package config
 
 import (
 	"bufio"
-	"strconv"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
