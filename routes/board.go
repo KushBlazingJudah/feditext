@@ -133,7 +133,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		posts = append(posts, indexData{t, nposts, posters})
 	}
 
-	return render(c, board.Title, "board", fiber.Map{
+	return render(c, board.Title, "board/index", fiber.Map{
 		"board":   board,
 		"threads": posts,
 
@@ -163,7 +163,7 @@ func GetBoardCatalog(c *fiber.Ctx) error {
 		posts = append(posts, catalogData{thread, nposts, posters})
 	}
 
-	return render(c, board.Title, "catalog", fiber.Map{
+	return render(c, board.Title, "board/catalog", fiber.Map{
 		"board":   board,
 		"threads": posts,
 
@@ -205,7 +205,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return errhtml(c, err) // TODO: update
 	}
 
-	return render(c, fmt.Sprintf("/%s/%d", board.ID, op.ID), "thread", fiber.Map{
+	return render(c, fmt.Sprintf("/%s/%d", board.ID, op.ID), "board/thread", fiber.Map{
 		"board": board,
 		"posts": posts,
 
@@ -238,7 +238,7 @@ func GetBoardReport(c *fiber.Ctx) error {
 		return errhtmlc(c, "The post you are looking for doesn't exist.", 403, fmt.Sprintf("/%s", board.ID))
 	}
 
-	return render(c, fmt.Sprintf("Report Post /%s/%d", board.ID, pid), "report", fiber.Map{
+	return render(c, fmt.Sprintf("Report Post /%s/%d", board.ID, pid), "board/report", fiber.Map{
 		"board": board,
 		"post":  post,
 	})
@@ -354,7 +354,7 @@ func GetDelete(c *fiber.Ctx) error {
 		return c.Redirect("/" + board.ID)
 	}
 
-	return render(c, fmt.Sprintf("Delete Post /%s/%d", board.ID, pid), "delete", fiber.Map{
+	return render(c, fmt.Sprintf("Delete Post /%s/%d", board.ID, pid), "admin/delete", fiber.Map{
 		"board": board,
 		"post":  post,
 	})

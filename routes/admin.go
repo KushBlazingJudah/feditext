@@ -102,7 +102,7 @@ func GetAdmin(c *fiber.Ctx) error {
 		}
 	}
 
-	return render(c, "Admin Area", "admin", fiber.Map{
+	return render(c, "Admin Area", "admin/admin", fiber.Map{
 		"reports":   reports,
 		"news":      news,
 		"mods":      mods,
@@ -150,7 +150,7 @@ func GetAdminLogin(c *fiber.Ctx) error {
 		return c.Redirect("/admin")
 	}
 
-	return render(c, "Login", "admin_login", fiber.Map{})
+	return render(c, "Login", "admin/login", fiber.Map{})
 }
 
 func PostAdminLogin(c *fiber.Ctx) error {
@@ -334,7 +334,7 @@ func GetAdminBan(c *fiber.Ctx) error {
 		return errpriv(c, database.ModTypeMod, "/")
 	}
 
-	return render(c, "Ban User", "ban", fiber.Map{"ip": c.Params("ip")})
+	return render(c, "Ban User", "admin/ban", fiber.Map{"ip": c.Params("ip")})
 }
 
 func PostAdminBan(c *fiber.Ctx) error {
