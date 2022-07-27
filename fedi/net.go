@@ -107,6 +107,42 @@ func Finger(ctx context.Context, actor string) (Actor, error) {
 	return act, nil
 }
 
+func makeActivityRequest(ctx context.Context, act Activity, data []byte, to string) (*http.Request, error) {
+	actor, err := Finger(ctx, to)
+	if err != nil {
+		return nil, fmt.Errorf("failed to finger: %w", err)
+	}
+
+	if actor.Inbox != "" {
+		req, err := http.NewRequestWithContext(ctx, "POST", actor.Inbox, bytes.NewBuffer(data))
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate request: %w", err)
+		}
+
+		u, err := url.Parse(actor.Inbox)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse actor's inbox URL: %w", err)
+		}
+
+		date := time.Now().UTC().Format(time.RFC1123)
+		data := fmt.Sprintf("(request-target): post %s\nhost: %s\ndate: %s", u.Path, u.Host, date)
+
+		sig, err := Sign(act.Actor.Name, data) // TODO: Bad.
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Content-Type", streams)
+		req.Header.Set("Date", date)
+		req.Header.Set("Signature", fmt.Sprintf(`keyId="%s",headers="(request-target) host date",signature="%s"`, act.Actor.PublicKey.ID, sig))
+		req.Host = u.Host
+
+		return req, nil
+	}
+
+	return nil, fmt.Errorf("no actor inbox")
+}
+
 func SendActivity(ctx context.Context, act Activity) error {
 	if len(act.To) == 0 {
 		// There's nothing to do
@@ -134,48 +170,33 @@ func SendActivity(ctx context.Context, act Activity) error {
 			continue
 		}
 
-		// Reasonable amount of time for everything here to complete.
-		ctx, cancel := context.WithTimeout(ctx, config.MaxReqTime)
-		defer cancel()
+		wg.Add(1)
+		go func(to LinkObject) {
+			defer wg.Done()
+			d := config.RetryDelay
 
-		actor, err := Finger(ctx, to.ID)
-		if err != nil {
-			log.Printf("failed to finger %s: %v", to.ID, err)
-			continue
-		}
+			for i := 0; i < config.MaxRetries; i++ {
+				if i != 0 {
+					log.Printf("Retrying activity send to %s in %s", to.ID, d.String())
 
-		if actor.Inbox != "" {
-			req, err := http.NewRequestWithContext(ctx, "POST", actor.Inbox, bytes.NewBuffer(data))
-			if err != nil {
-				log.Printf("unable to generate request for %s: %v", to.ID, err)
-				continue
-			}
+					time.Sleep(d)
+					d *= config.RetryMultiplyer
+				}
 
-			u, err := url.Parse(actor.Inbox)
-			if err != nil {
-				log.Printf("failed to parse inbox url for %s: %v", to.ID, err)
-				continue
-			}
+				// Reasonable amount of time for everything here to complete.
+				ctx, cancel := context.WithTimeout(ctx, config.MaxReqTime)
+				defer cancel()
 
-			date := time.Now().UTC().Format(time.RFC1123)
-			data := fmt.Sprintf("(request-target): post %s\nhost: %s\ndate: %s", u.Path, u.Host, date)
+				req, err := makeActivityRequest(ctx, act, data, to.ID)
+				if err != nil {
+					log.Printf("failed to make activity request for %s: %v", to.ID, err)
+					return // permanent failure
+				}
 
-			sig, err := Sign(act.Actor.Name, data) // TODO: Bad.
-			if err != nil {
-				return err
-			}
-
-			req.Header.Set("Content-Type", streams)
-			req.Header.Set("Date", date)
-			req.Header.Set("Signature", fmt.Sprintf(`keyId="%s",headers="(request-target) host date",signature="%s"`, act.Actor.PublicKey.ID, sig))
-			req.Host = u.Host
-
-			wg.Add(1)
-			go func(to LinkObject) {
 				res, err := Proxy.Do(req)
 				if err != nil {
 					log.Printf("failed sending activity to %s: %v", to.ID, err)
-					return
+					continue
 				}
 
 				if res.Body != nil {
@@ -192,11 +213,15 @@ func SendActivity(ctx context.Context, act Activity) error {
 						io.Copy(os.Stderr, io.LimitReader(res.Body, 4096))
 						fmt.Fprint(os.Stderr, "\n")
 					}
+					continue
 				}
 
-				wg.Done()
-			}(to)
-		}
+				// Should be all good!
+				return
+			}
+
+			log.Printf("Failed sending activity to %s after %d retries", to.ID, config.MaxRetries)
+		}(to)
 	}
 
 	wg.Wait()
