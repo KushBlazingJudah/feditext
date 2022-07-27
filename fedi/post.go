@@ -107,6 +107,7 @@ func (n Object) AsPost(ctx context.Context, board string) (database.Post, error)
 		Source:   actor,
 		APID:     n.ID,
 		Sage:     saged,
+		SJIS:     util.IsJapanese(n.Content),
 	}, nil
 }
 
@@ -127,7 +128,7 @@ func (n Object) AsThread(ctx context.Context, board string) ([]database.Post, er
 	posts = make([]database.Post, 0, n.Replies.TotalItems+1) // +1 for OP
 	posts = append(posts, op)
 
-	for _, note := range n.Replies.OrderedItems[1:] {
+	for _, note := range n.Replies.OrderedItems {
 		// Kill InReplyTo here, we don't need it and it only makes things more painful.
 		note.InReplyTo = nil // "whoops"
 		if nnn, err := Object(note).AsPost(ctx, board); err != nil {
