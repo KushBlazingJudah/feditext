@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
 
 	"log"
 
@@ -123,7 +123,7 @@ func Post(c *fiber.Ctx) error {
 		case "noko":
 			noko = true
 		case "sage":
-			sage = true
+			sage = true && inReplyTo != ""
 		}
 	}
 
@@ -156,7 +156,7 @@ func Post(c *fiber.Ctx) error {
 		Subject:  subject,
 		Tripcode: trip,
 		SJIS:     util.IsJapanese(content),
-		Sage: sage,
+		Sage:     sage,
 	}
 
 	// If inReplyTo is specified, grab the thread ID if it's there.
