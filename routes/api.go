@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -18,8 +17,6 @@ import (
 	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 )
-
-var optsRegexp = regexp.MustCompile(`(noko|sage)*`)
 
 func GetCaptchaID(c *fiber.Ctx) error {
 	id := c.Params("id")
