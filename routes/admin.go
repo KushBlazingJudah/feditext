@@ -345,7 +345,7 @@ func PostModerator(c *fiber.Ctx) error {
 		return errhtml(c, err, "/admin")
 	}
 
-	log.Printf("%s created user %s (priv: %d)", c.Locals("user").(string), username, ipriv)
+	log.Printf("%s created user %s (priv: %d)", c.Locals("username").(string), username, ipriv)
 
 	return c.Redirect("/admin")
 }
@@ -484,9 +484,9 @@ func GetAdminFollow(c *fiber.Ctx) error {
 }
 
 func GetAdminFetch(c *fiber.Ctx) error {
-	ok := hasPriv(c, database.ModTypeAdmin)
+	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errpriv(c, database.ModTypeAdmin, "/")
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	boardReq := strings.TrimSpace(c.Query("board"))
@@ -621,9 +621,9 @@ func GetAdminUnfollow(c *fiber.Ctx) error {
 }
 
 func PostRegexp(c *fiber.Ctx) error {
-	ok := hasPriv(c, database.ModTypeAdmin)
+	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errpriv(c, database.ModTypeAdmin, "/")
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	pattern := c.FormValue("pattern")
@@ -641,9 +641,9 @@ func PostRegexp(c *fiber.Ctx) error {
 
 func GetRegexpDelete(c *fiber.Ctx) error {
 	// Need privileges
-	ok := hasPriv(c, database.ModTypeAdmin)
+	ok := hasPriv(c, database.ModTypeMod)
 	if !ok {
-		return errpriv(c, database.ModTypeAdmin, "/")
+		return errpriv(c, database.ModTypeMod, "/")
 	}
 
 	id, err := strconv.Atoi(c.Params("id"))

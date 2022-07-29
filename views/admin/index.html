@@ -1,8 +1,10 @@
 {{$private := .private}}
+{{$privs := .privs}}
 
 <h1>Admin view <a href="/">[back]</a></h1>
 
 <h2>Boards</h2>
+{{if gt (len .boards) 0}}
 <table id="threads" class="table">
 	<tr><th>ID</th><th>Title</th><th>Description</th><th>Action</th></tr>
 	{{range .boards}}
@@ -14,7 +16,11 @@
 	</tr>
 	{{end}}
 </table>
+{{else}}
+<p>No boards have been created.</p>
+{{end}}
 
+{{if isAdmin .privs}}
 <h3>Create/edit board</h3>
 <form action="/admin/board" method="post">
 	<input type="text" name="id" id="id" value="" placeholder="ID">
@@ -22,7 +28,9 @@
 	<input type="text" name="description" id="description" value="" placeholder="Description">
 	<input type="submit">
 </form>
+{{end}}
 
+{{if isAdmin .privs}}
 <h2>Post news</h2>
 <form action="/admin/news" method="post">
 	<table id="postForm">
@@ -36,27 +44,32 @@
 		</tr>
 	</table>
 </form>
+{{end}}
 
+{{if gt (len .news) 0}}
 <h3>News articles</h3>
 <table id="news" class="table">
-	<tr><th>Date</th><th>Author</th><th>Subject</th><th>Action</th></tr>
+	<tr><th>Date</th><th>Author</th><th>Subject</th>{{if isAdmin .privs}}<th>Action</th>{{end}}</tr>
 	{{range .news}}
-	<tr><td>{{time .Date}}</td><td>{{.Author}}</td><td>{{.Subject}}</td><td><a href="/admin/news/delete/{{.ID}}">Delete</a></td></tr>
+	<tr><td>{{time .Date}}</td><td>{{.Author}}</td><td>{{.Subject}}</td>{{if isAdmin .privs}}<td><a href="/admin/news/delete/{{.ID}}">Delete</a></td>{{end}}</tr>
 	{{end}}
 </table>
+{{end}}
 
 <h2>Moderators</h2>
+{{if isAdmin .privs}}
 <form action="/admin/moderator" method="post">
 	<input type="text" name="username" id="username" value="" placeholder="Username">
 	<input type="password" name="password" id="password" value="" placeholder="Password">
 	<input type="number" name="priv" id="priv" value="0">
 	<input type="submit">
 </form>
+{{end}}
 
 <table id="mods" class="table">
-	<tr><th>Username</th><th>Privilege</th><th>Action</th></tr>
+	<tr><th>Username</th><th>Privilege</th>{{if isAdmin .privs}}<th>Action</th>{{end}}</tr>
 	{{range .mods}}
-	<tr><td><span class="name">{{.Username}}</span></td><td>{{.Privilege}}</td><td><a href="/admin/moderator/delete/{{.Username}}">Delete</a></td></tr>
+	<tr><td><span class="name">{{.Username}}</span></td><td>{{.Privilege}}</td>{{if isAdmin $privs}}<td><a href="/admin/moderator/delete/{{.Username}}">Delete</a></td>{{end}}</tr>
 	{{end}}
 </table>
 
@@ -70,24 +83,33 @@
 	They are standard regexps, but use <a href="https://pkg.go.dev/regexp/syntax">Go's syntax</a>.
 	You can make your entire filter case insensitive by prefixing it with <code>(?i)</code>.
 </p>
+{{if gt (len .regexps) 0}}
 <table id="filters" class="table">
 	<tr><th>Pattern</th><th>Action</th></tr>
 	{{range .regexps}}
 	<tr><td><code>{{.Pattern}}</code></td><td><a href="/admin/regexps/delete/{{.ID}}">Delete</a></td></tr>
 	{{end}}
 </table>
+{{else}}
+<p>No regexp filters are in effect.</p>
+{{end}}
 
 <h2>Federation</h2>
 
 <h3>Followers</h3>
+{{if gt (len .followers) 0}}
 <table id="followers" class="table">
 	<tr><th>Board</th><th>Follower</th></tr>
 	{{range .followers}}
 	<tr><td>{{index . 0}}</td><td>{{index . 1}}</td></tr>
 	{{end}}
 </table>
+{{else}}
+<p>Nobody is following any of your board.</p>
+{{end}}
 
 <h3>Following</h3>
+{{if isAdmin .privs}}
 <form action="/admin/follow" method="get">
 	<input type="text" name="board" id="board" value="" placeholder="Board">
 	<input type="text" name="target" id="target" value="" placeholder="Target">
@@ -95,14 +117,20 @@
 	<label for="fetch">Fetch outbox</label>
 	<input type="submit">
 </form>
+{{end}}
+{{if gt (len .following) 0}}
 <table id="following" class="table">
 	<tr><th>Board</th><th>Following</th><th>Actions</th></tr>
 	{{range .following}}
-	<tr><td>{{index . 0}}</td><td>{{index . 1}}</td><td><a href="/admin/fetch?board={{index . 0}}&target={{index . 1}}">Fetch</a> <a href="/admin/unfollow?board={{index . 0}}&target={{index . 1}}">Unfollow</a></td></tr>
+	<tr><td>{{index . 0}}</td><td>{{index . 1}}</td><td><a href="/admin/fetch?board={{index . 0}}&target={{index . 1}}">Fetch</a>{{if isAdmin $privs}} <a href="/admin/unfollow?board={{index . 0}}&target={{index . 1}}">Unfollow</a>{{end}}</td></tr>
 	{{end}}
 </table>
+{{else}}
+<p>No boards are following anything.</p>
+{{end}}
 
 <h2>Reports</h3>
+{{if gt (len .reports) 0}}
 <table id="reports" class="table">
 	<tr>{{if not .private}}<th>Source</th>{{end}}<th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>
 	{{range .reports}}
@@ -115,3 +143,6 @@
 	</tr>
 	{{end}}
 </table>
+{{else}}
+<p>No reports. Check back soon!</p>
+{{end}}

@@ -16,8 +16,10 @@
 			<a href="/{{$board.ID}}/report?post={{.ID}}">[report]</a>
 			{{if $privs}}
 				<a href="/admin/delete?board={{$board.ID}}&post={{.ID}}">[delete]</a>
+				{{if isMod $privs}}
 				{{if not $private}} <a href="/admin/ban/{{.Source}}">[ban]</a>{{end}}
 				{{if and (ne .Thread .ID) .IsLocal }} <a href="/admin/resend?board={{$board.ID}}&post={{.ID}}">[->]</a>{{end}}
+				{{end}}
 			{{end}}
 		</div>
 		<div class="backlinks">

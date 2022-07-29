@@ -2,19 +2,24 @@
 {{$privs := .privs}}
 {{$private := .private}}
 
-<h1>Manage board {{$board.ID}} <a href="/admin">[back]</a></h1>
+<h1>Manage board /{{$board.ID}}/ <a href="/admin">[back]</a></h1>
 
 <h2>Federation</h2>
 
 <h3>Followers</h3>
+{{if gt (len .followers) 0}}
 <table id="followers" class="table">
 	<tr><th>Follower</th></tr>
 	{{range .followers}}
 	<tr><td>{{.}}</td></tr>
 	{{end}}
 </table>
+{{else}}
+<p>Nobody is following this board.</p>
+{{end}}
 
 <h3>Following</h3>
+{{if isAdmin .privs}}
 <form action="/admin/follow" method="get">
 	<input type="text" name="board" id="board" value="{{$board.ID}}" placeholder="Board" hidden>
 	<input type="text" name="target" id="target" value="" placeholder="Target">
@@ -22,14 +27,20 @@
 	<label for="fetch">Fetch outbox</label>
 	<input type="submit">
 </form>
+{{end}}
+{{if gt (len .following) 0}}
 <table id="following" class="table">
 	<tr><th>Following</th><th>Actions</th></tr>
 	{{range .following}}
-	<tr><td>{{.}}</td><td><a href="/admin/fetch?board={{$board.ID}}&target={{.}}">Fetch</a> <a href="/admin/unfollow?board={{$board.ID}}&target={{.}}">Unfollow</a></td></tr>
+	<tr><td>{{.}}</td><td><a href="/admin/fetch?board={{$board.ID}}&target={{.}}">Fetch</a>{{if isAdmin $privs}} <a href="/admin/unfollow?board={{$board.ID}}&target={{.}}">Unfollow</a>{{end}}</td></tr>
 	{{end}}
 </table>
+{{else}}
+<p>This board is not following anything.</p>
+{{end}}
 
 <h2>Reports</h3>
+{{if gt (len .reports) 0}}
 <table id="reports" class="table">
 	<tr>{{if not $private}}<th>Source</th>{{end}}<th>Date</th><th>Post</th><th>Reason</th><th>Action</th></tr>
 	{{range .reports}}
@@ -42,7 +53,11 @@
 	</tr>
 	{{end}}
 </table>
+{{else}}
+<p>No reports. Check back soon!</p>
+{{end}}
 
+{{if gt (len .posts) 0}}
 <h2>Recent posts</h2>
 <p>Showing the last {{len .posts}} posts.</p>
 <div id="posts">
@@ -50,3 +65,4 @@
 {{post . $board $privs $private 0 0}}
 {{end}}
 </div>
+{{end}}

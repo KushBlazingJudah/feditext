@@ -83,12 +83,22 @@ func tmpltime(t time.Time) template.HTML {
 	return template.HTML(fmt.Sprintf(`<span data-utc="%d" class="date">%s</span>`, t.Unix(), s))
 }
 
+func tmplIsAdmin(current any) bool {
+	return current == database.ModTypeAdmin
+}
+
+func tmplIsMod(current any) bool {
+	return current == database.ModTypeAdmin || current == database.ModTypeMod
+}
+
 func init() {
 	Tmpl = html.New("./views", ".html")
 	postTmpl := template.Must(template.New("post").Funcs(template.FuncMap{
 		"fancyname": tmplfancyname,
 		"unescape":  tmplunescape,
 		"time":      tmpltime,
+		"isAdmin": tmplIsAdmin,
+		"isMod": tmplIsMod,
 	}).ParseFiles("./views/partials/post.html"))
 
 	Tmpl.AddFunc("unescape", tmplunescape)
@@ -131,6 +141,11 @@ func init() {
 		}
 		return template.HTML(b.String())
 	})
+
+	// A hack, but works
+
+	Tmpl.AddFunc("isAdmin", tmplIsAdmin)
+	Tmpl.AddFunc("isMod", tmplIsMod)
 
 	// read themes directory
 	dir, err := os.ReadDir("./static/css/themes")
