@@ -16,10 +16,14 @@
 		<a href="#" id="pfclose">[X]</a>
 	</div>
 
+	<div id="pfopen">
+		[<a href="#">detach</a>]
+	</div>
+
 	<table>
 		<tr>
 			<td><label for="name">Name:</label></td>
-			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"><input type="submit" value="Post"> <a href="#" id="pfopen">[detach]</a></td>
+			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"></td>
 		</tr>
 		<tr>
 			<td><label for="subject">Subject:</label></td>
@@ -32,7 +36,12 @@
 		{{if not .privs}}
 		<tr>
 			<td>Captcha:</td>
-			<td>{{ captcha }}</td>
+			<td>{{ captcha }} <input type="submit" value="Post"></td>
+		</tr>
+		{{else}}
+		<tr>
+			<td></td>
+			<td><input type="submit" value="Post"></td>
 		</tr>
 		{{end}}
 

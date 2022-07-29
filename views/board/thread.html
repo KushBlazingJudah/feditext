@@ -16,24 +16,38 @@
 		<span id="pftitle">Replying to thread {{$thread}}</span>
 		<a href="#" id="pfclose">[X]</a>
 	</div>
+	<div id="pfopen">
+		[<a href="#">detach</a>]
+	</div>
 
 	<table>
 		<tr>
 			<td><label for="name">Name:</label></td>
-			<td><input type="text" id="name" name="name" placeholder="Anonymous" maxlength="{{.nameMax}}"><input type="submit" value="Post"> <a href="#" id="pfopen">[detach]</a></td>
+			<td><input type="text" id="name" name="name" placeholder="Name" maxlength="{{.nameMax}}"></td>
+		</tr>
+		<tr>
+			<td><label for="options">Options:</label></td>
+			<td><input type="text" id="options" name="options" placeholder="Options" maxlength="{{.optionsMax}}"></td>
 		</tr>
 		<tr>
 			<td><label for="subject">Subject:</label></td>
-			<td><input type="text" id="subject" name="subject" placeholder="..." maxlength="{{.subMax}}"></td>
+			<td><input type="text" id="subject" name="subject" placeholder="Subject" maxlength="{{.subMax}}"></td>
 		</tr>
 		<tr>
-			<td><label for="comment">Content:</label></td>
-			<td><textarea rows="10" cols="50" id="comment" name="comment" maxlength="{{.postMax}}"></textarea></td>
+			<td><label for="comment">Comment:</label></td>
+			<td>
+				<textarea rows="10" cols="50" id="comment" name="comment" maxlength="{{.postMax}}" placeholder="Comment"></textarea>
+			</td>
 		</tr>
 		{{if not .privs}}
 		<tr>
 			<td>Captcha</td>
-			<td>{{captcha}}</td>
+			<td>{{captcha}} <input type="submit" value="Post"></td>
+		</tr>
+		{{else}}
+		<tr>
+			<td></td>
+			<td><input type="submit" value="Post"></td>
 		</tr>
 		{{end}}
 

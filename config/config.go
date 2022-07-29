@@ -21,8 +21,8 @@ const (
 	RequestTimeout = 30 * time.Second
 	MaxReqTime     = 60 * time.Second
 
-	MaxRetries = 5
-	RetryDelay = 10*time.Second
+	MaxRetries      = 5
+	RetryDelay      = 10 * time.Second
 	RetryMultiplyer = 3
 
 	Major = 0

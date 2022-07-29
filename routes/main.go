@@ -97,8 +97,8 @@ func init() {
 		"fancyname": tmplfancyname,
 		"unescape":  tmplunescape,
 		"time":      tmpltime,
-		"isAdmin": tmplIsAdmin,
-		"isMod": tmplIsMod,
+		"isAdmin":   tmplIsAdmin,
+		"isMod":     tmplIsMod,
 	}).ParseFiles("./views/partials/post.html"))
 
 	Tmpl.AddFunc("unescape", tmplunescape)

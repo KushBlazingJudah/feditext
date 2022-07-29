@@ -45,7 +45,7 @@ func init() {
 		// Fetch regexps and compile them
 		regexps, err := sdb.Regexps(context.Background())
 		if err != nil {
-			return sdb, fmt.Errorf("compiling regexps: %w")
+			return sdb, fmt.Errorf("compiling regexps: %w", err)
 		}
 
 		for _, rexp := range regexps {
