@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"regexp"
 
 	"log"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 )
+
+var optsRegexp = regexp.MustCompile(`(noko|sage)*`)
 
 func GetCaptchaID(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -103,7 +106,26 @@ func Post(c *fiber.Ctx) error {
 	}
 
 	inReplyTo := c.FormValue("inReplyTo")
-	options := c.FormValue("options", "noko")
+	options := strings.ToLower(util.Trim(c.FormValue("options"), 16))
+
+	sage := false
+	noko := false
+
+	for {
+		if len(options) < 4 {
+			break
+		}
+
+		v := options[:4]
+		options = options[4:]
+
+		switch v {
+		case "noko":
+			noko = true
+		case "sage":
+			sage = true
+		}
+	}
 
 	var trip string
 	name, trip = crypto.DoTrip(name)
@@ -134,6 +156,7 @@ func Post(c *fiber.Ctx) error {
 		Subject:  subject,
 		Tripcode: trip,
 		SJIS:     util.IsJapanese(content),
+		Sage: sage,
 	}
 
 	// If inReplyTo is specified, grab the thread ID if it's there.
@@ -178,7 +201,7 @@ func Post(c *fiber.Ctx) error {
 	}()
 
 	// Redirect to the newly created thread if not a bot, and noko
-	if !isBot && strings.HasPrefix(options, "noko") {
+	if !isBot && noko {
 		if inReplyTo != "" { // Not a thread
 			return c.Redirect(fmt.Sprintf("/%s/%d#p%d", board.ID, post.Thread, post.ID))
 		}
