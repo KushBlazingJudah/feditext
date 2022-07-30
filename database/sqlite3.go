@@ -421,6 +421,20 @@ func (db *SqliteDatabase) News(ctx context.Context) ([]News, error) {
 	return allNews, rows.Err()
 }
 
+// Article returns a specific news article.
+func (db *SqliteDatabase) Article(ctx context.Context, id int) (*News, error) {
+	row := db.conn.QueryRowContext(ctx, `SELECT author, subject, content, date FROM news WHERE id = ?`, id)
+	news := News{ID: id}
+	var ttime int64
+
+	if err := row.Scan(&news.Author, &news.Subject, &news.Content, &ttime); err != nil {
+		return nil, err
+	}
+
+	news.Date = time.Unix(ttime, 0).UTC()
+	return &news, nil
+}
+
 // Moderators returns a list of currently registered moderators.
 func (db *SqliteDatabase) Moderators(ctx context.Context) ([]Moderator, error) {
 	rows, err := db.conn.QueryContext(ctx, `SELECT username, type FROM moderators`)

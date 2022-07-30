@@ -280,14 +280,22 @@ func PostAdminNews(c *fiber.Ctx) error {
 		return errpriv(c, database.ModTypeAdmin, "/")
 	}
 
+	sid := c.FormValue("id", "0")
 	subject := c.FormValue("subject", "Untitled")
 	content := c.FormValue("content")
+
+	// Used for updating news, which it'll do if the ID is not 0
+	id, err := strconv.Atoi(sid)
+	if err != nil {
+		return errhtmlc(c, "Failed to parse the numeric ID.", 400, "/admin")
+	}
 
 	if content == "" {
 		return errhtmlc(c, "Invalid post contents.", 400, "/admin")
 	}
 
 	if err := DB.SaveNews(c.Context(), &database.News{
+		ID: id,
 		Author:  c.Locals("username").(string),
 		Subject: subject,
 		Content: content,
@@ -314,6 +322,29 @@ func GetAdminNewsDelete(c *fiber.Ctx) error {
 	}
 
 	return c.Redirect("/admin")
+}
+
+func GetAdminNewsUpdate(c *fiber.Ctx) error {
+	ok := hasPriv(c, database.ModTypeAdmin)
+	if !ok {
+		return errpriv(c, database.ModTypeAdmin, "/")
+	}
+
+	nid, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	article, err := DB.Article(c.Context(), nid)
+	if err != nil {
+		return errhtml(c, err, "/admin")
+	}
+
+	return render(c, "Admin Area", "admin/news_update", fiber.Map{
+		"article": article,
+
+		"showpicker": true,
+	})
 }
 
 func PostModerator(c *fiber.Ctx) error {

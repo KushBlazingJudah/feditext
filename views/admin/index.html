@@ -51,7 +51,7 @@
 <table id="news" class="table">
 	<tr><th>Date</th><th>Author</th><th>Subject</th>{{if isAdmin .privs}}<th>Action</th>{{end}}</tr>
 	{{range .news}}
-	<tr><td>{{time .Date}}</td><td>{{.Author}}</td><td>{{.Subject}}</td>{{if isAdmin .privs}}<td><a href="/admin/news/delete/{{.ID}}">Delete</a></td>{{end}}</tr>
+	<tr><td>{{time .Date}}</td><td>{{.Author}}</td><td>{{.Subject}}</td>{{if isAdmin $privs}}<td><a href="/admin/editnews?id={{.ID}}">Edit</a> <a href="/admin/news/delete/{{.ID}}">Delete</a></td>{{end}}</tr>
 	{{end}}
 </table>
 {{end}}

@@ -189,6 +189,9 @@ type Database interface {
 	// News returns news. That's good news.
 	News(ctx context.Context) ([]News, error)
 
+	// Article gets a specific news article.
+	Article(ctx context.Context, id int) (*News, error)
+
 	// Moderators returns a list of currently registered moderators.
 	Moderators(ctx context.Context) ([]Moderator, error)
 

@@ -1,0 +1,18 @@
+{{$private := .private}}
+
+<h2>Updating news article {{.article.ID}} [<a href="/admin">Back</a>]</h2>
+<form action="/admin/news?update={{.article.ID}}" method="post">
+	<table id="postForm">
+		<tr>
+			<td><label for="name">Subject:</label></td>
+			<td><input type="text" id="subject" name="subject" placeholder="Untitled" maxlength="100" value="{{.article.Subject}}"><input type="submit" value="Post"></td>
+		</tr>
+		<tr>
+			<td><label for="content">Content:</label></td>
+			<td><textarea rows="10" cols="50" id="content" name="content">{{.article.Content}}</textarea></td>
+		</tr>
+
+		<input type="hidden" name="id" id="id" value="{{.article.ID}}">
+	</table>
+</form>
+
