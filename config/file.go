@@ -77,8 +77,7 @@ func Load(path string) error {
 
 			if PostCutoff <= 0 {
 				log.Fatalf("Error: textlimit is set to a negative number or zero. Please set it to a number *above* zero.")
-			}
-			if PostCutoff > 4000 {
+			} else if PostCutoff > 4000 {
 				log.Printf("Warning: textlimit is set to over 4000; you may experience problems federating with long posts.")
 			}
 		case "unstable":
@@ -99,8 +98,8 @@ func Load(path string) error {
 					// They are otherwise immediately denied access.
 					NoT2W = false
 				case "textlimit":
-					log.Printf("textlimit is no longer an unstable option.", tok)
-					log.Printf("The default is now 4000, however you can change this with the \"textlimit\" setting, which accepts any positive number.", tok)
+					log.Printf("textlimit is no longer an unstable option.")
+					log.Printf("The default is now 4000, however you can change this with the \"textlimit\" setting, which accepts any positive number.")
 					/*
 						// COMPAT: FChannel silently rejects posts with text lengths greater than 2000.
 						// This unstable option moves it back to the original 4000
