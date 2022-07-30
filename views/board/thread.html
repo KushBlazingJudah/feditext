@@ -39,17 +39,15 @@
 				<textarea rows="10" cols="50" id="comment" name="comment" maxlength="{{.postMax}}" placeholder="Comment"></textarea>
 			</td>
 		</tr>
-		{{if not .privs}}
 		<tr>
+		{{if not .privs}}
 			<td>Captcha</td>
 			<td>{{captcha}} <input type="submit" value="Post"></td>
-		</tr>
 		{{else}}
-		<tr>
 			<td></td>
 			<td><input type="submit" value="Post"></td>
-		</tr>
 		{{end}}
+		</tr>
 
 		<input id="inReplyTo" name="inReplyTo" type="hidden" value="{{(index .posts 0).APID}}">
 		<input id="boardName" name="boardName" type="hidden" value="{{.board.ID}}">
