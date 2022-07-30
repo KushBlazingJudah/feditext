@@ -51,5 +51,7 @@ func GetRules(c *fiber.Ctx) error {
 }
 
 func GetFAQ(c *fiber.Ctx) error {
-	return render(c, "FAQ", "faq", nil)
+	return render(c, "FAQ", "faq", fiber.Map{
+		"donate": config.Donate,
+	})
 }

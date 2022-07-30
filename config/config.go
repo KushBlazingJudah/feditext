@@ -117,6 +117,11 @@ var (
 	// download the Tor Browser Bundle.
 	NoT2W bool = true
 
+	// Donate is a list of places to donate, such as XMR -> address.
+	// This is to aid in easily allowing instance admins to have a spot to
+	// accept donations without needing to modify source code.
+	Donate map[string]string = map[string]string{}
+
 	// UnstableUnfollow uses Undo activities instead of sending another Follow,
 	// which as of writing FChannel will use to toggle you on and off the
 	// followers list.

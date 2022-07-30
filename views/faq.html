@@ -81,6 +81,18 @@ You can use "nokosage" to do both at once.
 
 <p>The first number is the amount of posts, the second number is the amount of unique posters or instances.</p>
 
+{{if gt (len .donate) 0}}
+<h2>I want to donate to this instance. How?</h2>
+
+<p>The instance admin has {{len .donate}} way{{if gt (len .donate) 1}}s{{end}} for you to donate:</p>
+
+<ul>
+	{{range $k, $v := .donate}}
+	<li>{{$k}}: {{$v}}</li>
+	{{end}}
+</ul>
+{{end}}
+
 <h2>Why do the posts have sequential ID numbers?</h2>
 
 <p>

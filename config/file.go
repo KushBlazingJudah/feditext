@@ -80,6 +80,13 @@ func Load(path string) error {
 			} else if PostCutoff > 4000 {
 				log.Printf("Warning: textlimit is set to over 4000; you may experience problems federating with long posts.")
 			}
+		case "donate":
+			toks := strings.SplitN(value, " ", 2)
+			if len(toks) != 2 {
+				log.Fatalf("Error: bad value for donate. Expected two values, got %d.", len(toks))
+			}
+
+			Donate[toks[0]] = toks[1]
 		case "unstable":
 			// You should not set any options here.
 			// These are features implemented but currently unusable, or half baked.

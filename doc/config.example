@@ -6,6 +6,7 @@
 #
 # Set this to the domain you will be hosting this on.
 # It *must* be valid, and point to *this* instance.
+# It is extremely dangerous to arbitrarily flip this.
 # It could be an onion domain, it could be an IP with a port. It just needs to
 # point here.
 fqdn foo.example.com
@@ -14,8 +15,10 @@ fqdn foo.example.com
 title My cool instance
 
 # Transport protocol specifies if this is a secure server or not.
-# Set this to mark it as such, and you have it running behind a reverse proxy
-# of some sort:
+# Set this to mark it as such. Feditext cannot listen with SSL by itself so you
+# should put it behind nginx.
+# Onion instances should only use http since connections are already encrypted.
+# It is harmful to arbitrarily flip this. Don't do it.
 #   transport https
 #
 # Where to listen. It's the usual address:port scheme.
@@ -39,15 +42,10 @@ dbarg ./db.sqlite3
 # on private mode even if you don't want onion sites.
 #   onion true
 #   private true
-#
-# The public audit log is off by default as it's broken in its current state
-# for most things.
-# However, you can turn it on quite easily:
-#   audit true
 
 #
 # Security options
-# 
+#
 # Local connections are not made by default, but in a testing environment they
 # can be useful to federating to an instance on another (or the same) machine.
 #   local true
@@ -56,7 +54,26 @@ dbarg ./db.sqlite3
 # password for the "admin" user upon startup and writes it to the console.
 # Alternatively, see "feditext create -help" to create a new user.
 # TL;DR: "feditext create -username admin -priv 2"
+# **This option is deprecated and will be removed in the near future.**
 #   randadmin true
 #
 # Turn on extra information on ActivityPub activities:
 #   debug true
+
+#
+# Misc options
+#
+# You can configure Feditext to show ways to donate to this instance near the
+# bottom of the FAQ page. Ways to donate to the project itself can be found in
+# DONATE.md.
+# The syntax for this option is "donate <method without spaces> <address>"
+# Specify this option several times to specify several ways to donate to this
+# instance.
+#   donate XMR ...
+#   donate BTC ...
+#
+# textlimit allows you to change the maximum length of posts easily.
+# The default textlimit is set to 4000, which should be more than sufficient
+# but if you think you need more or less you can configure it here.
+# Just know that setting a limit too high can cause issues with federation.
+#   textlimit 4000
