@@ -21,6 +21,7 @@ a:hover.cite {color: #fb4934;}
 	margin-top: 0.25em;
 	margin-bottom: 0.25em;
 }
+:target.post { background-color: #504945; }
 
 .post > h3 {margin-top: 0;}
 .subject {color: #458588;}
