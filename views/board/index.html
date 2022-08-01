@@ -61,10 +61,8 @@
 	{{$hidden := .Hidden}}
 	{{range $j, $v := .Posts}}
 		{{post $v $board $privs $private $nposts $posters}}
-		{{if eq $i 0}}
-		{{if gt $hidden 0}}
+		{{if and (eq $j 0) (gt $hidden 0)}}
 		<div class="postshidden"><i>{{$hidden}} posts hidden. Click <a href="/{{$board.ID}}/{{.ID}}">here</a> to view all.</i></div>
-		{{end}}
 		{{end}}
 	{{end}}
 	{{if ne $i (sub (len $threads) 1)}}
