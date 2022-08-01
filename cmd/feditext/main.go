@@ -16,6 +16,11 @@ import (
 
 var loaded = false
 
+func fatal(f string, a ...any) {
+	fmt.Fprintf(os.Stderr, f, a...)
+	os.Exit(1)
+}
+
 func initdb() {
 	var err error
 
@@ -35,7 +40,7 @@ func initdb() {
 
 	feditext.DB, err = database.Engines[config.DatabaseEngine](config.DatabaseArg)
 	if err != nil {
-		panic(err)
+		fatal("Failed initializing database: %v", err)
 	}
 }
 
@@ -48,7 +53,7 @@ func load(path string) {
 			"- restart Feditext\n", path, path)
 		os.Exit(1)
 	} else if err != nil {
-		panic(err)
+		fatal("Failed loading config: %v", err)
 	}
 
 	// We will have to initialize the database here as everything here requires it.

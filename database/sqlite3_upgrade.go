@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/KushBlazingJudah/feditext/util"
 )
@@ -263,6 +264,84 @@ var sqliteUpgrades = []func(*sql.Tx) error{
 			for _, stmt := range stmts {
 				if _, err := tx.Exec(stmt); err != nil {
 					return err
+				}
+			}
+		}
+
+		// We should be fine if we made it here.
+		return nil
+	},
+	func(tx *sql.Tx) error { // Replies
+		// This isn't exactly a database upgrade, but it's there for v0.1.0.
+
+		// Be *extremely* careful here, you cannot simply defer rows.Close() here.
+
+		rows, err := tx.Query(`select id from boards`)
+		if err != nil {
+			return err
+		}
+
+		// Collect a list of boards.
+		boards := []string{}
+		for rows.Next() {
+			board := ""
+			if err := rows.Scan(&board); err != nil {
+				rows.Close()
+				return err
+			}
+			boards = append(boards, board)
+		}
+		rows.Close()
+
+		// Modify tables for each board.
+		for _, board := range boards {
+			// Update the posts
+			rows, err = tx.Query(fmt.Sprintf("SELECT id, raw FROM posts_%s", board))
+			if err != nil {
+				return err
+			}
+
+			repsmap := map[PostID]map[string]string{}
+			for rows.Next() {
+				p := Post{}
+				if err := rows.Scan(&p.ID, &p.Raw); err != nil {
+					rows.Close()
+					return err
+				}
+
+				repsmap[p.ID] = findReplies(&p)
+			}
+			rows.Close()
+
+			// Resolve the posts
+			// Would've been done earlier but we can't do it while rows is open
+			for src, targets := range repsmap {
+				// Resolve all
+				for _, match := range targets {
+					var id int64
+					if match[0] == 'h' {
+						if err := tx.QueryRow(fmt.Sprintf("SELECT id FROM posts_%s WHERE apid = ?", board), match).Scan(&id); err != nil {
+							if errors.Is(err, sql.ErrNoRows) {
+								continue
+							} else {
+								return err
+							}
+						}
+					} else {
+						_id, _ := strconv.Atoi(match) // Won't fail
+						// Just checking for existance
+						if err := tx.QueryRow(fmt.Sprintf("SELECT id FROM posts_%s WHERE id = ?", board), _id).Scan(&id); err != nil {
+							if errors.Is(err, sql.ErrNoRows) {
+								continue
+							} else {
+								return err
+							}
+						}
+					}
+
+					if _, err := tx.Exec(fmt.Sprintf("INSERT OR IGNORE INTO replies_%s(source, target) VALUES(?, ?)", board), src, id); err != nil {
+						return err
+					}
 				}
 			}
 		}
