@@ -295,7 +295,7 @@ func PostAdminNews(c *fiber.Ctx) error {
 	}
 
 	if err := DB.SaveNews(c.Context(), &database.News{
-		ID: id,
+		ID:      id,
 		Author:  c.Locals("username").(string),
 		Subject: subject,
 		Content: content,

@@ -160,7 +160,7 @@ type Database interface {
 	Boards(ctx context.Context) ([]Board, error)
 
 	// Threads fetches all threads on a board.
-	Threads(ctx context.Context, board string) ([]Post, error)
+	Threads(ctx context.Context, board string, page int) ([]Post, error)
 
 	// Thread fetches all posts on a thread.
 	Thread(ctx context.Context, board string, thread PostID, tail int, replies bool) ([]Post, error)

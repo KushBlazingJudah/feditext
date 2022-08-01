@@ -16,7 +16,7 @@ func GenerateOutbox(ctx context.Context, board database.Board) (Outbox, error) {
 		Actor:   &actor,
 	}
 
-	threads, err := DB.Threads(ctx, board.ID)
+	threads, err := DB.Threads(ctx, board.ID, 0)
 	if err != nil {
 		return ob, err
 	}

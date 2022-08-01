@@ -112,8 +112,18 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 // Threads fetches all threads on a board.
 // TODO: specify sort. We assume that we're just going to sort by latest bumped threads.
 // This is true in 99% of cases but not always.
-func (db *SqliteDatabase) Threads(ctx context.Context, board string) ([]Post, error) {
-	rows, err := db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
+func (db *SqliteDatabase) Threads(ctx context.Context, board string, page int) ([]Post, error) {
+	var rows *sql.Rows
+	var err error
+
+	if page > 0 {
+		offset := page*config.ThreadsPerPage
+		limit := config.ThreadsPerPage
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC LIMIT ? OFFSET ?`, board), limit, offset)
+	} else {
+		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC`, board))
+	}
+
 	if err != nil {
 		return nil, err
 	}

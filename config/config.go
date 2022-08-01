@@ -25,6 +25,8 @@ const (
 	RetryDelay      = 10 * time.Second
 	RetryMultiplyer = 3
 
+	ThreadsPerPage = 10
+
 	Major = 0
 	Minor = 0
 	Patch = 0

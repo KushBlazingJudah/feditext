@@ -25,7 +25,7 @@ var (
 type indexData struct {
 	Posts           []database.Post
 	NPosts, Posters int
-	Hidden int
+	Hidden          int
 }
 
 type catalogData struct {
@@ -113,7 +113,16 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		return errhtml(c, err) // TODO: update
 	}
 
-	threads, err := DB.Threads(c.Context(), board.ID)
+	page := 1
+
+	if q := c.Query("page"); q != "" {
+		page, err = strconv.Atoi(c.Query("page"))
+		if err != nil {
+			return errhtml(c, err)
+		}
+	}
+
+	threads, err := DB.Threads(c.Context(), board.ID, page)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
@@ -131,7 +140,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 			return errhtml(c, err) // TODO: update
 		}
 
-		posts = append(posts, indexData{t, nposts, posters, nposts-len(t)})
+		posts = append(posts, indexData{t, nposts, posters, nposts - len(t)})
 	}
 
 	return render(c, board.Title, "board/index", fiber.Map{
@@ -148,7 +157,7 @@ func GetBoardCatalog(c *fiber.Ctx) error {
 		return errhtml(c, err) // TODO: update
 	}
 
-	threads, err := DB.Threads(c.Context(), board.ID)
+	threads, err := DB.Threads(c.Context(), board.ID, 0)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
