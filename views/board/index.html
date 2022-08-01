@@ -65,4 +65,13 @@
 <hr>
 {{end}}
 
+<div id="pages">
+	{{$page := .page}}
+	{{range $i, $unused := .pages}}
+	{{if eq $i 0}}{{continue}}{{end}}
+	<span>[<a href="/{{$board.ID}}?page={{$i}}"{{if eq $page $i}} class="active"{{end}}>{{$i}}</a>]</span>
+	{{end}}
+	{{if ne $page .next}}<a href="/{{$board.ID}}?page={{.next}}">&gt;&gt;</a>{{end}}
+</div>
+
 <script src="/js/form.js"></script>

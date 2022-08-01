@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"math"
 
 	"github.com/KushBlazingJudah/feditext/captcha"
 	"github.com/KushBlazingJudah/feditext/config"
@@ -33,26 +34,13 @@ type catalogData struct {
 	NPosts, Posters int
 }
 
-func board(c *fiber.Ctx) ([]database.Board, database.Board, error) {
-	board := database.Board{}
-
-	boards, err := DB.Boards(c.Context())
+func board(c *fiber.Ctx) (database.Board, error) {
+	board, err := DB.Board(c.Context(), c.Params("board"))
 	if err != nil {
-		return boards, board, err
+		return board, err
 	}
 
-	for _, v := range boards {
-		if v.ID == c.Params("board") {
-			board = v
-			break
-		}
-	}
-
-	if board.ID == "" {
-		err = sql.ErrNoRows
-	}
-
-	return boards, board, err
+	return board, err
 }
 
 func resolvePost(c *fiber.Ctx, board database.Board, match string) (database.Post, error) {
@@ -108,7 +96,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		return GetBoardActor(c)
 	}
 
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
@@ -119,6 +107,9 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		page, err = strconv.Atoi(c.Query("page"))
 		if err != nil {
 			return errhtml(c, err)
+		}
+		if page < 0 {
+			page = 1
 		}
 	}
 
@@ -143,16 +134,22 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		posts = append(posts, indexData{t, nposts, posters, nposts - len(t)})
 	}
 
+	// This is a really, *really* horrible hack but it works?
+	pages := make([]struct{}, int(math.Ceil(float64(board.Threads)/config.ThreadsPerPage)))
+
 	return render(c, board.Title, "board/index", fiber.Map{
 		"board":   board,
 		"threads": posts,
+		"pages": pages,
+		"page": page,
+		"next": util.Clamp(1, page+1, len(pages)-1),
 
 		"showpicker": true,
 	})
 }
 
 func GetBoardCatalog(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
@@ -186,7 +183,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 		return GetBoardNote(c)
 	}
 
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
@@ -227,7 +224,7 @@ func GetBoardThread(c *fiber.Ctx) error {
 }
 
 func GetBoardReport(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}
@@ -255,7 +252,7 @@ func GetBoardReport(c *fiber.Ctx) error {
 }
 
 func PostBoardReport(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
 	}

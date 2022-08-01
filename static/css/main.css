@@ -51,3 +51,6 @@ input[type="text"] {
 	margin: 0;
 }
 #postForm #captcha { width: unset; }
+
+#pages { float: right; text-align: right; }
+.active { font-weight: bold; }

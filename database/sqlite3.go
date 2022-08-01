@@ -75,15 +75,17 @@ func (db *SqliteDatabase) audit(ctx context.Context, modAction ModerationAction)
 
 // Board gets data about a board.
 func (db *SqliteDatabase) Board(ctx context.Context, id string) (Board, error) {
-	row := db.conn.QueryRowContext(ctx, `SELECT id, title, description FROM boards WHERE id = ?`, id)
 	board := Board{}
 
-	err := row.Scan(&board.ID, &board.Title, &board.Description)
-	if board.ID == "" && err == nil {
-		err = sql.ErrNoRows
+	if err := db.conn.QueryRowContext(ctx, `SELECT id, title, description FROM boards WHERE id = ?`, id).Scan(&board.ID, &board.Title, &board.Description); err != nil {
+		return board, err
 	}
 
-	return board, err
+	if err := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT count() FROM posts_%s WHERE thread = 0`, id)).Scan(&board.Threads); err != nil {
+		return board, err
+	}
+
+	return board, nil
 }
 
 // Boards returns a list of all boards.

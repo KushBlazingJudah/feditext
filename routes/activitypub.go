@@ -73,7 +73,7 @@ func Webfinger(c *fiber.Ctx) error {
 }
 
 func PostBoardInbox(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errjson(c, err)
 	}
@@ -237,7 +237,7 @@ func PostBoardInbox(c *fiber.Ctx) error {
 }
 
 func GetBoardActor(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errjson(c, err)
 	}
@@ -246,7 +246,7 @@ func GetBoardActor(c *fiber.Ctx) error {
 }
 
 func GetBoardOutbox(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errjson(c, err)
 	}
@@ -285,7 +285,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 	// Anyways, this is what FChannel does.
 	// I thought we should return the Note representation...?
 
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errjson(c, err)
 	}
@@ -385,7 +385,7 @@ func GetBoardNote(c *fiber.Ctx) error {
 }
 
 func GetBoardFollowers(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errjson(c, err)
 	}
@@ -411,7 +411,7 @@ func GetBoardFollowers(c *fiber.Ctx) error {
 }
 
 func GetBoardFollowing(c *fiber.Ctx) error {
-	_, board, err := board(c)
+	board, err := board(c)
 	if err != nil {
 		return errjson(c, err)
 	}
