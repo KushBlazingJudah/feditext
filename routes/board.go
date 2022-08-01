@@ -25,6 +25,7 @@ var (
 type indexData struct {
 	Posts           []database.Post
 	NPosts, Posters int
+	Hidden int
 }
 
 type catalogData struct {
@@ -130,7 +131,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 			return errhtml(c, err) // TODO: update
 		}
 
-		posts = append(posts, indexData{t, nposts, posters})
+		posts = append(posts, indexData{t, nposts, posters, nposts-len(t)})
 	}
 
 	return render(c, board.Title, "board/index", fiber.Map{

@@ -53,8 +53,14 @@
 {{$thread := (index .Posts 0).ID}}
 {{$nposts := .NPosts}}
 {{$posters := .Posters}}
-{{range .Posts}}
-{{post . $board $privs $private $nposts $posters}}
+{{$hidden := .Hidden}}
+{{range $i, $v := .Posts}}
+{{post $v $board $privs $private $nposts $posters}}
+{{if eq $i 0}}
+{{if gt $hidden 0}}
+<div class="postshidden"><i>{{$hidden}} posts hidden. Click <a href="/{{$board.ID}}/{{.ID}}">here</a> to view all.</i></div>
+{{end}}
+{{end}}
 {{end}}
 <hr>
 {{end}}

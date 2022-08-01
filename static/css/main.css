@@ -24,6 +24,7 @@ input[type="text"] {
 .backlink {font-weight: initial; font-size: 0.8em;}
 .sjis {font-family: ipamonapgothic,mona,ms pgothic,monospace;}
 .content {overflow-wrap: anywhere;}
+.postshidden {padding-left: 1em;}
 
 #postForm #pfheader { display: none; width: 100%; }
 #pfheader #pfclose { float: right; }
