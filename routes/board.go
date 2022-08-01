@@ -113,6 +113,11 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		}
 	}
 
+	pages := int(math.Ceil(float64(board.Threads)/config.ThreadsPerPage))
+	if page > pages && pages != 0 {
+		return errhtmlc(c, "This page does not exist.", 404, fmt.Sprintf("/%s", board.ID))
+	}
+
 	threads, err := DB.Threads(c.Context(), board.ID, page)
 	if err != nil {
 		return errhtml(c, err) // TODO: update
@@ -134,15 +139,14 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		posts = append(posts, indexData{t, nposts, posters, nposts - len(t)})
 	}
 
-	// This is a really, *really* horrible hack but it works?
-	pages := make([]struct{}, int(math.Ceil(float64(board.Threads)/config.ThreadsPerPage)))
-
 	return render(c, board.Title, "board/index", fiber.Map{
 		"board":   board,
 		"threads": posts,
-		"pages": pages,
 		"page": page,
-		"next": util.Clamp(1, page+1, len(pages)-1),
+		"next": util.Clamp(1, page+1, pages-1),
+
+		// This is a really, *really* horrible hack but it works?
+		"pages": make([]struct{}, pages),
 
 		"showpicker": true,
 	})

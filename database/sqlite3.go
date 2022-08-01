@@ -122,7 +122,7 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string, page int) (
 	var err error
 
 	if page > 0 {
-		offset := page*config.ThreadsPerPage
+		offset := (page-1)*config.ThreadsPerPage
 		limit := config.ThreadsPerPage
 		rows, err = db.conn.QueryContext(ctx, fmt.Sprintf(`SELECT id, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE thread IS 0 ORDER BY bumpdate DESC LIMIT ? OFFSET ?`, board), limit, offset)
 	} else {

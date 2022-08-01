@@ -52,5 +52,5 @@ input[type="text"] {
 }
 #postForm #captcha { width: unset; }
 
-#pages { float: right; text-align: right; }
+#pages { float: right; text-align: right; margin-left: 1em; }
 .active { font-weight: bold; }

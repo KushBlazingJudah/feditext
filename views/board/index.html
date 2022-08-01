@@ -49,6 +49,9 @@
 </form>
 
 <h2>Current threads</h2>
+{{if eq (len .threads) 0}}
+<p>There are no threads on this board. <a href="#comment">Start one!</a></p>
+{{else}}
 {{range .threads}}
 {{$thread := (index .Posts 0).ID}}
 {{$nposts := .NPosts}}
@@ -64,6 +67,7 @@
 {{end}}
 <hr>
 {{end}}
+{{end}}
 
 <div id="pages">
 	{{$page := .page}}
@@ -71,7 +75,7 @@
 	{{if eq $i 0}}{{continue}}{{end}}
 	<span>[<a href="/{{$board.ID}}?page={{$i}}"{{if eq $page $i}} class="active"{{end}}>{{$i}}</a>]</span>
 	{{end}}
-	{{if ne $page .next}}<a href="/{{$board.ID}}?page={{.next}}">&gt;&gt;</a>{{end}}
+	{{if and (ne $page .next) (gt (len .pages) 1)}}<a href="/{{$board.ID}}?page={{.next}}">&gt;&gt;</a>{{end}}
 </div>
 
 <script src="/js/form.js"></script>
