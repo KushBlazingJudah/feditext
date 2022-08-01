@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
-	"math"
 
 	"github.com/KushBlazingJudah/feditext/captcha"
 	"github.com/KushBlazingJudah/feditext/config"
@@ -113,7 +113,7 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		}
 	}
 
-	pages := int(math.Ceil(float64(board.Threads)/config.ThreadsPerPage))
+	pages := int(math.Ceil(float64(board.Threads) / config.ThreadsPerPage))
 	if page > pages && pages != 0 {
 		return errhtmlc(c, "This page does not exist.", 404, fmt.Sprintf("/%s", board.ID))
 	}
@@ -142,8 +142,8 @@ func GetBoardIndex(c *fiber.Ctx) error {
 	return render(c, board.Title, "board/index", fiber.Map{
 		"board":   board,
 		"threads": posts,
-		"page": page,
-		"next": util.Clamp(1, page+1, pages-1),
+		"page":    page,
+		"next":    util.Clamp(1, page+1, pages-1),
 
 		// This is a really, *really* horrible hack but it works?
 		"pages": make([]struct{}, pages),

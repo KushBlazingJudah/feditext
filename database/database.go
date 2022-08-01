@@ -111,7 +111,7 @@ type ModerationAction struct {
 
 type Board struct {
 	ID, Title, Description string
-	Threads int
+	Threads                int
 }
 
 type Report struct {
