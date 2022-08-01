@@ -143,10 +143,9 @@ func GetBoardIndex(c *fiber.Ctx) error {
 		"board":   board,
 		"threads": posts,
 		"page":    page,
-		"next":    util.Clamp(1, page+1, pages-1),
 
 		// This is a really, *really* horrible hack but it works?
-		"pages": make([]struct{}, pages),
+		"pages": make([]struct{}, pages+1),
 
 		"showpicker": true,
 	})

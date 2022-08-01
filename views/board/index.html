@@ -52,21 +52,26 @@
 {{if eq (len .threads) 0}}
 <p>There are no threads on this board. <a href="#comment">Start one!</a></p>
 {{else}}
-{{range .threads}}
-{{$thread := (index .Posts 0).ID}}
-{{$nposts := .NPosts}}
-{{$posters := .Posters}}
-{{$hidden := .Hidden}}
-{{range $i, $v := .Posts}}
-{{post $v $board $privs $private $nposts $posters}}
-{{if eq $i 0}}
-{{if gt $hidden 0}}
-<div class="postshidden"><i>{{$hidden}} posts hidden. Click <a href="/{{$board.ID}}/{{.ID}}">here</a> to view all.</i></div>
-{{end}}
-{{end}}
-{{end}}
-<hr>
-{{end}}
+{{$threads := .threads}}
+{{range $i, $t := .threads}}
+	{{with $t}}
+	{{$thread := (index .Posts 0).ID}}
+	{{$nposts := .NPosts}}
+	{{$posters := .Posters}}
+	{{$hidden := .Hidden}}
+	{{range $j, $v := .Posts}}
+		{{post $v $board $privs $private $nposts $posters}}
+		{{if eq $i 0}}
+		{{if gt $hidden 0}}
+		<div class="postshidden"><i>{{$hidden}} posts hidden. Click <a href="/{{$board.ID}}/{{.ID}}">here</a> to view all.</i></div>
+		{{end}}
+		{{end}}
+	{{end}}
+	{{if ne $i (sub (len $threads) 1)}}
+	<hr>
+	{{end}}
+	{{end}}
+	{{end}}
 {{end}}
 
 <div id="pages">
@@ -75,7 +80,7 @@
 	{{if eq $i 0}}{{continue}}{{end}}
 	<span>[<a href="/{{$board.ID}}?page={{$i}}"{{if eq $page $i}} class="active"{{end}}>{{$i}}</a>]</span>
 	{{end}}
-	{{if and (ne $page .next) (gt (len .pages) 1)}}<a href="/{{$board.ID}}?page={{.next}}">&gt;&gt;</a>{{end}}
+	{{if and (gt (len .pages) 0) (lt (add $page 1) (len .pages))}}<a href="/{{$board.ID}}?page={{add $page 1}}">&gt;&gt;</a>{{end}}
 </div>
 
 <script src="/js/form.js"></script>
