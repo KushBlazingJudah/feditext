@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/KushBlazingJudah/feditext/util"
 )
 
 // PostID is the type of number used for posts.
@@ -311,6 +313,17 @@ func (p Post) flags() int {
 func (p *Post) readFlags(f int) {
 	p.Sage = f&flagSage > 0
 	p.SJIS = f&flagSJIS > 0
+}
+
+func safeBoardId(s string) string {
+	n := strings.Builder{}
+	for _, v := range s {
+		if !util.IsAlnumRune(v) {
+			v = '_'
+		}
+		n.WriteRune(v)
+	}
+	return n.String()
 }
 
 // hash creates a hash of a password with a salt.

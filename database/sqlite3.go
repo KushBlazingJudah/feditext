@@ -75,6 +75,7 @@ func (db *SqliteDatabase) audit(ctx context.Context, modAction ModerationAction)
 
 // Board gets data about a board.
 func (db *SqliteDatabase) Board(ctx context.Context, id string) (Board, error) {
+	id = safeBoardId(id)
 	board := Board{}
 
 	if err := db.conn.QueryRowContext(ctx, `SELECT id, title, description FROM boards WHERE id = ?`, id).Scan(&board.ID, &board.Title, &board.Description); err != nil {
@@ -115,6 +116,8 @@ func (db *SqliteDatabase) Boards(ctx context.Context) ([]Board, error) {
 // TODO: specify sort. We assume that we're just going to sort by latest bumped threads.
 // This is true in 99% of cases but not always.
 func (db *SqliteDatabase) Threads(ctx context.Context, board string, page int) ([]Post, error) {
+	board = safeBoardId(board)
+
 	var rows *sql.Rows
 	var err error
 
@@ -156,6 +159,8 @@ func (db *SqliteDatabase) Threads(ctx context.Context, board string, page int) (
 
 // Thread fetches all posts on a thread.
 func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostID, tail int, replies bool) ([]Post, error) {
+	board = safeBoardId(board)
+
 	tx, err := db.conn.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, err
@@ -214,6 +219,8 @@ func (db *SqliteDatabase) Thread(ctx context.Context, board string, thread PostI
 
 // ThreadStat returns the number of posts and unique posters in any given thread.
 func (db *SqliteDatabase) ThreadStat(ctx context.Context, board string, thread PostID) (int, int, error) {
+	board = safeBoardId(board)
+
 	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT count(id), count(distinct source) FROM posts_%s WHERE id IS ? OR thread IS ?`, board), thread, thread)
 
 	var posts int
@@ -224,6 +231,8 @@ func (db *SqliteDatabase) ThreadStat(ctx context.Context, board string, thread P
 
 // Post fetches a single post from a thread.
 func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Post, error) {
+	board = safeBoardId(board)
+
 	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
@@ -248,6 +257,8 @@ func (db *SqliteDatabase) Post(ctx context.Context, board string, id PostID) (Po
 // postTx fetches a single post from a thread.
 // Keep in sync with Post.
 func (db *SqliteDatabase) postTx(ctx context.Context, tx *sql.Tx, board string, id PostID) (Post, error) {
+	board = safeBoardId(board)
+
 	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id = ?`, board), id)
 	post := Post{ID: id}
 
@@ -271,6 +282,8 @@ func (db *SqliteDatabase) postTx(ctx context.Context, tx *sql.Tx, board string, 
 
 // FindAPID finds a post given its ActivityPub ID.
 func (db *SqliteDatabase) FindAPID(ctx context.Context, board string, apid string) (Post, error) {
+	board = safeBoardId(board)
+
 	row := db.conn.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, flags FROM posts_%s WHERE apid = ?`, board), apid)
 	post := Post{APID: apid}
 
@@ -295,6 +308,8 @@ func (db *SqliteDatabase) FindAPID(ctx context.Context, board string, apid strin
 // findAPIDTx finds a post given its ActivityPub ID.
 // Keep in sync with FindAPID.
 func (db *SqliteDatabase) findAPIDTx(ctx context.Context, tx *sql.Tx, board string, apid string) (Post, error) {
+	board = safeBoardId(board)
+
 	row := tx.QueryRowContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, flags FROM posts_%s WHERE apid = ?`, board), apid)
 	post := Post{APID: apid}
 
@@ -355,6 +370,8 @@ func (db *SqliteDatabase) Reports(ctx context.Context, inclResolved bool) ([]Rep
 
 // BoardReports returns a list of reports specific to a board.
 func (db *SqliteDatabase) BoardReports(ctx context.Context, board string, inclResolved bool) ([]Report, error) {
+	board = safeBoardId(board)
+
 	query := `SELECT id, source, date, post, reason, resolved FROM reports WHERE board = ?`
 	if !inclResolved {
 		query += ` AND resolved IS 0`
@@ -503,6 +520,8 @@ func (db *SqliteDatabase) Captcha(ctx context.Context, id string) ([]byte, strin
 
 // repliesTx returns a list of IDs to a post.
 func (db *SqliteDatabase) repliesTx(ctx context.Context, tx *sql.Tx, board string, id PostID) ([]Post, error) {
+	board = safeBoardId(board)
+
 	rows, err := tx.QueryContext(ctx, fmt.Sprintf(`SELECT id, thread, name, tripcode, subject, date, raw, content, source, bumpdate, apid, flags FROM posts_%s WHERE id IN (SELECT source FROM replies_%s WHERE target = ?)`, board, board), id)
 	if err != nil {
 		return nil, err
@@ -533,6 +552,8 @@ func (db *SqliteDatabase) repliesTx(ctx context.Context, tx *sql.Tx, board strin
 
 // Replies returns a list of IDs to a post.
 func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID, reverse bool) ([]Post, error) {
+	board = safeBoardId(board)
+
 	var rows *sql.Rows
 	var err error
 	if reverse {
@@ -569,6 +590,8 @@ func (db *SqliteDatabase) Replies(ctx context.Context, board string, id PostID, 
 
 // Following returns a list of Actors a board is following.
 func (db *SqliteDatabase) Following(ctx context.Context, board string) ([]string, error) {
+	board = safeBoardId(board)
+
 	rows, err := db.conn.QueryContext(ctx, `SELECT target FROM following WHERE board = ?`, board)
 	if err != nil {
 		return nil, err
@@ -591,6 +614,8 @@ func (db *SqliteDatabase) Following(ctx context.Context, board string) ([]string
 
 // Followers returns a list of Actors a board is being followed by.
 func (db *SqliteDatabase) Followers(ctx context.Context, board string) ([]string, error) {
+	board = safeBoardId(board)
+
 	rows, err := db.conn.QueryContext(ctx, `SELECT source FROM followers WHERE board = ?`, board)
 	if err != nil {
 		return nil, err
@@ -664,12 +689,16 @@ func (db *SqliteDatabase) Banned(ctx context.Context, source string) (bool, time
 
 // AddFollow records an Actor as following a board.
 func (db *SqliteDatabase) AddFollow(ctx context.Context, source string, board string) error {
+	board = safeBoardId(board)
+
 	_, err := db.conn.ExecContext(ctx, "INSERT OR IGNORE INTO followers(source, board) VALUES(?, ?)", source, board)
 	return err
 }
 
 // AddFollowing records a board is following an Actor.
 func (db *SqliteDatabase) AddFollowing(ctx context.Context, board string, target string) error {
+	board = safeBoardId(board)
+
 	_, err := db.conn.ExecContext(ctx, "INSERT OR IGNORE INTO following(board, target) VALUES(?, ?)", board, target)
 	return err
 }
@@ -730,6 +759,8 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 		sql.Named("description", board.Description),
 	}
 
+	board.ID = safeBoardId(board.ID)
+
 	_, err := db.conn.ExecContext(ctx, `INSERT INTO boards(id, title, description) VALUES(:id, :title, :description) ON CONFLICT(id) DO UPDATE SET title = excluded.title, description = excluded.description`, args...)
 	if err != nil {
 		return err
@@ -741,6 +772,8 @@ func (db *SqliteDatabase) SaveBoard(ctx context.Context, board Board) error {
 }
 
 func (db *SqliteDatabase) findPost(ctx context.Context, tx *sql.Tx, board string) func(match string) (Post, error) {
+	board = safeBoardId(board)
+
 	return func(match string) (Post, error) {
 		if match[0] == 'h' { // AP
 			return db.findAPIDTx(ctx, tx, board, match)
@@ -755,6 +788,8 @@ func (db *SqliteDatabase) findPost(ctx context.Context, tx *sql.Tx, board string
 // If Post.ID is 0, one will be generated. If not, it will update an existing post.
 // If Post.Thread is 0, it is considered a thread.
 func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board string, post *Post) error {
+	board = safeBoardId(board)
+
 	if post.Date.IsZero() {
 		post.Date = time.Now().UTC()
 	}
@@ -859,6 +894,8 @@ func (db *SqliteDatabase) SavePostTx(ctx context.Context, tx *sql.Tx, board stri
 // If Post.ID is 0, one will be generated. If not, it will update an existing post.
 // If Post.Thread is 0, it is considered a thread.
 func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post) error {
+	board = safeBoardId(board)
+
 	tx, err := db.conn.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -976,6 +1013,8 @@ func (db *SqliteDatabase) Solve(ctx context.Context, id, solution string) (bool,
 
 // AddReply links two posts together as a reply.
 func (db *SqliteDatabase) AddReply(ctx context.Context, board string, from, to PostID) error {
+	board = safeBoardId(board)
+
 	_, err := db.conn.ExecContext(ctx, fmt.Sprintf(`INSERT OR IGNORE INTO replies_%s(source, target) VALUES(?, ?)`, board), from, to)
 	return err
 }
@@ -983,6 +1022,8 @@ func (db *SqliteDatabase) AddReply(ctx context.Context, board string, from, to P
 // addReplyTx links two posts together as a reply.
 // Keep in sync with AddReply.
 func (db *SqliteDatabase) addReplyTx(ctx context.Context, tx *sql.Tx, board string, from, to PostID) error {
+	board = safeBoardId(board)
+
 	_, err := tx.ExecContext(ctx, fmt.Sprintf(`INSERT OR IGNORE INTO replies_%s(source, target) VALUES(?, ?)`, board), from, to)
 	return err
 }
@@ -990,6 +1031,8 @@ func (db *SqliteDatabase) addReplyTx(ctx context.Context, tx *sql.Tx, board stri
 // DeleteThread deletes a thread from the database and records a moderation action.
 // It will also delete all posts.
 func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error {
+	board = safeBoardId(board)
+
 	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ? OR thread = ?", board), thread, thread)
 	if err != nil {
 		return err
@@ -1000,6 +1043,8 @@ func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread
 
 // DeletePost deletes a post from the database and records a moderation action.
 func (db *SqliteDatabase) DeletePost(ctx context.Context, board string, post PostID, modAction ModerationAction) error {
+	board = safeBoardId(board)
+
 	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ?", board), post)
 	if err != nil {
 		return err
@@ -1022,12 +1067,16 @@ func (db *SqliteDatabase) DeleteModerator(ctx context.Context, username string) 
 
 // DeleteFollow removes a follow from the "followers" entry from a board.
 func (db *SqliteDatabase) DeleteFollow(ctx context.Context, source string, board string) error {
+	board = safeBoardId(board)
+
 	_, err := db.conn.ExecContext(ctx, "DELETE FROM followers WHERE source = ? AND board = ?", source, board)
 	return err
 }
 
 // DeleteFollowing removes a follow from the "following" entry from a board.
 func (db *SqliteDatabase) DeleteFollowing(ctx context.Context, board string, target string) error {
+	board = safeBoardId(board)
+
 	_, err := db.conn.ExecContext(ctx, "DELETE FROM following WHERE board = ? AND target = ?", board, target)
 	return err
 }
@@ -1060,6 +1109,8 @@ func (db *SqliteDatabase) PasswordCheck(ctx context.Context, username string, pa
 }
 
 func (db *SqliteDatabase) RecentPosts(ctx context.Context, board string, limit int, local bool) ([]Post, error) {
+	board = safeBoardId(board)
+
 	var rows *sql.Rows
 	var err error
 
