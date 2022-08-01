@@ -23,12 +23,13 @@ input[type="text"] {
 .backlinks {display: inline;}
 .backlink {font-weight: initial; font-size: 0.8em;}
 .sjis {font-family: ipamonapgothic,mona,ms pgothic,monospace;}
-.content {overflow-wrap: anywhere;}
+.name, .external, .subject, .content {overflow-wrap: anywhere;}
 .postshidden {padding-left: 1em;}
 
 #postForm #pfheader { display: none; width: 100%; }
 #pfheader #pfclose { float: right; }
 
+#postForm { box-sizing: border-box; }
 #postForm.floating { width: min-content; min-width: 300px; }
 #postForm.floating #pfheader { cursor: move; display: block; }
 #postForm.floating #pfopen { display: none; }
@@ -51,6 +52,11 @@ input[type="text"] {
 	margin: 0;
 }
 #postForm #captcha { width: unset; }
+
+@media only screen and (max-width: 600px) {
+	#postForm { width: 100% !important; }
+	#postForm.floating { width: 100% !important; top: 0 !important; left: 0 !important; }
+}
 
 #pages { float: right; text-align: right; margin-left: 1em; }
 .active { font-weight: bold; }

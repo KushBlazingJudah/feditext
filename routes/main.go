@@ -101,9 +101,8 @@ func init() {
 		"isMod":     tmplIsMod,
 	}).ParseFiles("./views/partials/post.html"))
 
-
-	Tmpl.AddFunc("add", func(a, b int) int { return a+b })
-	Tmpl.AddFunc("sub", func(a, b int) int { return a-b })
+	Tmpl.AddFunc("add", func(a, b int) int { return a + b })
+	Tmpl.AddFunc("sub", func(a, b int) int { return a - b })
 
 	Tmpl.AddFunc("unescape", tmplunescape)
 
