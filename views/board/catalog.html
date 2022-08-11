@@ -1,11 +1,13 @@
 {{$board := .board}}
+{{$privs := .privs}}
+{{$private := .private}}
 
 <div id="boardheader">
 	<h1>/{{.board.ID}}/ - {{.board.Title}}</h1>
 	<p>{{.board.Description}}</p>
 </div>
 
-<p><a href="/{{.board.ID}}">[Index]</a></p>
+<p><a href="/{{.board.ID}}/">[Index]</a></p>
 
 <h2>Create a new thread</h2>
 <form action="/post" method="post" id="postForm">
@@ -47,27 +49,20 @@
 </form>
 
 <h2>Current threads</h2>
-<table id="threads" class="table">
-	<tr>
-		<th>ID</th>
-		<th>Name</th>
-		<th>Date</th>
-		<th>Subject</th>
-		<th>Content</th>
-	</tr>
-	{{range .threads}}
+{{if eq (len .threads) 0}}
+<p>There are no threads on this board. <a href="#comment">Start one!</a></p>
+{{else}}
+{{$threads := .threads}}
+{{range $i, $t := .threads}}
+	{{with $t}}
 	{{$nposts := .NPosts}}
 	{{$posters := .Posters}}
-	{{with .Post}}
-	<tr>
-		<td><a href="/{{$board.ID}}/{{.ID}}">{{.ID}}</a></td>
-		<td>{{fancyname .}}</td>
-		<td>{{time .Date}}<br>{{if ne .Date .Bumpdate}}<small>{{time .Bumpdate}}</small>{{end}}</td>
-		<td><span class="subject">{{.Subject}}</span></td>
-		<td><b>[{{$nposts}}:{{$posters}}]</b> {{summarize .Raw}}</td>
-	</tr>
+	{{post .Post $board $privs $private $nposts $posters}}
+	{{if ne $i (sub (len $threads) 1)}}
+	<hr>
 	{{end}}
 	{{end}}
-</table>
+	{{end}}
+{{end}}
 
 <script src="/js/form.js"></script>
