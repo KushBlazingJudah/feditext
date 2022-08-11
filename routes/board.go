@@ -334,7 +334,7 @@ func GetDelete(c *fiber.Ctx) error {
 				Type:   database.ModActionDelete,
 				Board:  board.ID,
 				Post:   post.ID,
-				Reason: "TODO",
+				Reason: c.Query("reason", "No reason provided."),
 				Date:   time.Now().UTC(),
 			}); err != nil {
 				return errhtml(c, err)
@@ -345,7 +345,7 @@ func GetDelete(c *fiber.Ctx) error {
 				Type:   database.ModActionDelete,
 				Board:  board.ID,
 				Post:   post.ID,
-				Reason: "TODO",
+				Reason: c.Query("reason", "No reason provided."),
 				Date:   time.Now().UTC(),
 			}); err != nil {
 				return errhtml(c, err)

@@ -372,12 +372,14 @@ func sqliteUpgrade(db *sql.DB) error {
 
 	// Save for information
 	oldver := ver
+	newdb := false
 
 	// Special case; possibly uninitialized database
 	if ver == 0 {
 		if err := sqliteUpgrades[0](tx); err == nil {
 			// Database intialized successfully, in sync with sqliteUpgrades
 			ver = len(sqliteUpgrades)
+			newdb = true
 			goto done
 		} else if errors.Is(err, errUpgradeContinue) {
 			// Existing pre-v0.1.0 database
@@ -404,6 +406,11 @@ done:
 	}
 
 	// Everything was successful, continue on!
-	log.Printf("Upgraded database from schema version %d to %d", oldver, ver)
+	if !newdb {
+		log.Printf("Upgraded database from schema version %d to %d", oldver, ver)
+	} else {
+		log.Printf("Initialized database successfully")
+	}
+
 	return tx.Commit()
 }

@@ -18,6 +18,19 @@ This post may be imported again if you manually fetch the outbox that this post 
 {{end}}
 </p>
 
-<p>Are you absolutely certain you want to delete this post?</p>
+<form action="/admin/delete" method="get" id="postForm">
+	<table>
+		<tr>
+			<td><label for="reason">Reason:</label></td>
+			<td><textarea rows="10" cols="50" id="comment" name="reason"></textarea></td>
+		</tr>
+		<tr>
+			<td></td>
+			<td><input type="submit" value="Delete Post"></td>
+		</tr>
 
-<p>[<a href="/{{.board.ID}}/{{.post.ID}}">No</a>] [<a href="/admin/delete?board={{.board.ID}}&post={{.post.ID}}&confirm=1">Yes</a>]<p>
+		<input type="hidden" name="board" value="{{.board.ID}}">
+		<input type="hidden" name="post" value="{{.post.ID}}">
+		<input type="hidden" name="confirm" value="1">
+	</table>
+</form>

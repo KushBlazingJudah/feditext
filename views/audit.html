@@ -15,7 +15,7 @@ sake.</p>
 	<tr>
 		<td>{{.Author}}</td>
 		<td>{{time .Date}}</td>
-		<td>{{.Type}}</td>
+		<td>{{if eq .Type 0}}Ban{{else if eq .Type 2}}Delete{{else}}{{.Type}}{{end}}</td>
 		<td>/{{.Board}}/{{.Post}}</td>
 		<td><p>{{.Reason}}</p></td>
 	</tr>
