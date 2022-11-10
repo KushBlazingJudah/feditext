@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,7 +39,7 @@ func getPrivateKey(id string) (*rsa.PrivateKey, error) {
 
 	path := filepath.Join(pemDir, id+".private.pem")
 
-	pkey, err := ioutil.ReadFile(path)
+	pkey, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +54,7 @@ func PublicKey(id string) (string, error) {
 
 	path := filepath.Join(pemDir, id+".pem")
 
-	pkey, err := ioutil.ReadFile(path)
+	pkey, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
