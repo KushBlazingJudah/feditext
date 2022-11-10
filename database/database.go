@@ -70,31 +70,31 @@ var quoteRegex = regexp.MustCompile("(?m)^&gt;(.+?)$")
 // ID does not have to be filled out; it will be done while saving to the
 // database. It exists purely for the frontend.
 type Post struct {
-	Thread PostID
-	ID     PostID
+	Thread PostID `json:"thread"`
+	ID     PostID `json:"id"`
 
-	Name     string
-	Tripcode string
-	Subject  string
+	Name     string `json:"name"`
+	Tripcode string `json:"tripcode"`
+	Subject  string `json:"subject"`
 
-	Date     time.Time
+	Date     time.Time `json:"date"`
 	Bumpdate time.Time // Set to above zero to bump if making a new post
-	Raw      string
-	Content  string
+	Raw      string    `json:"raw"`
+	Content  string    `json:"content"`
 
-	Source string
-	APID   string // ActivityPub ID
+	Source string `json:"source"`
+	APID   string `json:"apid"` // ActivityPub ID
 
 	// Replies is a slice that is optionally filled upon requesting a post.
 	Replies []Post
 
 	// Sage is a marker for incoming posts (i.e. never used when retriving
 	// data) and if true, will not bump the thread to the top of the catalog.
-	Sage bool
+	Sage bool `json:"sage"`
 
 	// SJIS is true when the post is considered to be SJIS art.
 	// The "sjis" class will be added to the post's content if this is true.
-	SJIS bool
+	SJIS bool `json:"sjis"`
 }
 
 // ModerationAction records any moderation action taken.
