@@ -5,6 +5,8 @@
 /*.sqlite3
 /feditext
 /feditext.exe
+/ft2dc
+/ft2dc.exe
 /jwtsecret
 /pem/
 /tripsecret

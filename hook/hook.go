@@ -7,7 +7,7 @@ import (
 )
 
 const Created = "post.created"
-const Deleted = "post.created"
+const Deleted = "post.deleted"
 
 var Hooks []Hook
 
