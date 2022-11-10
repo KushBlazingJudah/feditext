@@ -15,6 +15,7 @@ import (
 	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/fedi"
+	"github.com/KushBlazingJudah/feditext/hook"
 	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 )
@@ -351,6 +352,8 @@ func GetDelete(c *fiber.Ctx) error {
 				return errhtml(c, err)
 			}
 		}
+
+		go hook.PostDelete(context.Background(), board.ID, post, c.Locals("username").(string), c.Query("reason"))
 
 		// Tell everyone else if it's local
 		if post.IsLocal() {

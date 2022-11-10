@@ -6,7 +6,19 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/KushBlazingJudah/feditext/hook"
 )
+
+func setupHook(t, url string) {
+	switch t {
+	case "web":
+		w := &hook.WebHook{Endpoint: url}
+		hook.Hooks = append(hook.Hooks, w)
+	default:
+		log.Fatalf("Unknown hook type \"%s\"", t)
+	}
+}
 
 // Load loads a configuration file using a simple key value format.
 // See doc/config.example.
@@ -87,6 +99,13 @@ func Load(path string) error {
 			}
 
 			Donate[toks[0]] = toks[1]
+		case "hook":
+			toks := strings.SplitN(value, " ", 2)
+			if len(toks) != 2 {
+				log.Fatalf("Error: bad value for hook. Expected two values, got %d.", len(toks))
+			}
+
+			setupHook(toks[0], toks[1])
 		case "unstable":
 			// You should not set any options here.
 			// These are features implemented but currently unusable, or half baked.
