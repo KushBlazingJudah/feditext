@@ -37,7 +37,7 @@ func Startup() {
 		rand.Read(buf)
 
 		pass := hex.EncodeToString(buf)
-		if err := DB.SaveModerator(context.Background(), "admin", pass, database.ModTypeAdmin); err != nil {
+		if err := DB.SaveModerator(context.Background(), "admin", "", pass, database.ModTypeAdmin); err != nil {
 			log.Printf("while setting new admin password: %v", err)
 		} else {
 			log.Printf("admin password: %s", pass)

@@ -354,7 +354,8 @@ func PostModerator(c *fiber.Ctx) error {
 	}
 
 	username := util.Trim(c.FormValue("username"), 32)
-	password := util.Trim(c.FormValue("password"), 64)
+	email := c.FormValue("email")
+	password := c.FormValue("password")
 	priv := c.FormValue("priv")
 
 	if username == "" {
@@ -372,7 +373,7 @@ func PostModerator(c *fiber.Ctx) error {
 		return errhtmlc(c, "Privilege number is not a number.", 400, "/admin")
 	}
 
-	if err := DB.SaveModerator(c.Context(), username, password, database.ModType(ipriv)); err != nil {
+	if err := DB.SaveModerator(c.Context(), username, email, password, database.ModType(ipriv)); err != nil {
 		return errhtml(c, err, "/admin")
 	}
 

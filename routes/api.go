@@ -14,7 +14,6 @@ import (
 	"github.com/KushBlazingJudah/feditext/crypto"
 	"github.com/KushBlazingJudah/feditext/database"
 	"github.com/KushBlazingJudah/feditext/fedi"
-	"github.com/KushBlazingJudah/feditext/hook"
 	"github.com/KushBlazingJudah/feditext/util"
 	"github.com/gofiber/fiber/v2"
 )
@@ -190,7 +189,7 @@ func Post(c *fiber.Ctx) error {
 		}
 	}
 
-	go hook.PostCreate(context.Background(), board.ID, post)
+	go post.Notify(DB, board.ID)
 
 	// TODO: FBI anon asks for outputting the AP object upon response.
 

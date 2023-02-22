@@ -2,23 +2,12 @@ package config
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/KushBlazingJudah/feditext/hook"
 )
-
-func setupHook(t, url string) {
-	switch t {
-	case "web":
-		w := &hook.WebHook{Endpoint: url}
-		hook.Hooks = append(hook.Hooks, w)
-	default:
-		log.Fatalf("Unknown hook type \"%s\"", t)
-	}
-}
 
 // Load loads a configuration file using a simple key value format.
 // See doc/config.example.
@@ -99,13 +88,16 @@ func Load(path string) error {
 			}
 
 			Donate[toks[0]] = toks[1]
-		case "hook":
-			toks := strings.SplitN(value, " ", 2)
-			if len(toks) != 2 {
-				log.Fatalf("Error: bad value for hook. Expected two values, got %d.", len(toks))
-			}
-
-			setupHook(toks[0], toks[1])
+		case "emailserver":
+			EmailServer = value
+		case "emailaddress":
+			EmailAddress = value
+		case "emailuser", "emailusername":
+			EmailUsername = value
+		case "emailpassword":
+			EmailPassword = value
+		case "emailfrom":
+			EmailFrom = value
 		case "unstable":
 			// You should not set any options here.
 			// These are features implemented but currently unusable, or half baked.
@@ -123,16 +115,6 @@ func Load(path string) error {
 					// Allows tor2web clients to access Feditext.
 					// They are otherwise immediately denied access.
 					NoT2W = false
-				case "textlimit":
-					log.Printf("textlimit is no longer an unstable option.")
-					log.Printf("The default is now 4000, however you can change this with the \"textlimit\" setting, which accepts any positive number.")
-					/*
-						// COMPAT: FChannel silently rejects posts with text lengths greater than 2000.
-						// This unstable option moves it back to the original 4000
-						// limit, however as of writing you will be unable to send
-						// posts longer than 2000 chars with FChannel instances.
-						PostCutoff = 4000
-					*/
 				default:
 					log.Printf("Unknown unstable option \"%s\"", tok)
 				}
@@ -140,6 +122,14 @@ func Load(path string) error {
 		default:
 			log.Printf("unknown config key \"%s\"", key)
 		}
+	}
+
+	if EmailFrom == "" {
+		EmailFrom = fmt.Sprintf("Feditext <%s>", EmailAddress)
+	}
+
+	if EmailUsername == "" {
+		EmailUsername = EmailAddress
 	}
 
 	return nil

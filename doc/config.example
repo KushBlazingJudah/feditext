@@ -61,6 +61,22 @@ dbarg ./db.sqlite3
 #   debug true
 
 #
+# Moderation options
+#
+# Feditext can send email on the creation of a report or a post.
+#
+#   emailserver smtp.example.com:465
+#   emailaddress ...@...
+#   emailpassword ...
+#
+# The username that Feditext authenticates with defaults to the email adddress
+# provided above.
+# However, you can change it if you need to:
+#   emailuser ...
+# Additionally, if you want a different "From" field, supply one here:
+#   emailfrom Feditext <feditext@example.com>
+
+#
 # Misc options
 #
 # You can configure Feditext to show ways to donate to this instance near the

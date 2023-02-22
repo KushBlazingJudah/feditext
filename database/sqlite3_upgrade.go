@@ -24,6 +24,7 @@ CREATE TABLE boards(
 
 CREATE TABLE moderators(
 	username TEXT,
+	email TEXT,
 	hash BLOB,
 	salt BLOB,
 
@@ -348,6 +349,10 @@ var sqliteUpgrades = []func(*sql.Tx) error{
 
 		// We should be fine if we made it here.
 		return nil
+	},
+	func(tx *sql.Tx) error { // Moderator email
+		_, err := tx.Exec(`ALTER TABLE moderators ADD COLUMN email TEXT`)
+		return err
 	},
 }
 

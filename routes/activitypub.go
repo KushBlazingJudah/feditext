@@ -127,30 +127,29 @@ func PostBoardInbox(c *fiber.Ctx) error {
 		}
 
 		// Do a quick sanity check
-		if act.ObjectProp != nil {
-			if !util.EqualDomains(act.Actor.ID, act.ObjectProp.ID) {
-				// TODO: Reject
-				return errjsonc(c, 400, "rejecting; may be spoofed")
-			}
+		if !util.EqualDomains(act.Actor.ID, act.ObjectProp.ID) {
+			// TODO: Reject
+			return errjsonc(c, 400, "rejecting; may be spoofed")
 		}
 
 		// Check what board it should go to
 		// TODO: Improve upon this. It kinda sucks.
-		boards := []database.Board{}
+		var board database.Board
 		start := fmt.Sprintf("%s://%s/", config.TransportProtocol, config.FQDN)
 		for _, t := range act.To {
 			if strings.HasPrefix(t.ID, start) {
 				// That's us!
-				board, err := DB.Board(c.Context(), t.ID[len(start):])
+				var err error
+				board, err = DB.Board(c.Context(), t.ID[len(start):])
 				if err != nil {
 					return errjson(c, err)
 				}
 
-				boards = append(boards, board)
+				break
 			}
 		}
 
-		if len(boards) == 0 {
+		if board.ID == "" {
 			return errjsonc(c, 404, "not found")
 		}
 
@@ -161,12 +160,11 @@ func PostBoardInbox(c *fiber.Ctx) error {
 			return errjson(c, err)
 		}
 
-		for _, board := range boards {
-			if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
-				return errjson(c, err)
-			}
-			post.ID = 0
+		if err := DB.SavePost(c.Context(), board.ID, &post); err != nil {
+			return errjson(c, err)
 		}
+
+		go post.Notify(DB, board.ID)
 	} else if act.Type == "Delete" {
 		// TODO: Redo this.
 

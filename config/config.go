@@ -33,13 +33,6 @@ const (
 )
 
 var (
-	// PostCutoff is the max length for posts.
-	// This used to be a constant but is now a variable because of unstable
-	// textlimit.
-	PostCutoff = 4000
-)
-
-var (
 	// FQDN is the domain of the server, such as example.com or foo.example.com.
 	FQDN string = "localhost"
 
@@ -113,16 +106,41 @@ var (
 	// putting a key in the path.
 	Pprof bool = false
 
-	// NoT2W disallows any tor2web proxy identifying as such with the
-	// "X-tor2web" header from accessing Feditext.
-	// Every request will be immediately denied with a message telling users to
-	// download the Tor Browser Bundle.
-	NoT2W bool = true
+	// PostCutoff is the max length for posts.
+	PostCutoff = 4000
+
+	// EmailServer points to an SMTP server where Feditext can send mail
+	// notifying whoever on new incoming mail.
+	EmailServer string = ""
+
+	// EmailUsername is the username that is used to authenticate to the
+	// SMTP server.
+	// This is usually your email address, so if left blank, EmailAddress
+	// will be used.
+	EmailUsername string = ""
+
+	// EmailAddress is the email address that Feditext will use to send
+	// email.
+	EmailAddress string = ""
+
+	// EmailPassword is the password that is used to authenticate to the
+	// SMTP server.
+	EmailPassword string = ""
+
+	// EmailFrom is what goes in the From field on outgoing emails.
+	// If left blank, "Feditext <EmailAddress>" is used.
+	EmailFrom string = ""
 
 	// Donate is a list of places to donate, such as XMR -> address.
 	// This is to aid in easily allowing instance admins to have a spot to
 	// accept donations without needing to modify source code.
 	Donate map[string]string = map[string]string{}
+
+	// NoT2W disallows any tor2web proxy identifying as such with the
+	// "X-tor2web" header from accessing Feditext.
+	// Every request will be immediately denied with a message telling users to
+	// download the Tor Browser Bundle.
+	NoT2W bool = true
 
 	// UnstableUnfollow uses Undo activities instead of sending another Follow,
 	// which as of writing FChannel will use to toggle you on and off the

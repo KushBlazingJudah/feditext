@@ -466,20 +466,23 @@ func (db *SqliteDatabase) Article(ctx context.Context, id int) (*News, error) {
 
 // Moderators returns a list of currently registered moderators.
 func (db *SqliteDatabase) Moderators(ctx context.Context) ([]Moderator, error) {
-	rows, err := db.conn.QueryContext(ctx, `SELECT username, type FROM moderators`)
+	rows, err := db.conn.QueryContext(ctx, `SELECT username, email, type FROM moderators`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	mods := []Moderator{}
+	var ns sql.NullString
 
 	for rows.Next() {
 		mod := Moderator{}
 
-		if err := rows.Scan(&mod.Username, &mod.Privilege); err != nil {
+		if err := rows.Scan(&mod.Username, &ns, &mod.Privilege); err != nil {
 			return mods, err
 		}
+
+		mod.Email = ns.String
 
 		mods = append(mods, mod)
 	}
@@ -910,19 +913,25 @@ func (db *SqliteDatabase) SavePost(ctx context.Context, board string, post *Post
 }
 
 // SaveModerator updates data about a moderator, or creates a new one.
-func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, password string, priv ModType) error {
+func (db *SqliteDatabase) SaveModerator(ctx context.Context, username, email, password string, priv ModType) error {
+	ns := sql.NullString{
+		String: email,
+		Valid:  email != "",
+	}
+
 	hash, salt := hash([]byte(password))
 
 	// This is used to prevent passing an absurdly large amount of arguments.
 	// Of course, we still do that, this just looks nicer :)
 	args := []interface{}{
 		sql.Named("username", username),
+		sql.Named("email", ns),
 		sql.Named("hash", hash),
 		sql.Named("salt", salt),
 		sql.Named("type", priv),
 	}
 
-	_, err := db.conn.ExecContext(ctx, `INSERT INTO moderators(username, hash, salt, type) VALUES(:username, :hash, :salt, :type) ON CONFLICT(username) DO UPDATE SET hash = excluded.hash, salt = excluded.salt, type = excluded.type`, args...)
+	_, err := db.conn.ExecContext(ctx, `INSERT INTO moderators(username, email, hash, salt, type) VALUES(:username, :email, :hash, :salt, :type) ON CONFLICT(username) DO UPDATE SET hash = excluded.hash, salt = excluded.salt, type = excluded.type, email = excluded.email`, args...)
 	return err
 }
 

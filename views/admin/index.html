@@ -60,6 +60,7 @@
 {{if isAdmin .privs}}
 <form action="/admin/moderator" method="post">
 	<input type="text" name="username" id="username" value="" placeholder="Username">
+	<input type="email" name="email" id="email" value="" placeholder="E-mail">
 	<input type="password" name="password" id="password" value="" placeholder="Password">
 	<input type="number" name="priv" id="priv" value="0">
 	<input type="submit">

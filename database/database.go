@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KushBlazingJudah/feditext/config"
 	"github.com/KushBlazingJudah/feditext/util"
 )
 
@@ -138,6 +139,7 @@ type News struct {
 
 type Moderator struct {
 	Username  string
+	Email     string
 	Privilege ModType
 }
 
@@ -240,7 +242,7 @@ type Database interface {
 	SavePost(ctx context.Context, board string, post *Post) error
 
 	// SaveModerator saves a moderator to the database, or updates an existing entry.
-	SaveModerator(ctx context.Context, username string, password string, priv ModType) error
+	SaveModerator(ctx context.Context, username, email, password string, priv ModType) error
 
 	// SaveNews saves news.
 	SaveNews(ctx context.Context, news *News) error
@@ -313,6 +315,58 @@ func (p Post) flags() int {
 func (p *Post) readFlags(f int) {
 	p.Sage = f&flagSage > 0
 	p.SJIS = f&flagSJIS > 0
+}
+
+func modMails(db Database) ([]string, error) {
+	// Get a list of mod mails
+	mods, err := db.Moderators(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	mm := make([]string, 0, len(mods))
+	for _, v := range mods {
+		if v.Email != "" {
+			mm = append(mm, v.Email)
+		}
+	}
+
+	return mm, nil
+}
+
+func (p *Post) Notify(db Database, board string) {
+	if config.EmailAddress == "" {
+		return
+	}
+
+	mm, err := modMails(db)
+	if err != nil {
+		return
+	}
+
+	// Figure out the post
+	subject := fmt.Sprintf("New post: %s", p.APID)
+	contents := fmt.Sprintf(`Name: %s
+Subject: %s
+InReplyTo: /%s/%d
+
+%s`, p.Name, p.Subject, board, p.Thread, p.Raw)
+
+	util.SendMail(context.Background(), mm, subject, contents)
+}
+
+func (r *Report) Notify(db Database) {
+	if config.EmailAddress == "" {
+		return
+	}
+
+	mm, err := modMails(db)
+	if err != nil {
+		return
+	}
+
+	subject := fmt.Sprintf("New report on: /%s/%d", r.Board, r.Post)
+	util.SendMail(context.Background(), mm, subject, r.Reason)
 }
 
 func safeBoardId(s string) string {

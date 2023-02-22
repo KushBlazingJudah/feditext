@@ -68,6 +68,7 @@ func createUser(args []string) {
 	var (
 		cfg      = fls.String("config", "./feditext.config", "location of feditext's config")
 		username = fls.String("username", "", "username of new user")
+		email    = fls.String("email", "", "email of new user")
 		password = fls.String("password", "", "password of new user; read from stdin if not specified")
 		priv     = fls.Uint("priv", 0, fmt.Sprintf("privileges of the new user; %d for janitor, %d for moderator, %d for admin.",
 			database.ModTypeJanitor, database.ModTypeMod, database.ModTypeAdmin))
@@ -97,7 +98,7 @@ func createUser(args []string) {
 		*password = scanner.Text()
 	}
 
-	if err := feditext.DB.SaveModerator(context.Background(), *username, *password, database.ModType(*priv)); err != nil {
+	if err := feditext.DB.SaveModerator(context.Background(), *username, *email, *password, database.ModType(*priv)); err != nil {
 		panic(err)
 	}
 
