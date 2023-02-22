@@ -1038,11 +1038,17 @@ func (db *SqliteDatabase) addReplyTx(ctx context.Context, tx *sql.Tx, board stri
 }
 
 // DeleteThread deletes a thread from the database and records a moderation action.
-// It will also delete all posts.
+// It will also delete all posts and reports.
 func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread PostID, modAction ModerationAction) error {
 	board = safeBoardId(board)
 
-	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ? OR thread = ?", board), thread, thread)
+	// Delete all associated reports.
+	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM reports WHERE board = ? AND post IN (SELECT id FROM posts_%s WHERE id = ? OR thread = ?)", board), board, thread, thread)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ? OR thread = ?", board), thread, thread)
 	if err != nil {
 		return err
 	}
@@ -1054,7 +1060,12 @@ func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread
 func (db *SqliteDatabase) DeletePost(ctx context.Context, board string, post PostID, modAction ModerationAction) error {
 	board = safeBoardId(board)
 
-	_, err := db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ?", board), post)
+	_, err = db.conn.ExecContext(ctx, `DELETE FROM reports WHERE board = ? AND post = ?`, board, post)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.conn.ExecContext(ctx, fmt.Sprintf("DELETE FROM posts_%s WHERE id = ?", board), post)
 	if err != nil {
 		return err
 	}
