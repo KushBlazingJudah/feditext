@@ -1060,7 +1060,7 @@ func (db *SqliteDatabase) DeleteThread(ctx context.Context, board string, thread
 func (db *SqliteDatabase) DeletePost(ctx context.Context, board string, post PostID, modAction ModerationAction) error {
 	board = safeBoardId(board)
 
-	_, err = db.conn.ExecContext(ctx, `DELETE FROM reports WHERE board = ? AND post = ?`, board, post)
+	_, err := db.conn.ExecContext(ctx, `DELETE FROM reports WHERE board = ? AND post = ?`, board, post)
 	if err != nil {
 		return err
 	}

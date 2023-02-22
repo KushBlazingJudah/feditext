@@ -1,5 +1,5 @@
 TAGS ?= sqlite3
-GOFLAGS = -tags="$(TAGS)"
+GOFLAGS = -tags="$(TAGS)" -trimpath
 CGO_ENABLED = 1
 
 all: build
